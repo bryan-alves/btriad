@@ -3,8 +3,13 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <meta name="description" content="Equipe B-Triad Jiu-Jitsu com aulas para crianças, jovens e adultos.">
+        <meta property="og:title" content="B-Triad Jiu-Jitsu">
+        <meta property="og:description" content="Equipe B-Triad Jiu-Jitsu com aulas para crianças, jovens e adultos.">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="{{ url('/') }}">
+        <meta property="og:image" content="{{ asset('logo.png') }}">
+        <title>B-Triad Jiu-Jitsu</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -19,8 +24,12 @@
             </style>
         @endif
     </head>
-    <body class="bg-[#FDFDFC] text-[#1b1b18] flex p-6 lg:p-8 items-center lg:justify-center min-h-screen flex-col">
-        <h1>AEEEEEEEE</h1>
-
+    <body style="min-height: 100vh;background-color: #1b1b18; display: flex;align-items: center; justify-content: center;flex-direction: column" class=" p-6 lg:p-8">
+        <img class="mb-4" src="logo.png" alt="" style="max-width: 500px; width: 100%; height: auto;">
+        <h1 style="color:#FFF; font-size: 36px">
+            Equipe B-Triad Jiu-Jitsu
+        </h1>
+        <h2 style="color:#FFF; font-size: 36px">Estamos no aquecimento 🥋.</h2>
+        <p style="font-size: 24px;color:#FFF;">Site em construção!</p>
     </body>
 </html>
