@@ -1,14 +1,7 @@
-<template>
-  <router-view />
-</template>
-
 <script setup>
-const message = 'Hello, Vue 3 with Laravel!';
-
+import '../css/app.css'
 </script>
 
-<style>
-h1 {
-  color: #111;
-}
-</style>
+<template>
+  <RouterView />
+</template>
