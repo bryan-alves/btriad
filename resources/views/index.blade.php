@@ -11,7 +11,7 @@
     <meta property="og:url" content="{{ url('/') }}">
     <meta property="og:image" content="{{ asset('logo.png') }}">
     <title>B-Triad Jiu-Jitsu</title>
-    <link rel="icon" href="/logo-b.png">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
@@ -23,13 +23,9 @@
 
 <body class="">
     @include('home.header')
-    <div class="home-page">
-        <h1 class="home-page__title">
-            Equipe B-Triad Jiu-Jitsu
-        </h1>
-        <h2 style="color:#FFF; font-size: 36px">Estamos no aquecimento 🥋.</h2>
-        <p style="font-size: 24px;color:#FFF;">Site em construção!</p>
-    </div>
+    <main style="display: flex; flex: 1">
+    </main>
+    @include('home.footer')
 </body>
 
 </html>
