@@ -11,11 +11,22 @@ class Student extends Model
     use HasFactory;
 
     protected $fillable = [
+        'belt_id',
+        'user_id',
+        'photo',
         'name',
         'cpf',
         'birth_date',
+        'sex',
+        'address',
+        'emergency_contacts',
+        'practices_other_sports',
+        'other_sports',
+        'health_issues',
+        'medical_certificate',
+        'image_authorization',
+        'image_authorization_file',
         'active',
-        'photo'
     ];
 
     protected $casts = [
@@ -37,5 +48,10 @@ class Student extends Model
         return $this->photo
             ? asset('storage/' . $this->photo)
             : null;
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
