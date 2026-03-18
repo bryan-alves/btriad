@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('index');
 });
-Route::get('/app', function () {
+Route::get('/admin/students', function () {
+    return view('app');
+});
+Route::get('/admin/students/create', function () {
     return view('app');
 });
