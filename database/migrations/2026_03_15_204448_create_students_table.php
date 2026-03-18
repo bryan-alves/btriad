@@ -40,7 +40,7 @@ return new class extends Migration
             $table->text('health_issues')->nullable();
             $table->string('medical_certificate')->nullable();
 
-
+            $table->string('registration_form_file')->nullable();
 
             $table->boolean('image_authorization')->default(false);
             $table->string('image_authorization_file')->nullable();
