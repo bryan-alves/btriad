@@ -20,7 +20,7 @@ class StoreStudentRequest extends FormRequest
 
             // Dados básicos
             'name' => ['required', 'string', 'max:255'],
-            'cpf' => ['nullable', 'string', 'size:14', 'unique:students,cpf'],
+            'cpf' => ['nullable', 'string', 'size:11', 'unique:students,cpf'],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'sex' => ['nullable', 'string', 'in:M,F,outro'],
 
@@ -28,20 +28,22 @@ class StoreStudentRequest extends FormRequest
             'photo' => ['nullable', 'image', 'max:2048'],
 
             // JSONs
-            'address' => ['nullable', 'array'],
-            'emergency_contacts' => ['nullable', 'array'],
+            'address' => ['nullable'],
+            'emergency_contacts' => ['nullable'],
 
             // Esportes
             'practices_other_sports' => ['boolean'],
-            'other_sports' => ['nullable', 'string', 'max:255', 'required_if:practices_other_sports,true'],
+            'other_sports' => ['nullable', 'string', 'max:255', 'required_if:practices_other_sports,1'],
 
             // Saúde
             'health_issues' => ['nullable', 'string'],
             'medical_certificate' => ['nullable', 'string', 'max:255'],
 
+            'registration_form_file' => ['nullable', 'string', 'max:255', 'required_if:image_authorization,1'],
+
             // Autorização de imagem
             'image_authorization' => ['boolean'],
-            'image_authorization_file' => ['nullable', 'string', 'max:255', 'required_if:image_authorization,true'],
+            'image_authorization_file' => ['nullable', 'string', 'max:255', 'required_if:image_authorization,1'],
 
             // Status
             'active' => ['boolean'],
