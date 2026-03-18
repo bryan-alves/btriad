@@ -45,7 +45,7 @@ onMounted(async () => {
             <td>{{ student.registration_form ? 'Sim' : 'Não' }}</td>
             <td>{{ student.image_authorization ? 'Sim' : 'Não' }}</td>
             <td>
-              <button class="btn-details">Detalhes</button>
+              <RouterLink :to="`/admin/students/${student.id}`">Detalhes</RouterLink>
             </td>
           </tr>
         </tbody>
