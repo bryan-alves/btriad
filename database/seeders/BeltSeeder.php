@@ -13,11 +13,10 @@ class BeltSeeder extends Seeder
         $now = Carbon::now();
 
         DB::table('belts')->insert([
-
-            // Branca
             [
                 'id' => 1,
                 'name' => 'Branca',
+                'slug' => 'white',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -26,16 +25,16 @@ class BeltSeeder extends Seeder
             [
                 'id' => 2,
                 'name' => 'Branca',
+                'slug' => 'white',
                 'group' => 'adult',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
                 'updated_at' => $now
             ],
-
-            // Cinza
             [
                 'id' => 3,
                 'name' => 'Cinza e Branco',
+                'slug' => 'gray-white',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -44,6 +43,7 @@ class BeltSeeder extends Seeder
             [
                 'id' => 4,
                 'name' => 'Cinza',
+                'slug' => 'gray',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -52,16 +52,16 @@ class BeltSeeder extends Seeder
             [
                 'id' => 5,
                 'name' => 'Cinza e Preto',
+                'slug' => 'gray-black',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
                 'updated_at' => $now
             ],
-
-            // Amarela
             [
                 'id' => 6,
                 'name' => 'Amarela e Branco',
+                'slug' => 'yellow-white',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -70,6 +70,7 @@ class BeltSeeder extends Seeder
             [
                 'id' => 7,
                 'name' => 'Amarela',
+                'slug' => 'yellow',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -78,16 +79,16 @@ class BeltSeeder extends Seeder
             [
                 'id' => 8,
                 'name' => 'Amarela e Preto',
+                'slug' => 'yellow-black',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
                 'updated_at' => $now
             ],
-
-            // Laranja
             [
                 'id' => 9,
                 'name' => 'Laranja e Branco',
+                'slug' => 'orange-white',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -96,6 +97,7 @@ class BeltSeeder extends Seeder
             [
                 'id' => 10,
                 'name' => 'Laranja',
+                'slug' => 'orange',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -104,16 +106,16 @@ class BeltSeeder extends Seeder
             [
                 'id' => 11,
                 'name' => 'Laranja e Preto',
+                'slug' => 'orange-black',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
                 'updated_at' => $now
             ],
-
-            // Verde
             [
                 'id' => 12,
                 'name' => 'Verde e Branco',
+                'slug' => 'green-white',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -122,6 +124,7 @@ class BeltSeeder extends Seeder
             [
                 'id' => 13,
                 'name' => 'Verde',
+                'slug' => 'green',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -130,16 +133,16 @@ class BeltSeeder extends Seeder
             [
                 'id' => 14,
                 'name' => 'Verde e Preto',
+                'slug' => 'green-black',
                 'group' => 'kids',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
                 'updated_at' => $now
             ],
-
-            // Adulto
             [
                 'id' => 15,
                 'name' => 'Azul',
+                'slug' => 'blue',
                 'group' => 'adult',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -148,6 +151,7 @@ class BeltSeeder extends Seeder
             [
                 'id' => 16,
                 'name' => 'Roxa',
+                'slug' => 'purple',
                 'group' => 'adult',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -156,6 +160,7 @@ class BeltSeeder extends Seeder
             [
                 'id' => 17,
                 'name' => 'Marrom',
+                'slug' => 'brown',
                 'group' => 'adult',
                 'classes_per_stripe' => null,
                 'created_at' => $now,
@@ -164,6 +169,7 @@ class BeltSeeder extends Seeder
             [
                 'id' => 18,
                 'name' => 'Preta',
+                'slug' => 'black',
                 'group' => 'adult',
                 'classes_per_stripe' => null,
                 'created_at' => $now,

@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Api\Controllers;
+namespace App\Http\Controllers\Api;
 
 use App\Models\Belt;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class BeltController extends Controller
 {
@@ -12,7 +13,16 @@ class BeltController extends Controller
      */
     public function index()
     {
-        //
+        try {
+            $belts =  Belt::all();
+
+            return response()->json($belts, 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Erro ao buscar alunos'
+            ], 500);
+        }
+
     }
 
     /**

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('belts', function (Blueprint $table) {
             $table->id();
+            $table->string('slug');
             $table->string('name');
             $table->enum('group', ['adult', 'kids']);
             $table->integer('classes_per_stripe')->nullable();
