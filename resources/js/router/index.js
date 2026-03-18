@@ -1,12 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import Index from '@/views/Index.vue'
+import StudentIndex from '@/views/Students/Index.vue'
+import StudentCreate from '@/views/Students/Create.vue'
 
 const routes = [
   {
-    path: '/app',
-    name: 'Index',
-    component: Index
+    path: '/admin/students',
+    name: 'StudentsIndex',
+    component: StudentIndex
+  },
+  {
+    path: '/admin/students/create',
+    name: 'StudentsCreate',
+    component: StudentCreate
   },
 ]
 
