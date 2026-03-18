@@ -54,4 +54,9 @@ class Student extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function belt()
+    {
+        return $this->belongsTo(Belt::class);
+    }
 }
