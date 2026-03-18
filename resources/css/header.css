@@ -1,81 +1,89 @@
 .nav {
-    position: sticky;
-    top: 0;
-    background: #1b1b18;
-    z-index: 100;
-    box-shadow: 0 4px 12px rgba(27, 27, 24, 0.5);
-    padding: 10px 100px;
+  position: sticky;
+  width: 100%;
+  top: 0;
+  background: rgba(0, 0, 0, 0.97);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(27, 27, 24, 0.5);
+  padding: 10px 100px;
 
+}
+
+.nav__logo img {
+  max-width: 105px;
+  height: auto;
+}
+
+.nav__container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+}
+
+.nav__logo {
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.nav__toggle {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* Menu mobile */
+.nav__menu {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+  background: #0f0f0f;
+  padding: 16px;
+}
+
+.nav__menu a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.nav__cta {
+  background: #c62828;
+  padding: 10px 14px;
+  border-radius: 6px;
+  text-align: center;
+  color: #fff;
+}
+
+/* Estado aberto (JS adiciona essa classe) */
+.nav--open .nav__menu {
+  display: flex;
+}
+
+.nav__toggle {
+  display: none;
+}
+
+
+.nav__menu {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  padding: 0;
+}
+
+
+
+@media (max-width: 768px) {
+
+  .nav {
+    padding: 10px 20px;
   }
 
-  .nav__logo img {
-    max-width: 150px;
-    height: auto;
-  }
-
-  .nav__container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-  }
-
-  .nav__logo {
-    color: #fff;
-    font-weight: 700;
-    font-size: 18px;
-  }
-
-  .nav__toggle {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 24px;
-    cursor: pointer;
-  }
-
-  /* Menu mobile */
   .nav__menu {
     display: none;
-    flex-direction: column;
-    gap: 16px;
-    background: #0f0f0f;
-    padding: 16px;
   }
-
-  .nav__menu a {
-    color: #fff;
-    text-decoration: none;
-    font-size: 16px;
-  }
-
-  .nav__cta {
-    background: #c62828;
-    padding: 10px 14px;
-    border-radius: 6px;
-    text-align: center;
-    color: #fff;
-  }
-
-  /* Estado aberto (JS adiciona essa classe) */
-  .nav--open .nav__menu {
-    display: flex;
-  }
-
-  /* Desktop */
-  @media (min-width: 1024px) {
-    .nav__toggle {
-      display: none;
-    }
-
-    .nav__menu {
-      display: flex;
-      flex-direction: row;
-      gap: 24px;
-      padding: 0;
-    }
-
-    .nav__cta {
-      margin-left: 16px;
-    }
-  }
+}

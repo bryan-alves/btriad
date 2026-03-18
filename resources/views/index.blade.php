@@ -23,7 +23,16 @@
 
 <body class="">
     @include('home.header')
-    <main style="display: flex; flex: 1">
+    <main style="display: flex; flex: 1;align-items: center; padding: 20px 100px; flex-direction: column;justify-content: center">
+        <div>
+            <img class="mb-4" src="logo.png" alt="" style="max-width: 350px">
+
+        </div>
+        <h1 style="font-size: 26px;"><strong>Estamos no aquecimento!</strong></h1>
+        <p style="text-align: center">
+            Em breve, o site oficial da equipe <strong>B-Triad Jiu-Jitsu.</strong> <br />Fique ligado para novidades sobre nossas aulas,
+            horários e eventos!
+        </p>
     </main>
     @include('home.footer')
 </body>

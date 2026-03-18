@@ -5,16 +5,6 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
-/* Base */
-/* Remove margens e paddings padrão */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 /* Remove estilos padrão de listas */
 ul,
 ol {
@@ -32,10 +22,6 @@ button,
 input,
 textarea,
 select {
-  font: inherit;
-  border: none;
-  background: none;
-  outline: none;
 }
 
 /* Melhora renderização de texto */
