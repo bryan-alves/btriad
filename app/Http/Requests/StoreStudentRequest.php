@@ -20,7 +20,7 @@ class StoreStudentRequest extends FormRequest
 
             // Dados básicos
             'name' => ['required', 'string', 'max:255'],
-            'cpf' => ['nullable', 'string', 'size:11', 'unique:students,cpf'],
+            'cpf' => ['nullable', 'string', 'size:11'],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'sex' => ['nullable', 'string', 'in:M,F,outro'],
 
@@ -48,5 +48,13 @@ class StoreStudentRequest extends FormRequest
             // Status
             'active' => ['boolean'],
         ];
+    }
+
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            'address' => json_decode($this->address, true),
+            'emergency_contacts' => json_decode($this->emergency_contacts, true),
+        ]);
     }
 }

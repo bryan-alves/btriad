@@ -83,6 +83,10 @@ class StudentController extends Controller
                     ->store('students/registration_forms', 'public');
             }
 
+            if (isset($data['address']) && is_string($data['address'])) {
+                $data['address'] = json_decode($data['address'], true);
+            }
+
             $student->update($data);
 
             return response()->json($student, 200);
