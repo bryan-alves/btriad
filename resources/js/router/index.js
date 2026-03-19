@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import StudentIndex from '@/views/Students/Index.vue'
-import StudentCreate from '@/views/Students/Create.vue'
+import StudentForm from '@/views/Students/Form.vue'
 
 const routes = [
   {
@@ -12,7 +12,12 @@ const routes = [
   {
     path: '/admin/students/create',
     name: 'StudentsCreate',
-    component: StudentCreate
+    component: StudentForm
+  },
+  {
+    path: '/admin/students/:id',
+    name: 'StudentsShow',
+    component: StudentForm
   },
 ]
 

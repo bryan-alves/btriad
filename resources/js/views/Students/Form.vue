@@ -5,6 +5,7 @@ import { onMounted, reactive, ref } from "vue"
 import axios from "axios"
 import FormInput from "../../components/form/FormInput.vue"
 import FormSelect from "../../components/form/FormSelect.vue"
+import Tabs from "../../components/tabs/Tabs.vue"
 
 const loading = ref(false)
 
@@ -12,7 +13,15 @@ const route = useRoute();
 
 const studentId = ref(null);
 
-const activeTab = ref('personal')
+const activeTab = ref('personal-data')
+
+const tabs = reactive([
+  {
+    id: 'personal-data',
+    name: 'Dados pessoais'
+  },
+])
+
 
 const form = reactive({
   belt_id: null,
@@ -21,7 +30,7 @@ const form = reactive({
   cpf: "",
   birth_date: "",
   sex: "",
-
+  class_type: null,
   address: {
     street: "",
     number: "",
@@ -107,9 +116,14 @@ async function submit() {
 
     })
 
-    data.append('_method', 'PUT')
+    let url = `/api/students`
 
-    await axios.post(`/api/students/${studentId.value}`, data, {
+    if (studentId.value) {
+      data.append('_method', 'PUT')
+      url = `${url}/${studentId.value}`;
+    }
+
+    await axios.post(url, data, {
       headers: {
         "Content-Type": "multipart/form-data"
       }
@@ -139,7 +153,6 @@ async function getBelts() {
 
 async function getStudent() {
   try {
-
     const { data } = await axios.get(`/api/students/${studentId.value}`)
 
     fillForm(data);
@@ -150,24 +163,24 @@ async function getStudent() {
 
 onMounted(async () => {
   studentId.value = route.params.id;
+
   await getBelts();
-  await getStudent();
+
+  if (studentId.value) {
+    tabs.push({
+      id: 'progress-report',
+      name: 'Relatório de Progresso'
+    })
+    await getStudent();
+  }
 })
 </script>
 
 <template>
-  <BaseLayout title="Perfil do aluno">
-    <div class="tabs">
-      <button :class="['tab', { active: activeTab === 'personal' }]" @click="activeTab = 'personal'">
-        Dados pessoais
-      </button>
-
-      <button :class="['tab', { active: activeTab === 'training' }]" @click="activeTab = 'training'">
-        Dados de aula
-      </button>
-    </div>
+  <BaseLayout :title="studentId ? 'Perfil do aluno' : 'Novo aluno'">
+    <Tabs :tabs="tabs" :selectedTab="activeTab" @tab="(val) => activeTab = val" />
     <div class="tab-content">
-      <div v-if="activeTab === 'personal'">
+      <div v-if="activeTab === 'personal-data'">
 
         <div class="mx-auto">
 
@@ -176,11 +189,17 @@ onMounted(async () => {
             <div class="mb-4 space-y-4">
               <h2 class="text-xl font-bold mb-4">Dados do aluno</h2>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label class="font-medium">Foto</label>
                   <input type="file" class="block w-full text-sm" @change="e => form.photo = e.target.files[0]" />
                 </div>
+
+                <FormSelect v-model="form.class_type" :options="[
+                  { value: 'kids', label: 'Kids' },
+                  { value: 'adult', label: 'Adulto' }
+                ]" label="Turma" placeholder="Selecione" :error="errors.class_type" />
+
                 <FormSelect v-model="form.belt_id" :options="belts" label="Graduação" placeholder="Selecione"
                   :error="errors.state" />
               </div>
@@ -352,7 +371,7 @@ onMounted(async () => {
       </div>
 
       <!-- DADOS DE TREINO -->
-      <div v-if="activeTab === 'training'">
+      <div v-if="activeTab === 'progress-report'">
         <div class="form-group">
           <label>Faixa</label>
           <select>
