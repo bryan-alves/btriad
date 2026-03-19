@@ -1,6 +1,6 @@
 <script setup>
 defineProps({
-  modelValue: String,
+  modelValue: String | Number,
   type: {
     type: String,
     default: 'text'
