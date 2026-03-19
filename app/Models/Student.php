@@ -27,6 +27,7 @@ class Student extends Model
         'image_authorization',
         'image_authorization_file',
         'active',
+        'class_type'
     ];
 
     protected $casts = [

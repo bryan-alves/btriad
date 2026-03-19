@@ -44,7 +44,7 @@ class StoreStudentRequest extends FormRequest
             // Autorização de imagem
             'image_authorization' => ['boolean'],
             'image_authorization_file' => ['nullable', 'string', 'max:255', 'required_if:image_authorization,1'],
-
+            'class_type' => ['in:kids,adult'],
             // Status
             'active' => ['boolean'],
         ];

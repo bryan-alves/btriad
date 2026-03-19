@@ -24,6 +24,8 @@ return new class extends Migration
                 ->constrained()
                 ->nullOnDelete();
 
+            $table->enum('class_type', ['kids', 'adult']);
+
             $table->string('photo')->nullable();
             $table->string('name');
             $table->string('cpf', 14)->unique()->nullable();
