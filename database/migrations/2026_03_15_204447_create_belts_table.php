@@ -15,8 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('slug');
             $table->string('name');
-            $table->enum('group', ['adult', 'kids']);
-            $table->integer('classes_per_stripe')->nullable();
             $table->timestamps();
         });
     }

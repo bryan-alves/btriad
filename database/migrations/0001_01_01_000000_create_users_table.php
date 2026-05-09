@@ -22,10 +22,6 @@ return new class extends Migration
             $table->string('username')->unique()->index();
             $table->string('password');
 
-            $table->string('photo')->nullable();
-
-            $table->boolean('must_change_password')->default(true);
-
             $table->timestamps();
         });
 
