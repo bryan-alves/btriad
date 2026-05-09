@@ -2,8 +2,31 @@
 import axios from "axios"
 import { ref, onMounted } from 'vue';
 import BaseLayout from '../../layouts/BaseLayout.vue';
+import BeltBadge from "../../components/ui/Badge/BeltBadge.vue";
 
 const students = ref([]);
+
+function calculateAge(birthDate: string | null | undefined) {
+  if (!birthDate) {
+    return '-';
+  }
+
+  const date = new Date(birthDate);
+
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - date.getFullYear();
+  const monthDiff = today.getMonth() - date.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+    age--;
+  }
+
+  return age;
+}
 
 async function getStudents() {
   try {
@@ -22,7 +45,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <BaseLayout title="Alunos" action="Adicionar aluno">
+  <BaseLayout :title="`Alunos (${students.length})`" action="Adicionar aluno">
     <div class="students">
       <table class="students__table">
         <thead>
@@ -30,8 +53,8 @@ onMounted(async () => {
             <th>Nome</th>
             <th>Idade</th>
             <th>Graduação</th>
-            <th>Atestado médico</th>
             <th>Ficha de cadastro</th>
+            <th>Atestado médico</th>
             <th>Autorização de imagem</th>
             <th>Ações</th>
           </tr>
@@ -39,10 +62,10 @@ onMounted(async () => {
         <tbody v-if="students.length">
           <tr v-for="student in students">
             <td>{{ student.name }}</td>
-            <td>{{ student.birth_date ? new Date(student.birth_date).toLocaleDateString() : '-' }}</td>
-            <td><span :class="`belt belt-${student.belt?.slug}`">{{ student.belt?.name }}</span></td>
-            <td>{{ student.medical_certificate ? 'Sim' : 'Não' }}</td>
+            <td>{{ calculateAge(student.birth_date) }}</td>
+            <td><BeltBadge :belt="student.belt" /></td>
             <td>{{ student.registration_form ? 'Sim' : 'Não' }}</td>
+            <td>{{ student.medical_certificate ? 'Sim' : 'Não' }}</td>
             <td>{{ student.image_authorization ? 'Sim' : 'Não' }}</td>
             <td>
               <RouterLink :to="`/admin/students/${student.id}`">Detalhes</RouterLink>
@@ -60,125 +83,6 @@ onMounted(async () => {
 </template>
 
 <style lang="scss">
-.belt {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  color: white;
-}
-
-.belt-white {
-  background: #e5e5e5;
-  color: #333;
-  border: 1px solid #ccc;
-}
-
-.belt-blue {
-  background: #1e40af;
-}
-
-.belt-purple {
-  background: #6b21a8;
-}
-
-.belt-brown {
-  background: #78350f;
-}
-
-.belt-black {
-  background: black;
-}
-
-/* ============================= */
-/* FAIXAS INFANTIS               */
-/* ============================= */
-
-/* CINZA */
-
-/* base */
-
-.belt {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  color: white;
-  border-left: 6px solid transparent;
-}
-
-/* branca */
-
-.belt-white {
-  background: #e5e5e5;
-  color: #333;
-}
-
-/* cinza */
-
-.belt-gray {
-  background: #6b7280;
-}
-
-.belt-gray-white {
-  background: #6b7280;
-  border-left: 6px solid white;
-}
-
-.belt-gray-black {
-  background: #6b7280;
-  border-left: 6px solid black;
-}
-
-/* amarela */
-
-.belt-yellow {
-  background: #facc15;
-  color: black;
-}
-
-.belt-yellow-white {
-  background: #facc15;
-  border-left: 6px solid white;
-  color: black;
-}
-
-.belt-yellow-black {
-  background: #facc15;
-  border-left: 6px solid black;
-  color: black;
-}
-
-/* laranja */
-
-.belt-orange {
-  background: #f97316;
-}
-
-.belt-orange-white {
-  background: #f97316;
-  border-left: 6px solid white;
-}
-
-.belt-orange-black {
-  background: #f97316;
-  border-left: 6px solid black;
-}
-
-/* verde */
-
-.belt-green {
-  background: #16a34a;
-}
-
-.belt-green-white {
-  background: #16a34a;
-  border-left: 6px solid white;
-}
-
-.belt-green-black {
-  background: #16a34a;
-  border-left: 6px solid black;
-}
-
 .students {
   margin: auto;
   font-family: Arial;
