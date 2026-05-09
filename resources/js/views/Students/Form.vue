@@ -32,46 +32,136 @@ const form = reactive({
   sex: "",
   class_type: null,
   address: {
+    cep: "",
     street: "",
     number: "",
     complement: "",
     neighborhood: "",
     city: "",
-    state: ""
   },
-
   emergency_contacts: [
     { name: "", relationship: "", phone: "" },
     { name: "", relationship: "", phone: "" }
   ],
-
   practices_other_sports: false,
   other_sports: "",
-
   health_issues: "",
   medical_certificate: null,
-
   image_authorization: false,
   image_authorization_file: null
 })
 
 const belts = ref([]);
 
-const errors = ref({})
+const errors = ref({
+  belt_id: null,
+  photo: null,
+  name: "",
+  cpf: "",
+  birth_date: "",
+  sex: "",
+  class_type: null,
+  address: {
+    cep: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+  },
+});
+
+function validateCPF(cpf) {
+  // Remove tudo que não for número
+  cpf = cpf.replace(/\D/g, '');
+
+  // Verifica tamanho e sequência inválida
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+
+  // Validação dos dígitos verificadores
+  for (let t = 9; t < 11; t++) {
+    let soma = 0;
+
+    for (let i = 0; i < t; i++) {
+      soma += parseInt(cpf[i]) * ((t + 1) - i);
+    }
+
+    let digito = ((10 * soma) % 11) % 10;
+
+    if (parseInt(cpf[t]) !== digito) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 function validate() {
-  const e: any = {}
+  const e: any = {
+    /*address: [
+      { street: "obrigatório", number: "", complement: "", neighborhood: "", city: "", state: "" }
+    ]*/
+  }
 
-  if (!form.name) e.name = "Nome é obrigatório"
+  // ===== DADOS PRINCIPAIS =====
+  if (!form.name?.trim()) e.name = "Nome é obrigatório"
 
-  if (form.cpf && form.cpf.length < 11)
+  /*if (!form.cpf) {
+    e.cpf = "CPF é obrigatório"
+  } else if (form.cpf.replace(/\D/g, '').length !== 11) {
     e.cpf = "CPF inválido"
+  }*/
 
-  if (!form.birth_date)
-    e.birth_date = "Data de nascimento obrigatória"
+  if (form.cpf) {
 
-  if (!form.emergency_contacts[0]?.name)
-    e.emergency_contacts = "Adicione pelo menos um contato"
+    if (form.cpf.replace(/\D/g, '').length !== 11 || !validateCPF(form.cpf)) {
+      e.cpf = "CPF inválido"
+    }
+
+  }
+
+  /*if (!form.birth_date) e.birth_date = "Data de nascimento obrigatória"
+
+  if (!form.sex) e.sex = "Sexo é obrigatório"
+
+  if (!form.class_type) e.class_type = "Turma é obrigatória"
+
+  if (!form.belt_id) e.belt_id = "Graduação é obrigatória"
+
+  // ===== ENDEREÇO =====
+  if (!form.address.street?.trim()) e.address.street = "Rua é obrigatória"
+  if (!form.address.number?.trim()) e.address.number = "Número é obrigatório"
+  if (!form.address.neighborhood?.trim()) e.address.neighborhood = "Bairro é obrigatório"
+  if (!form.address.city?.trim()) e.address.city = "Cidade é obrigatória"
+  if (!form.address.cep) e.address.cep = "Estado é obrigatório"
+
+  // ===== CONTATO EMERGÊNCIA =====
+  const firstContact = form.emergency_contacts[0]
+
+  if (!firstContact?.name?.trim())
+    e.contact_name = "Nome do contato é obrigatório"
+
+  if (!firstContact?.relationship)
+    e.relationship = "Parentesco é obrigatório"
+
+  if (!firstContact?.phone?.trim())
+    e.phone = "Telefone é obrigatório"
+
+  // ===== OUTROS ESPORTES =====
+  if (form.practices_other_sports && !form.other_sports?.trim()) {
+    e.other_sports = "Informe quais esportes"
+  }
+
+  // ===== AUTORIZAÇÃO =====
+  if (!form.image_authorization) {
+    e.image_authorization = "É necessário autorizar uso de imagem"
+  }
+
+  if (!form.image_authorization_file) {
+    e.image_authorization_file = "Envie o documento assinado"
+  }*/
 
   errors.value = e
 
@@ -93,8 +183,23 @@ function fillForm(data: any) {
   }
 }
 
+function formatCPF(value) {
+  if (!value) return ''
+
+  return value
+    .replace(/\D/g, '') // remove tudo que não é número
+    .slice(0, 11) // limita a 11 dígitos
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+}
+
+function clearForm() {
+  form.name = '';
+}
+
 async function submit() {
-  //if (!validate()) return
+  if (!validate()) return
   loading.value = true
 
   try {
@@ -104,6 +209,8 @@ async function submit() {
 
       if (key === "address" || key === "emergency_contacts") {
         data.append(key, JSON.stringify(value))
+      } else if (key === "cpf") {
+       // data.append(key, value.replace(/\D/g, ''))
       }
 
       else if (typeof value === "boolean") {
@@ -128,9 +235,12 @@ async function submit() {
         "Content-Type": "multipart/form-data"
       }
     })
-    alert('Atualizado')
+
+    clearForm()
+    alert('Cadastrado')
   } catch (e) {
     alert("Erro ao atualizar")
+    console.log(e)
   }
 
   loading.value = false
@@ -139,6 +249,11 @@ async function submit() {
 async function getBelts() {
   try {
     const { data } = await axios.get('/api/belts');
+
+    /*belts.value.push({
+      label: 'Selecione...',
+      value: '',
+    });*/
 
     belts.value = data.map(({ id, name, group }) => {
       return {
@@ -195,21 +310,12 @@ onMounted(async () => {
                   <input type="file" class="block w-full text-sm" @change="e => form.photo = e.target.files[0]" />
                 </div>
 
-                <FormSelect v-model="form.class_type" :options="[
-                  { value: 'kids', label: 'Kids' },
-                  { value: 'adult', label: 'Adulto' }
-                ]" label="Turma" placeholder="Selecione" :error="errors.class_type" />
-
-                <FormSelect v-model="form.belt_id" :options="belts" label="Graduação" placeholder="Selecione"
-                  :error="errors.state" />
               </div>
-
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormInput v-model="form.name" label="Nome" placeholder="Nome completo" :error="errors.name" />
-                <FormInput v-model="form.cpf" label="CPF" placeholder="000.000.000-00" :error="errors.cpf" />
-              </div>
+                <FormInput v-model="form.name" :value="form.name" label="Nome" placeholder="Nome completo" :error="errors.name" />
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormInput mask="###.###.###-##" v-model="form.cpf" label="CPF" placeholder="000.000.000-00"
+                  :error="errors.cpf" />
 
                 <FormInput type="date" v-model="form.birth_date" label="Data de nascimento"
                   placeholder="Selecione a data" :error="errors.birth_date" />
@@ -220,55 +326,35 @@ onMounted(async () => {
                   { value: 'F', label: 'Feminino' }
                 ]" label="Sexo" placeholder="Selecione" :error="errors.sex" />
 
+                <FormSelect v-model="form.class_type" :options="[
+                  { value: '', label: 'Selecione' },
+                  { value: 'kids', label: 'Kids' },
+                  { value: 'adult', label: 'Adulto' }
+                ]" label="Turma" placeholder="Selecione" :error="errors.class_type" />
+
+                <FormSelect v-model="form.belt_id" :options="belts" label="Graduação" placeholder="Selecione"
+                  :error="errors.belt_id" />
               </div>
             </div>
             <div class="mb-4 space-y-4">
               <h3 class="text-xl font-bold">Endereço</h3>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormInput v-model="form.address.street" label="Rua" placeholder="Nome da rua" :error="errors.street" />
+                <FormInput v-model="form.address.cep" label="CEP" placeholder="CEP" :error="errors.address.cep" />
 
-                <FormInput v-model="form.address.number" label="Número" placeholder="Número" :error="errors.number" />
+                <FormInput v-model="form.address.street" label="Rua" placeholder="Nome da rua"
+                  :error="errors.address.street" />
+
+                <FormInput v-model="form.address.number" label="Número" placeholder="Número"
+                  :error="errors.address.number" />
 
                 <FormInput v-model="form.address.complement" label="Complemento" placeholder="Complemento"
-                  :error="errors.complement" />
+                  :error="errors.address.complement" />
 
                 <FormInput v-model="form.address.neighborhood" label="Bairro" placeholder="Nome do bairro"
-                  :error="errors.neighborhood" />
+                  :error="errors.address.neighborhood" />
                 <FormInput v-model="form.address.city" label="Cidade" placeholder="Nome da cidade"
-                  :error="errors.city" />
-
-
-                <FormSelect v-model="form.address.state" :options="[
-                  { value: '', label: 'Selecione' },
-                  { value: 'AC', label: 'Acre' },
-                  { value: 'AL', label: 'Alagoas' },
-                  { value: 'AP', label: 'Amapá' },
-                  { value: 'AM', label: 'Amazonas' },
-                  { value: 'BA', label: 'Bahia' },
-                  { value: 'CE', label: 'Ceará' },
-                  { value: 'DF', label: 'Distrito Federal' },
-                  { value: 'ES', label: 'Espírito Santo' },
-                  { value: 'GO', label: 'Goiás' },
-                  { value: 'MA', label: 'Maranhão' },
-                  { value: 'MT', label: 'Mato Grosso' },
-                  { value: 'MS', label: 'Mato Grosso do Sul' },
-                  { value: 'MG', label: 'Minas Gerais' },
-                  { value: 'PA', label: 'Pará' },
-                  { value: 'PB', label: 'Paraíba' },
-                  { value: 'PR', label: 'Paraná' },
-                  { value: 'PE', label: 'Pernambuco' },
-                  { value: 'PI', label: 'Piauí' },
-                  { value: 'RJ', label: 'Rio de Janeiro' },
-                  { value: 'RN', label: 'Rio Grande do Norte' },
-                  { value: 'RS', label: 'Rio Grande do Sul' },
-                  { value: 'RO', label: 'Rondônia' },
-                  { value: 'RR', label: 'Roraima' },
-                  { value: 'SC', label: 'Santa Catarina' },
-                  { value: 'SP', label: 'São Paulo' },
-                  { value: 'SE', label: 'Sergipe' },
-                  { value: 'TO', label: 'Tocantins' }
-                ]" label="Estado" placeholder="Selecione" :error="errors.state" />
+                  :error="errors.address.city" />
 
               </div>
             </div>
@@ -282,12 +368,13 @@ onMounted(async () => {
                   { value: '', label: 'Selecione' },
                   { value: 'father', label: 'Pai' },
                   { value: 'mother', label: 'Mãe' }
-                ]" label="Parentesco" placeholder="Selecione" :error="errors.relationship" />
+                ]" label="Parentesco" placeholder="Selecione" :error="index === 0 ? errors.relationship : null" />
 
-                <FormInput v-model="contact.name" label="Nome" placeholder="Nome do contato" :error="errors.name" />
+                <FormInput v-model="contact.name" label="Nome" placeholder="Nome do contato"
+                  :error="index === 0 ? errors.contact_name : null" />
 
                 <FormInput v-model="contact.phone" label="Telefone" placeholder="Telefone do contato"
-                  :error="errors.phone" />
+                  :error="index === 0 ? errors.phone : null" />
               </div>
             </div>
 
