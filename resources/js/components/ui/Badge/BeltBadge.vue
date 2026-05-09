@@ -1,10 +1,12 @@
 <script setup lang="ts">
-defineProps < {
-  belt: {
-    name: string;
-    slug: string;
-  } | null;
-} > ()
+type Belt = {
+  name?: string;
+  slug?: string;
+} | null;
+
+defineProps<{
+  belt: Belt;
+}>();
 
 </script>
 
