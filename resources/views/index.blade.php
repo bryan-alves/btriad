@@ -29,7 +29,7 @@
     padding: 20px;
     flex-direction: column;
     justify-content: center;
-    width: fit-content;">
+    width: 100%;">
         <div>
             <img class="mb-4" src="logo.png" alt="" style="max-width: 350px">
 
