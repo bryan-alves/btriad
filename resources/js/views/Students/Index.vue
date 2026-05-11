@@ -45,7 +45,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <BaseLayout :title="`Alunos (${students.length})`" action="Adicionar aluno">
+  <BaseLayout :title="`Alunos (${students.length})`" action="Adicionar aluno" actionRoute="/admin/students/create">
     <div class="students">
       <table class="students__table">
         <thead>

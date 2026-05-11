@@ -1,7 +1,8 @@
 <script setup>
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRoute } from 'vue-router';
 import Header from '../components/layout/Header.vue';
 import SideBar from '../components/layout/SideBar.vue';
+import { computed } from 'vue';
 
 const props = defineProps({
   title: {
@@ -11,8 +12,38 @@ const props = defineProps({
   action: {
     type: String,
     default: ''
+  },
+  actionRoute: {
+    type: String,
+    default: ''
   }
 })
+
+const route = useRoute();
+
+const defaultActionRoute = computed(() => {
+  if (props.actionRoute) {
+    return props.actionRoute;
+  }
+
+  if (route.path.startsWith('/admin/attendance-lists')) {
+    return '/admin/attendance-lists/create';
+  }
+
+  if (route.path.startsWith('/admin/student-graduations')) {
+    return '/admin/student-graduations/create';
+  }
+
+  if (route.path.startsWith('/admin/classes')) {
+    return '/admin/classes/create';
+  }
+
+  if (route.path.startsWith('/admin/students')) {
+    return '/admin/students/create';
+  }
+
+  return '/admin/students/create';
+});
 </script>
 
 <template>
@@ -25,9 +56,9 @@ const props = defineProps({
           style="display: flex; justify-content: space-between; width: 100%;align-items: center; border-bottom: 1px solid #DDD;padding-bottom: .5rem;margin-bottom: .5rem">
           <h1 style="font-size: 36px;font-weight: 600;">{{ title }}</h1>
 
-          <router-link to="/admin/students/create" class="btn-primary" v-if="action">
+          <RouterLink :to="defaultActionRoute" class="btn-primary" v-if="action">
             + {{ action }}
-          </router-link>
+          </RouterLink>
         </div>
         <slot />
       </div>
