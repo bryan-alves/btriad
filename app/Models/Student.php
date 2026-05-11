@@ -20,12 +20,9 @@ class Student extends Model
         'sex',
         'address',
         'emergency_contacts',
-        'practices_other_sports',
         'other_sports',
         'health_issues',
         'medical_certificate',
-        'image_authorization',
-        'image_authorization_file',
         'active',
         'class_type'
     ];
@@ -35,8 +32,6 @@ class Student extends Model
         'active' => 'boolean',
         'address' => 'array',
         'emergency_contacts' => 'array',
-        'practices_other_sports' => 'boolean',
-        'image_authorization' => 'boolean',
     ];
 
     public function getAgeAttribute()

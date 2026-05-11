@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import axios from 'axios'
 
 import LoginPage from '@/views/Auth/Login.vue'
 import StudentIndex from '@/views/Students/Index.vue'
@@ -11,6 +12,8 @@ import StudentGraduationForm from '@/views/StudentGraduations/Form.vue'
 import StudentGraduationEdit from '@/views/StudentGraduations/Edit.vue'
 import ClassIndex from '@/views/Classes/Index.vue'
 import ClassForm from '@/views/Classes/Form.vue'
+import UsersIndex from '@/views/Users/Index.vue'
+import UsersForm from '@/views/Users/Form.vue'
 
 const routes = [
   {
@@ -70,6 +73,18 @@ const routes = [
     path: '/admin/student-graduations/:id/edit',
     name: 'StudentGraduationsEdit',
     component: StudentGraduationEdit,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin/users',
+    name: 'UsersIndex',
+    component: UsersIndex,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin/users/create',
+    name: 'UsersCreate',
+    component: UsersForm,
     meta: { requiresAuth: true }
   },
   {

@@ -44,12 +44,9 @@ const form = reactive({
     { name: "", relationship: "", phone: "" },
     { name: "", relationship: "", phone: "" }
   ],
-  practices_other_sports: false,
   other_sports: "",
   health_issues: "",
   medical_certificate: null,
-  image_authorization: false,
-  image_authorization_file: null
 })
 
 const belts = ref([]);
@@ -400,11 +397,6 @@ onMounted(async () => {
               <h3 class="text-xl font-bold">Saúde</h3>
               <!-- OUTROS ESPORTES -->
               <div>
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" v-model="form.practices_other_sports" />
-                  Pratica outros esportes
-                </label>
-
                 <FormInput v-if="form.practices_other_sports" v-model="form.other_sports" placeholder="Quais?"
                   :error="errors.other_sports" />
               </div>
@@ -431,36 +423,6 @@ onMounted(async () => {
 
                 <input type="file" class="block w-full text-sm"
                   @change="e => form.image_authorization_file = e.target.files[0]" />
-              </div>
-              <div class="space-y-3">
-                <!-- CHECKBOX -->
-                <label class="flex items-center gap-2 font-medium cursor-pointer">
-                  <input type="checkbox" v-model="form.image_authorization"
-                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                  Autorização de uso de imagem
-                </label>
-
-                <!-- FILE INPUT CUSTOM -->
-                <div>
-                  <label
-                    class="flex items-center justify-center w-full px-4 py-6 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 transition">
-                    <div class="text-center">
-                      <p class="text-sm font-medium text-gray-700">
-                        Clique para enviar o arquivo
-                      </p>
-                      <p class="text-xs text-gray-500">
-                        ou arraste e solte aqui
-                      </p>
-
-                      <p v-if="form.image_authorization_file" class="mt-2 text-xs text-green-600">
-                        {{ form.image_authorization_file.name }}
-                      </p>
-                    </div>
-
-                    <input type="file" class="hidden"
-                      @change="e => form.image_authorization_file = e.target.files[0]" />
-                  </label>
-                </div>
               </div>
             </div>
             <div style="display: flex; justify-content: space-between;">

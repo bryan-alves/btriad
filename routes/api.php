@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\StudentController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\BeltController;
 use App\Http\Controllers\Api\AttendanceListController;
 use App\Http\Controllers\Api\StudentGraduationController;
@@ -17,6 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/user', [AuthController::class, 'user']);
 
     Route::apiResource('students', StudentController::class);
+    Route::apiResource('users', UserController::class)
+          ->only(['index', 'store']);
 
     Route::apiResource('belts', BeltController::class)
           ->only(['index', 'store']);

@@ -5,13 +5,21 @@ namespace App\Http\Controllers\Api;
 use App\Models\Student;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentRequest;
+use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $students =  Student::where('active', true)->with('belt')->get();
+            $query = Student::query()->with('belt')->orderBy('name');
+
+            // Lista completa para vínculo com usuário (inclui inativos; front mostra quem já tem login)
+            if (! $request->boolean('for_user_link')) {
+                $query->where('active', true);
+            }
+
+            $students = $query->get();
 
             return response()->json($students, 200);
         } catch (\Throwable $th) {
@@ -67,13 +75,6 @@ class StudentController extends Controller
             if ($request->hasFile('photo')) {
                 $data['photo'] = $request->file('photo')
                     ->store('students', 'public');
-            }
-
-            // Atualizar autorização de imagem
-            if ($request->hasFile('image_authorization_file')) {
-                $data['image_authorization_file'] = $request
-                    ->file('image_authorization_file')
-                    ->store('students/image_authorizations', 'public');
             }
 
             // Atualizar ficha assinada

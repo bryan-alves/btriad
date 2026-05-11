@@ -15,6 +15,8 @@ async function getUsers() {
 }
 
 onMounted(async () => {
+
+  console.log(localStorage.getItem('user'))
   await getUsers()
 })
 </script>

@@ -33,7 +33,15 @@ Route::get('/admin/student-graduations/create', function () {
 Route::get('/admin/student-graduations/{id}/edit', function () {
     return view('app');
 });
-
+Route::get('/admin/users', function () {
+    return view('app');
+});
+Route::get('/admin/users/create', function () {
+    return view('app');
+});
+Route::get('/admin/users/{id}', function () {
+    return view('app');
+});
 
 Route::get('login', function () {
     return view('app');

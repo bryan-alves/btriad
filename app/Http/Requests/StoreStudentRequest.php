@@ -32,18 +32,14 @@ class StoreStudentRequest extends FormRequest
             'emergency_contacts' => ['nullable'],
 
             // Esportes
-            'practices_other_sports' => ['boolean'],
-            'other_sports' => ['nullable', 'string', 'max:255', 'required_if:practices_other_sports,1'],
+            'other_sports' => ['nullable', 'string', 'max:255'],
 
             // Saúde
             'health_issues' => ['nullable', 'string'],
             'medical_certificate' => ['nullable', 'string', 'max:255'],
 
-            'registration_form_file' => ['nullable', 'string', 'max:255', 'required_if:image_authorization,1'],
+            'registration_form_file' => ['nullable', 'string', 'max:255'],
 
-            // Autorização de imagem
-            'image_authorization' => ['boolean'],
-            'image_authorization_file' => ['nullable', 'string', 'max:255', 'required_if:image_authorization,1'],
             'class_type' => ['in:kids,adult'],
             // Status
             'active' => ['boolean'],

@@ -55,7 +55,6 @@ onMounted(async () => {
             <th>Graduação</th>
             <th>Ficha de cadastro</th>
             <th>Atestado médico</th>
-            <th>Autorização de imagem</th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -66,7 +65,6 @@ onMounted(async () => {
             <td><BeltBadge :belt="student.belt" /></td>
             <td>{{ student.registration_form ? 'Sim' : 'Não' }}</td>
             <td>{{ student.medical_certificate ? 'Sim' : 'Não' }}</td>
-            <td>{{ student.image_authorization ? 'Sim' : 'Não' }}</td>
             <td>
               <RouterLink :to="`/admin/students/${student.id}`">Detalhes</RouterLink>
             </td>

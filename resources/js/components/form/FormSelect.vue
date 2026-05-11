@@ -23,7 +23,12 @@ defineProps({
     <label class="font-medium">{{ label }}</label>
     <select :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" name="" id=""
       class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <option v-for="option in options" :key="option.value" :value="option.value">
+      <option
+        v-for="option in options"
+        :key="String(option.value) + '-' + option.label"
+        :value="option.value"
+        :disabled="Boolean(option.disabled)"
+      >
         {{ option.label }}
       </option>
     </select>
