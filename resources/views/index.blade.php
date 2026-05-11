@@ -36,7 +36,7 @@
         </div>
         <h1 style="font-size: 26px;"><strong>Estamos no aquecimento!</strong></h1>
         <p style="text-align: center">
-            Em breve, o site oficial da equipe <strong>B-Triad Jiu-Jitsu.</strong> <br />Fique ligado para novidades sobre nossas aulas,
+            Em breve, o site oficial da <strong>Equipe B-Triad Jiu-Jitsu.</strong> <br />Fique ligado para novidades sobre nossas aulas,
             horários e eventos!
         </p>
     </main>

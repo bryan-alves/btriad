@@ -31,6 +31,7 @@ const form = reactive({
   birth_date: "",
   sex: "",
   class_type: null,
+  user_id: '',
   address: {
     cep: "",
     street: "",
@@ -52,6 +53,7 @@ const form = reactive({
 })
 
 const belts = ref([]);
+const users = ref([]);
 
 const errors = ref({
   belt_id: null,
@@ -61,6 +63,7 @@ const errors = ref({
   birth_date: "",
   sex: "",
   class_type: null,
+  user_id: null,
   address: {
     cep: "",
     street: "",
@@ -171,11 +174,11 @@ function validate() {
 function fillForm(data: any) {
   Object.assign(form, data)
   form.birth_date = data.birth_date?.split('T')[0] ?? ""
+  form.user_id = data.user_id ?? ''
 
   // garantir objetos internos
   if (data.address) {
     Object.assign(form.address, data.address)
-
   }
 
   if (data.emergency_contacts) {
@@ -222,7 +225,9 @@ async function submit() {
       }
 
     })
-
+    if (form.user_id) {
+      data.append('user_id', form.user_id)
+    }
     let url = `/api/students`
 
     if (studentId.value) {
@@ -250,11 +255,6 @@ async function getBelts() {
   try {
     const { data } = await axios.get('/api/belts');
 
-    /*belts.value.push({
-      label: 'Selecione...',
-      value: '',
-    });*/
-
     belts.value = data.map(({ id, name, group }) => {
       return {
         label: `${name} - ${group}`,
@@ -263,6 +263,21 @@ async function getBelts() {
     });
   } catch (error) {
 
+  }
+}
+
+async function getUsers() {
+  try {
+    const { data } = await axios.get('/api/users');
+
+    users.value = data.map((user) => {
+      return {
+        label: `${user.name} (${user.username})`,
+        value: user.id,
+      }
+    });
+  } catch (error) {
+    console.error(error)
   }
 }
 
@@ -280,6 +295,7 @@ onMounted(async () => {
   studentId.value = route.params.id;
 
   await getBelts();
+  await getUsers();
 
   if (studentId.value) {
     tabs.push({
@@ -313,6 +329,8 @@ onMounted(async () => {
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormInput v-model="form.name" :value="form.name" label="Nome" placeholder="Nome completo" :error="errors.name" />
+
+                <FormSelect v-model="form.user_id" :options="[{ value: '', label: 'Nenhum usuário vinculado' }, ...users]" label="Usuário vinculado" placeholder="Selecione" :error="errors.user_id" />
 
                 <FormInput mask="###.###.###-##" v-model="form.cpf" label="CPF" placeholder="000.000.000-00"
                   :error="errors.cpf" />

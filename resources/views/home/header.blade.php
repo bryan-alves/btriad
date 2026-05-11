@@ -16,9 +16,11 @@
         <li><a href="#avaliacoes">Avaliações</a></li>
         <li><a href="#localizacao">Localização</a></li>
       </ul>
-
-      <a href="https://wa.me/5513981245120" target="_blank" rel="noopener noreferrer"
-        title="Entre em contato pelo WhatsApp!" class="nav__cta">Aula Experimental</a>
+      <div>
+        <a href="https://wa.me/5513981245120" target="_blank" rel="noopener noreferrer"
+          title="Entre em contato pelo WhatsApp!" class="nav__cta">Aula Experimental</a>
+        <a href="/login" class="nav__cta" style="background:rgb(93, 178, 235)">Alunos</a>
+      </div>
     </div>
   </nav>
 </header>
