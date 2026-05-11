@@ -23,7 +23,13 @@
 
 <body class="">
     @include('home.header')
-    <main style="display: flex; flex: 1;align-items: center; padding: 20px 100px; flex-direction: column;justify-content: center">
+    <main style="display: flex;
+    flex: 1;
+    align-items: center;
+    padding: 20px;
+    flex-direction: column;
+    justify-content: center;
+    width: fit-content;">
         <div>
             <img class="mb-4" src="logo.png" alt="" style="max-width: 350px">
 
