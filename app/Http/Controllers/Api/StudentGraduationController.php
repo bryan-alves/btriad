@@ -21,6 +21,23 @@ class StudentGraduationController extends Controller
         }
     }
 
+    public function show($id)
+    {
+        try {
+            $graduation = StudentGraduation::with(['student', 'belt'])->findOrFail($id);
+
+            return response()->json($graduation, 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Graduação não encontrada.',
+            ], 404);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Erro ao buscar graduação.',
+            ], 500);
+        }
+    }
+
     public function update(StoreStudentGraduationRequest $request, $id)
     {
         try {
