@@ -6,6 +6,7 @@ use App\Models\Student;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
@@ -53,7 +54,7 @@ class StudentController extends Controller
     public function show($id)
     {
         try {
-            $student = Student::where('active', true)->findOrFail($id);
+            $student = Student::where('active', true)->with('belt')->findOrFail($id);
 
             return response()->json($student, 200);
 
@@ -73,6 +74,9 @@ class StudentController extends Controller
 
             // Atualizar foto (se vier nova)
             if ($request->hasFile('photo')) {
+                if ($student->photo) {
+                    Storage::disk('public')->delete($student->photo);
+                }
                 $data['photo'] = $request->file('photo')
                     ->store('students', 'public');
             }
@@ -89,6 +93,8 @@ class StudentController extends Controller
             }
 
             $student->update($data);
+
+            $student->load('belt');
 
             return response()->json($student, 200);
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import BaseLayout from "../../layouts/BaseLayout.vue"
 import { useRoute } from 'vue-router'
-import { onMounted, reactive, ref } from "vue"
+import { onMounted, reactive, ref, computed } from "vue"
 import axios from "axios"
 import FormInput from "../../components/form/FormInput.vue"
 import FormSelect from "../../components/form/FormSelect.vue"
@@ -51,6 +51,25 @@ const form = reactive({
 
 const belts = ref([]);
 const users = ref([]);
+
+/** URL da foto já salva (API envia `photo_url` com o append do modelo). */
+const savedPhotoUrl = ref<string | null>(null)
+const localPhotoPreview = ref<string | null>(null)
+
+const displayPhotoUrl = computed(() => localPhotoPreview.value || savedPhotoUrl.value)
+
+function onPhotoFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0] ?? null
+  if (localPhotoPreview.value) {
+    URL.revokeObjectURL(localPhotoPreview.value)
+    localPhotoPreview.value = null
+  }
+  form.photo = file as any
+  if (file) {
+    localPhotoPreview.value = URL.createObjectURL(file)
+  }
+}
 
 const errors = ref({
   belt_id: null,
@@ -169,9 +188,19 @@ function validate() {
 }
 
 function fillForm(data: any) {
+  if (localPhotoPreview.value) {
+    URL.revokeObjectURL(localPhotoPreview.value)
+    localPhotoPreview.value = null
+  }
+  ;(form as any).photo = null
+
   Object.assign(form, data)
   form.birth_date = data.birth_date?.split('T')[0] ?? ""
   form.user_id = data.user_id ?? ''
+
+  savedPhotoUrl.value =
+    data.photo_url ||
+    (data.photo ? `/storage/${data.photo}` : null)
 
   // garantir objetos internos
   if (data.address) {
@@ -181,6 +210,9 @@ function fillForm(data: any) {
   if (data.emergency_contacts) {
     Object.assign(form.emergency_contacts, data.emergency_contacts);
   }
+
+  delete (form as any).photo_url
+  delete (form as any).belt
 }
 
 function formatCPF(value) {
@@ -238,8 +270,13 @@ async function submit() {
       }
     })
 
-    clearForm()
-    alert('Cadastrado')
+    if (studentId.value) {
+      await getStudent()
+      alert('Salvo com sucesso')
+    } else {
+      clearForm()
+      alert('Cadastrado')
+    }
   } catch (e) {
     alert("Erro ao atualizar")
     console.log(e)
@@ -254,7 +291,7 @@ async function getBelts() {
 
     belts.value = data.map(({ id, name, group }) => {
       return {
-        label: `${name} - ${group}`,
+        label: group ? `${name} - ${group}` : name,
         value: id,
       }
     });
@@ -318,9 +355,13 @@ onMounted(async () => {
               <h2 class="text-xl font-bold mb-4">Dados do aluno</h2>
 
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
+                <div class="md:col-span-1">
                   <label class="font-medium">Foto</label>
-                  <input type="file" class="block w-full text-sm" @change="e => form.photo = e.target.files[0]" />
+                  <div v-if="displayPhotoUrl" class="mt-2 mb-2 rounded-lg overflow-hidden border border-gray-200 max-w-[200px]">
+                    <img :src="displayPhotoUrl" alt="Foto do aluno" class="w-full h-44 object-cover block" />
+                  </div>
+                  <input type="file" accept="image/*" class="block w-full text-sm"
+                    @change="onPhotoFileChange" />
                 </div>
 
               </div>

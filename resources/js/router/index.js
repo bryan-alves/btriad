@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import LoginPage from '@/views/Auth/Login.vue'
+import StudentDashboard from '@/views/Student/Dashboard.vue'
 import StudentProfile from '@/views/Student/Profile.vue'
 import StudentRanking from '@/views/Student/Ranking.vue'
 import StudentIndex from '@/views/Students/Index.vue'
@@ -21,6 +22,16 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: LoginPage
+  },
+  {
+    path: '/student',
+    redirect: '/student/dashboard'
+  },
+  {
+    path: '/student/dashboard',
+    name: 'StudentDashboard',
+    component: StudentDashboard,
+    meta: { requiresAuth: true, roles: ['student'] }
   },
   {
     path: '/student/profile',
@@ -143,7 +154,7 @@ router.beforeEach((to, from, next) => {
 
   if (to.path === '/login') {
     if (isAuthenticated) {
-      return next(user.role === 'student' ? '/student/profile' : '/admin/students')
+      return next(user.role === 'student' ? '/student/dashboard' : '/admin/students')
     }
     return next()
   }
@@ -153,7 +164,7 @@ router.beforeEach((to, from, next) => {
   }
 
   if (requiresAuth && allowedRoles.length && !allowedRoles.includes(user.role)) {
-    return next(user.role === 'student' ? '/student/profile' : '/admin/students')
+    return next(user.role === 'student' ? '/student/dashboard' : '/admin/students')
   }
 
   return next()

@@ -47,6 +47,25 @@ Route::get('login', function () {
     return view('app');
 });
 
+Route::get('student', function () {
+    return view('app');
+});
+Route::get('student/dashboard', function () {
+    return view('app');
+});
+Route::get('student/ranking', function () {
+    return view('app');
+});
 Route::get('student/profile', function () {
     return view('app');
 });
+
+Route::get('/admin/classes', function () {
+    return view('app');
+});
+Route::get('/admin/classes/create', function () {
+    return view('app');
+});
+Route::get('/admin/classes/{id}', function () {
+    return view('app');
+})->where('id', '[0-9]+');

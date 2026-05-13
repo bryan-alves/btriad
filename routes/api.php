@@ -18,6 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/user', [AuthController::class, 'user']);
     Route::get('/auth/student/trainings', [AuthController::class, 'studentTrainings']);
     Route::get('/auth/student/graduations', [AuthController::class, 'studentGraduations']);
+    Route::post('/auth/student/photo', [AuthController::class, 'updateStudentPhoto']);
 
     Route::apiResource('students', StudentController::class);
     Route::apiResource('users', UserController::class)

@@ -1,5 +1,81 @@
+<script setup>
+defineProps({
+  menuOpen: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+defineEmits(['toggle-sidebar'])
+</script>
+
 <template>
-  <div class="header" style="padding: 20px;width: 100%">
-    <h1 style="color: #FFF">test</h1>
-  </div>
+  <header class="header">
+    <button
+      type="button"
+      class="menu-toggle"
+      :aria-expanded="menuOpen"
+      aria-controls="app-sidebar"
+      aria-label="Abrir ou fechar menu"
+      @click="$emit('toggle-sidebar')"
+    >
+      <span class="menu-toggle__bar" />
+      <span class="menu-toggle__bar" />
+      <span class="menu-toggle__bar" />
+    </button>
+    <h1 class="header__title">B-Triad</h1>
+  </header>
 </template>
+
+<style scoped lang="scss">
+$breakpoint: 768px;
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  width: 100%;
+  min-height: 56px;
+  background-color: #1b1b18;
+  box-sizing: border-box;
+}
+
+.header__title {
+  margin: 0;
+  color: #fff;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  @media (max-width: ($breakpoint - 1px)) {
+    display: flex;
+  }
+}
+
+.menu-toggle__bar {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: #fff;
+  border-radius: 1px;
+}
+</style>

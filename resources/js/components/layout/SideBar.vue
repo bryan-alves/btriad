@@ -35,6 +35,7 @@ async function logout() {
     <h1 style="color: #FFF;font-size: 1.5rem">B-Triad Jiu-Jitsu</h1>
     <ul style="color: #FFF">
       <template v-if="userRole === 'student'">
+        <li><RouterLink to="/student/dashboard">Início</RouterLink></li>
         <li><RouterLink to="/student/profile">Meu Perfil</RouterLink></li>
         <li><RouterLink to="/student/ranking">Ranking</RouterLink></li>
       </template>

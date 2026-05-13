@@ -8,6 +8,7 @@ use App\Models\StudentGraduation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -92,5 +93,36 @@ class AuthController extends Controller
             ->get();
 
         return response()->json($rows, 200);
+    }
+
+    /**
+     * Atualiza apenas a foto do aluno vinculado ao usuário autenticado.
+     */
+    public function updateStudentPhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => ['required', 'image', 'max:2048'],
+        ]);
+
+        $user = $request->user()->load('student');
+
+        if (! $user->student) {
+            return response()->json([
+                'message' => 'Nenhum aluno vinculado a esta conta.',
+            ], 422);
+        }
+
+        $student = $user->student;
+
+        if ($student->photo) {
+            Storage::disk('public')->delete($student->photo);
+        }
+
+        $path = $request->file('photo')->store('students', 'public');
+        $student->update(['photo' => $path]);
+
+        $user->load(['student.belt']);
+
+        return response()->json($user, 200);
     }
 }

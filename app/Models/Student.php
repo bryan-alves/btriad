@@ -34,6 +34,10 @@ class Student extends Model
         'emergency_contacts' => 'array',
     ];
 
+    protected $appends = [
+        'photo_url',
+    ];
+
     public function getAgeAttribute()
     {
         return $this->birth_date?->age;

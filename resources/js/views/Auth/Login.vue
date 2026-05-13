@@ -42,7 +42,7 @@ async function submit() {
     axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
 
     const redirectTo = data.user?.role === 'student'
-      ? '/student/profile'
+      ? '/student/dashboard'
       : '/admin/students'
 
     router.push(redirectTo)

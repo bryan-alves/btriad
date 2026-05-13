@@ -50,6 +50,7 @@ onMounted(async () => {
       <table class="students__table">
         <thead>
           <tr>
+            <th></th>
             <th>Nome</th>
             <th>Idade</th>
             <th>Graduação</th>
@@ -59,7 +60,18 @@ onMounted(async () => {
           </tr>
         </thead>
         <tbody v-if="students.length">
-          <tr v-for="student in students">
+          <tr v-for="student in students" :key="student.id">
+            <td class="students__avatar-cell">
+              <img
+                v-if="student.photo_url"
+                :src="student.photo_url"
+                alt=""
+                class="students__avatar"
+              />
+              <span v-else class="students__avatar students__avatar--empty">
+                {{ (student.name || '?').charAt(0).toUpperCase() }}
+              </span>
+            </td>
             <td>{{ student.name }}</td>
             <td>{{ calculateAge(student.birth_date) }}</td>
             <td><BeltBadge :belt="student.belt" /></td>
@@ -72,7 +84,7 @@ onMounted(async () => {
         </tbody>
         <tbody v-else>
           <tr>
-            <td colspan="7" style="text-align: center">Não há alunos cadastrados!</td>
+            <td colspan="8" style="text-align: center">Não há alunos cadastrados!</td>
           </tr>
         </tbody>
       </table>
@@ -122,8 +134,28 @@ onMounted(async () => {
   border-bottom: 1px solid #eee;
 }
 
-.students__table tr:hover {
-  background: #f9f9f9;
+.students__avatar-cell {
+  width: 52px;
+  vertical-align: middle;
+}
+
+.students__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+  border: 1px solid #e5e7eb;
+}
+
+.students__avatar--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 700;
 }
 
 .btn-details {
