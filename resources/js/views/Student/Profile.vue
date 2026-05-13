@@ -293,8 +293,8 @@ onMounted(async () => {
                   <div class="input-base bg-gray-50">{{ student.name || '—' }}</div>
                 </div>
                 <div>
-                  <label class="font-medium">E-mail da conta</label>
-                  <div class="input-base bg-gray-50">{{ user?.email || '—' }}</div>
+                  <label class="font-medium">Usuário (login)</label>
+                  <div class="input-base bg-gray-50">{{ user?.username || '—' }}</div>
                 </div>
                 <div>
                   <label class="font-medium">CPF</label>

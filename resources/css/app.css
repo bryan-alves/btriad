@@ -5,6 +5,26 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
+/* Viewport / mobile: evita zoom automático estranho no iOS e melhora leitura */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Tabelas: rolagem horizontal sem estourar a viewport */
+.table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+}
+
+.table-scroll > table {
+    width: max-content;
+    min-width: 100%;
+}
+
 /* Remove estilos padrão de listas */
 ul,
 ol {

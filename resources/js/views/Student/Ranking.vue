@@ -140,7 +140,7 @@ onMounted(loadRanking)
         />
 
         <div class="tab-content">
-          <div class="overflow-x-auto">
+          <div class="table-scroll">
             <table class="ranking-table">
               <thead>
                 <tr>
@@ -222,7 +222,6 @@ onMounted(loadRanking)
 }
 
 .ranking-table {
-  width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
 }

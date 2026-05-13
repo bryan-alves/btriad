@@ -47,6 +47,7 @@ onMounted(async () => {
 <template>
   <BaseLayout :title="`Alunos (${students.length})`" action="Adicionar aluno" actionRoute="/admin/students/create">
     <div class="students">
+      <div class="table-scroll">
       <table class="students__table">
         <thead>
           <tr>
@@ -88,6 +89,7 @@ onMounted(async () => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </BaseLayout>
 </template>
@@ -118,7 +120,6 @@ onMounted(async () => {
 
 
 .students__table {
-  width: 100%;
   border-collapse: collapse;
   background: white;
 }

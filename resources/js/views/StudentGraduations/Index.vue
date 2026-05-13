@@ -27,6 +27,7 @@ onMounted(async () => {
 <template>
   <BaseLayout :title="`Graduações (${studentGraduations.length})`" action="Nova Graduação" actionRoute="/admin/student-graduations/create">
     <div class="student-graduations">
+      <div class="table-scroll">
       <table class="student-graduations__table">
         <thead>
           <tr>
@@ -56,6 +57,7 @@ onMounted(async () => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </BaseLayout>
 </template>
@@ -67,7 +69,6 @@ onMounted(async () => {
 }
 
 .student-graduations__table {
-  width: 100%;
   border-collapse: collapse;
   background: white;
 }

@@ -24,6 +24,7 @@ onMounted(async () => {
 <template>
   <BaseLayout :title="`Usuários (${users.length})`" action="Novo usuário" actionRoute="/admin/users/create">
     <div class="users">
+      <div class="table-scroll">
       <table class="users__table">
         <thead>
           <tr>
@@ -47,13 +48,13 @@ onMounted(async () => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </BaseLayout>
 </template>
 
 <style lang="scss" scoped>
 .users__table {
-  width: 100%;
   border-collapse: collapse;
   background: white;
 }

@@ -195,6 +195,7 @@ $header-height: 56px;
 
 .main-column__body {
   padding: 1.5rem 1rem;
+  min-width: 0;
 
   @media (min-width: $breakpoint) {
     padding: 2rem 2.5rem;

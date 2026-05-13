@@ -26,6 +26,7 @@ onMounted(async () => {
 <template>
   <BaseLayout :title="`Listas de Presença (${attendanceLists.length})`" action="Nova Lista" actionRoute="/admin/attendance-lists/create">
     <div class="attendance-lists">
+      <div class="table-scroll">
       <table class="attendance-lists__table">
         <thead>
           <tr>
@@ -53,6 +54,7 @@ onMounted(async () => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </BaseLayout>
 </template>
@@ -64,7 +66,6 @@ onMounted(async () => {
 }
 
 .attendance-lists__table {
-  width: 100%;
   border-collapse: collapse;
   background: white;
 }

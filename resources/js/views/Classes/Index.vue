@@ -26,6 +26,7 @@ onMounted(async () => {
 <template>
   <BaseLayout :title="`Turmas (${classes.length})`" action="Nova Turma" actionRoute="/admin/classes/create">
     <div class="classes">
+      <div class="table-scroll">
       <table class="classes__table">
         <thead>
           <tr>
@@ -53,6 +54,7 @@ onMounted(async () => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </BaseLayout>
 </template>
@@ -64,7 +66,6 @@ onMounted(async () => {
 }
 
 .classes__table {
-  width: 100%;
   border-collapse: collapse;
   background: white;
 }
