@@ -9,10 +9,18 @@ const loading = ref(false)
 const students = ref([]);
 const belts = ref([]);
 
+const degreeOptions = [
+  { value: 0, label: '0 — sem grau' },
+  { value: 1, label: '1' },
+  { value: 2, label: '2' },
+  { value: 3, label: '3' },
+  { value: 4, label: '4' },
+];
+
 const form = reactive({
   student_id: null,
   belt_id: null,
-  degree: "",
+  degree: 0,
   graduated_at: "",
   notes: ""
 })
@@ -20,7 +28,8 @@ const form = reactive({
 const errors = ref({
   student_id: "",
   belt_id: "",
-  graduated_at: ""
+  graduated_at: "",
+  degree: "",
 })
 
 function validate() {
@@ -42,7 +51,7 @@ async function submit() {
     await axios.post('/api/student-graduations', {
       student_id: form.student_id,
       belt_id: form.belt_id,
-      degree: form.degree || null,
+      degree: Math.min(4, Math.max(0, Number(form.degree) || 0)),
       graduated_at: form.graduated_at,
       notes: form.notes || null
     })
@@ -50,10 +59,14 @@ async function submit() {
     alert('Graduação registrada com sucesso!')
     form.student_id = null
     form.belt_id = null
-    form.degree = ""
+    form.degree = 0
     form.graduated_at = ""
     form.notes = ""
   } catch (e) {
+    const err = e.response?.data?.errors
+    if (err) {
+      errors.value = { ...errors.value, ...Object.fromEntries(Object.entries(err).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])) }
+    }
     alert("Erro ao registrar graduação")
     console.log(e)
   }
@@ -107,7 +120,7 @@ onMounted(async () => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormInput type="date" v-model="form.graduated_at" label="Data de Graduação" :error="errors.graduated_at" />
 
-            <FormInput v-model="form.degree" label="Grau (opcional)" placeholder="Ex: 1º grau, 2º grau" />
+            <FormSelect v-model="form.degree" :options="degreeOptions" label="Grau" placeholder="Grau" :error="errors.degree" />
           </div>
 
           <div>

@@ -16,7 +16,7 @@ class StoreStudentGraduationRequest extends FormRequest
         return [
             'student_id' => ['required', 'integer', 'exists:students,id'],
             'belt_id' => ['required', 'integer', 'exists:belts,id'],
-            'degree' => ['nullable', 'string', 'max:255'],
+            'degree' => ['required', 'integer', 'min:0', 'max:4'],
             'graduated_at' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
         ];

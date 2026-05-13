@@ -48,7 +48,7 @@ class StudentGraduationController extends Controller
             $graduation->update([
                 'student_id' => $data['student_id'],
                 'belt_id' => $data['belt_id'],
-                'degree' => $data['degree'] ?? null,
+                'degree' => (int) $data['degree'],
                 'graduated_at' => $data['graduated_at'],
                 'notes' => $data['notes'] ?? null,
             ]);
@@ -72,7 +72,7 @@ class StudentGraduationController extends Controller
             $graduation = StudentGraduation::create([
                 'student_id' => $data['student_id'],
                 'belt_id' => $data['belt_id'],
-                'degree' => $data['degree'] ?? null,
+                'degree' => (int) $data['degree'],
                 'graduated_at' => $data['graduated_at'],
                 'notes' => $data['notes'] ?? null,
             ]);

@@ -18,6 +18,7 @@ class StudentGraduation extends Model
     ];
 
     protected $casts = [
+        'degree' => 'integer',
         'graduated_at' => 'date',
     ];
 

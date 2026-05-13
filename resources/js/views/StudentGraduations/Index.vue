@@ -43,7 +43,7 @@ onMounted(async () => {
           <tr v-for="graduation in studentGraduations" :key="graduation.id">
             <td>{{ graduation.student?.name || '-' }}</td>
             <td><BeltBadge :belt="graduation.belt" /></td>
-            <td>{{ graduation.degree || '-' }}</td>
+            <td>{{ graduation.degree != null && graduation.degree !== '' ? graduation.degree : '—' }}</td>
             <td>{{ formatDate(graduation.graduated_at) }}</td>
             <td>{{ graduation.notes || '-' }}</td>
             <td>

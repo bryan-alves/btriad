@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
             $table->foreignId('belt_id')->constrained('belts')->cascadeOnDelete();
-            $table->string('degree')->nullable();
+            $table->unsignedTinyInteger('degree')->default(0);
             $table->date('graduated_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
