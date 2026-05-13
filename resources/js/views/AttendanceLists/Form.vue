@@ -79,7 +79,7 @@ async function submit() {
   try {
     await axios.post('/api/attendance-lists', {
       class_date: form.class_date,
-      class_id: form.class_id,
+      class_id: Number(form.class_id),
       class_type: form.class_type,
       notes: form.notes || null,
       student_ids: form.student_ids

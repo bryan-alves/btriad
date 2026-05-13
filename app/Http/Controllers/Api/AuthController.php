@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AttendanceList;
+use App\Models\StudentGraduation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -25,6 +27,8 @@ class AuthController extends Controller
             ]);
         }
 
+        $user->load(['student.belt']);
+
         return response()->json([
             'token' => $user->createToken('auth-token')->plainTextToken,
             'user' => $user,
@@ -42,6 +46,51 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        return response()->json($request->user(), 200);
+        return response()->json($request->user()->load(['student.belt']), 200);
+    }
+
+    /**
+     * Listas de presença em que o aluno vinculado ao usuário aparece (somente leitura).
+     */
+    public function studentTrainings(Request $request)
+    {
+        $user = $request->user()->load('student');
+
+        if (! $user->student) {
+            return response()->json([], 200);
+        }
+
+        $studentId = $user->student->id;
+
+        $lists = AttendanceList::query()
+            ->whereHas('students', function ($query) use ($studentId) {
+                $query->where('students.id', $studentId);
+            })
+            ->with('schoolClass')
+            ->orderByDesc('class_date')
+            ->get();
+
+        return response()->json($lists, 200);
+    }
+
+    /**
+     * Graduações registradas para o aluno vinculado ao usuário (somente leitura).
+     */
+    public function studentGraduations(Request $request)
+    {
+        $user = $request->user()->load('student');
+
+        if (! $user->student) {
+            return response()->json([], 200);
+        }
+
+        $rows = StudentGraduation::query()
+            ->where('student_id', $user->student->id)
+            ->with('belt')
+            ->orderByDesc('graduated_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json($rows, 200);
     }
 }

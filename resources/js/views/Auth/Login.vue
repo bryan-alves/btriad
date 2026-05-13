@@ -37,15 +37,15 @@ async function submit() {
       password: form.password
     })
 
-    // Salvar token no localStorage
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
-
-    // Adicionar token ao header do axios
     axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
 
-    // Redirecionar para dashboard
-    router.push('/admin/students')
+    const redirectTo = data.user?.role === 'student'
+      ? '/student/profile'
+      : '/admin/students'
+
+    router.push(redirectTo)
   } catch (e: any) {
     if (e.response?.data?.username) {
       errors.value.username = e.response.data.username[0]

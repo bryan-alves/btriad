@@ -34,7 +34,6 @@ class AttendanceListController extends Controller
                 'class_type' => $data['class_type'],
                 'notes' => $data['notes'] ?? null,
             ]);
-
             $studentIds = collect($data['student_ids'])->unique()->values()->all();
 
             if (!empty($studentIds)) {
@@ -58,6 +57,7 @@ class AttendanceListController extends Controller
 
             return response()->json($attendanceList, 201);
         } catch (\Throwable $th) {
+            dd($th->getMessage());
             return response()->json([
                 'message' => 'Erro ao criar a lista de presença.',
             ], 500);

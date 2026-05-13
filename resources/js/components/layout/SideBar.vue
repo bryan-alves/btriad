@@ -1,8 +1,20 @@
 <script setup>
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
 const router = useRouter()
+const user = ref(null)
+
+onMounted(() => {
+  try {
+    user.value = JSON.parse(localStorage.getItem('user') || 'null')
+  } catch {
+    user.value = null
+  }
+})
+
+const userRole = computed(() => user.value?.role)
 
 async function logout() {
   try {
@@ -22,10 +34,16 @@ async function logout() {
     <img src="/public/logo-2.png" alt="" style="max-width: 150px;margin-bottom: 1rem">
     <h1 style="color: #FFF;font-size: 1.5rem">B-Triad Jiu-Jitsu</h1>
     <ul style="color: #FFF">
-      <li><RouterLink to="/admin/students">Alunos</RouterLink></li>
-      <li><RouterLink to="/admin/attendance-lists">Treinos</RouterLink></li>
-      <li><RouterLink to="/admin/student-graduations">Graduações</RouterLink></li>
-      <li><RouterLink to="/admin/classes">Turmas</RouterLink></li>
+      <template v-if="userRole === 'student'">
+        <li><RouterLink to="/student/profile">Meu Perfil</RouterLink></li>
+        <li><RouterLink to="/student/ranking">Ranking</RouterLink></li>
+      </template>
+      <template v-else-if="userRole">
+        <li><RouterLink to="/admin/students">Alunos</RouterLink></li>
+        <li><RouterLink to="/admin/attendance-lists">Treinos</RouterLink></li>
+        <li><RouterLink to="/admin/student-graduations">Graduações</RouterLink></li>
+        <li><RouterLink to="/admin/classes">Turmas</RouterLink></li>
+      </template>
     </ul>
     <button @click="logout" class="logout-button" style="margin-top: auto">
       Sair

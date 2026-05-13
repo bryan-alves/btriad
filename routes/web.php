@@ -46,3 +46,7 @@ Route::get('/admin/users/{id}', function () {
 Route::get('login', function () {
     return view('app');
 });
+
+Route::get('student/profile', function () {
+    return view('app');
+});
