@@ -184,7 +184,13 @@ onMounted(loadAll)
                 :disabled="photoUploading"
                 @click="fileInputRef?.click()"
               >
-                {{ photoUploading ? '…' : 'Alterar foto' }}
+                {{
+                  photoUploading
+                    ? '…'
+                    : photoUrl
+                      ? 'Alterar foto'
+                      : 'Adicionar foto'
+                }}
               </button>
               <input
                 ref="fileInputRef"
@@ -194,6 +200,7 @@ onMounted(loadAll)
                 @change="onPhotoSelected"
               />
             </div>
+            <p class="dash__photo-hint">Foto opcional</p>
             <p v-if="photoError" class="dash__photo-err">{{ photoError }}</p>
           </div>
         </header>
@@ -446,6 +453,15 @@ onMounted(loadAll)
   height: 0;
   opacity: 0;
   pointer-events: none;
+}
+
+.dash__photo-hint {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+  max-width: 12rem;
 }
 
 .dash__photo-err {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import axios from 'axios'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import Tabs from '../../components/tabs/Tabs.vue'
@@ -107,38 +107,77 @@ function formatCpfDisplay(cpf: string | null | undefined) {
   return n.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
 }
 
-const trainingsByMonth = computed(() => {
+const monthNamesPt = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+]
+
+function capitalizeMonth(name: string) {
+  if (!name) return name
+  return name.charAt(0).toLocaleUpperCase('pt-BR') + name.slice(1)
+}
+
+/** Anos com treino (tabs), mais recente primeiro. */
+const trainingYearTabs = computed(() => {
+  const years = new Set<number>()
+  for (const list of trainings.value) {
+    const raw = list.class_date
+    const d = String(raw ?? '').split('T')[0]
+    const y = parseInt(d.split('-')[0] ?? '', 10)
+    if (y) years.add(y)
+  }
+  return Array.from(years)
+    .sort((a, b) => b - a)
+    .map((year) => ({ id: String(year), name: String(year) }))
+})
+
+const activeTrainingYear = ref('')
+
+watch(
+  trainingYearTabs,
+  (tabs) => {
+    if (!tabs.length) {
+      activeTrainingYear.value = ''
+      return
+    }
+    if (!tabs.some((t) => t.id === activeTrainingYear.value)) {
+      activeTrainingYear.value = tabs[0].id
+    }
+  },
+  { immediate: true },
+)
+
+/** Meses do ano selecionado (título só com o mês; o ano vem da aba). */
+const trainingsByMonthForYear = computed(() => {
+  const yearFilter = activeTrainingYear.value
+  if (!yearFilter) return []
+
   const map = new Map<
     string,
     { key: string; label: string; count: number; items: any[] }
   >()
 
-  const monthNames = [
-    'janeiro',
-    'fevereiro',
-    'março',
-    'abril',
-    'maio',
-    'junho',
-    'julho',
-    'agosto',
-    'setembro',
-    'outubro',
-    'novembro',
-    'dezembro',
-  ]
-
   for (const list of trainings.value) {
     const raw = list.class_date
-    const d = String(raw).split('T')[0]
+    const d = String(raw ?? '').split('T')[0]
     const [y, m] = d.split('-')
-    if (!y || !m) continue
+    if (!y || !m || y !== yearFilter) continue
     const key = `${y}-${m}`
     if (!map.has(key)) {
-      const mi = Number(m, 10) - 1
+      const mi = parseInt(m, 10) - 1
       const label =
         mi >= 0 && mi < 12
-          ? `${monthNames[mi]} de ${y}`
+          ? capitalizeMonth(monthNamesPt[mi])
           : `${m}/${y}`
       map.set(key, { key, label, count: 0, items: [] })
     }
@@ -154,6 +193,26 @@ const trainingsByMonth = computed(() => {
     )
   }
   return groups
+})
+
+/** Mês expandido por defeito; `false` = recolhido. */
+const monthExpanded = ref<Record<string, boolean>>({})
+
+function isMonthExpanded(key: string) {
+  return monthExpanded.value[key] !== false
+}
+
+function toggleMonthSection(key: string) {
+  const open = !isMonthExpanded(key)
+  monthExpanded.value = { ...monthExpanded.value, [key]: open }
+}
+
+watch([activeTrainingYear, trainings], () => {
+  const next = { ...monthExpanded.value }
+  for (const g of trainingsByMonthForYear.value) {
+    if (!(g.key in next)) next[g.key] = true
+  }
+  monthExpanded.value = next
 })
 
 async function loadProfile() {
@@ -256,7 +315,7 @@ onMounted(async () => {
 
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="md:col-span-1">
-                  <label class="font-medium">Foto</label>
+                  <label class="font-medium">Foto <span class="font-normal text-gray-500">(opcional)</span></label>
                   <div v-if="photoUrl" class="mt-2">
                     <img
                       :src="photoUrl"
@@ -280,10 +339,16 @@ onMounted(async () => {
                     :disabled="photoUploading"
                     @click="photoInputRef?.click()"
                   >
-                    {{ photoUploading ? 'Enviando…' : 'Alterar foto' }}
+                    {{
+                      photoUploading
+                        ? 'Enviando…'
+                        : photoUrl
+                          ? 'Alterar foto'
+                          : 'Adicionar foto'
+                    }}
                   </button>
                   <p v-if="photoError" class="profile-photo-err">{{ photoError }}</p>
-                  <p class="text-xs text-gray-500 mt-1">JPG, PNG ou WebP · até 2 MB</p>
+                  <p class="text-xs text-gray-500 mt-1">Opcional. JPG, PNG ou WebP · até 2 MB</p>
                 </div>
               </div>
 
@@ -430,69 +495,111 @@ onMounted(async () => {
             <div v-if="trainingsLoading" class="py-6 text-gray-600">
               Carregando treinos...
             </div>
-            <div v-else-if="!trainingsByMonth.length" class="text-gray-600">
+            <div v-else-if="!trainingYearTabs.length" class="text-gray-600">
               Nenhum treino registrado ainda.
             </div>
-            <div v-else class="training-history">
-              <section
-                v-for="group in trainingsByMonth"
-                :key="group.key"
-                class="training-month"
+            <template v-else>
+              <p class="training-year-label">Ano</p>
+              <Tabs
+                :tabs="trainingYearTabs"
+                :selectedTab="activeTrainingYear"
+                @tab="(id) => (activeTrainingYear = id)"
+              />
+              <div
+                v-if="!trainingsByMonthForYear.length"
+                class="text-gray-600 mt-4"
               >
-                <header class="training-month__head">
-                  <h3 class="training-month__title">{{ group.label }}</h3>
-                  <span class="training-month__badge">
-                    {{ group.count }}
-                    {{ group.count === 1 ? 'treino' : 'treinos' }}
-                  </span>
-                </header>
-                <div class="training-cards">
-                  <template v-for="item in group.items" :key="item.id">
-                    <article class="training-card">
-                      <template
-                        v-for="p in [formatTrainingCalendarParts(item.class_date)]"
-                        :key="item.id + '-cal'"
+                Nenhum treino em {{ activeTrainingYear }}.
+              </div>
+              <div v-else class="training-history mt-4">
+                <section
+                  v-for="group in trainingsByMonthForYear"
+                  :key="group.key"
+                  class="training-month"
+                >
+                  <header class="training-month__head">
+                    <h3 class="training-month__title">{{ group.label }}</h3>
+                    <div class="training-month__actions">
+                      <span class="training-month__badge">
+                        {{ group.count }}
+                        {{ group.count === 1 ? 'treino' : 'treinos' }}
+                      </span>
+                      <button
+                        type="button"
+                        class="training-month__switch"
+                        role="switch"
+                        :aria-checked="isMonthExpanded(group.key)"
+                        :aria-label="
+                          isMonthExpanded(group.key)
+                            ? `Ocultar treinos de ${group.label}`
+                            : `Mostrar treinos de ${group.label}`
+                        "
+                        @click="toggleMonthSection(group.key)"
                       >
-                        <div class="training-card__cal" aria-hidden="true">
-                          <span class="training-card__cal-wd">{{ p.weekday }}</span>
-                          <span class="training-card__cal-day">{{ p.day }}</span>
-                          <span class="training-card__cal-mon">{{ p.month }}</span>
-                        </div>
-                      </template>
-                      <div class="training-card__body">
-                        <div class="training-card__top">
-                          <time
-                            class="training-card__date-full"
-                            :datetime="String(item.class_date || '').split('T')[0]"
-                          >
-                            {{ formatDate(item.class_date) }}
-                          </time>
-                          <span
-                            class="training-chip"
-                            :class="{
-                              'training-chip--kids': item.class_type === 'kids',
-                              'training-chip--adult': item.class_type === 'adult',
-                            }"
-                          >
-                            {{ formatClassType(item.class_type) }}
-                          </span>
-                        </div>
-                        <p
-                          v-if="item.school_class?.name"
-                          class="training-card__class"
+                        <span class="training-month__switch-label">Ver</span>
+                        <span
+                          class="training-month__switch-track"
+                          :class="{
+                            'training-month__switch-track--on':
+                              isMonthExpanded(group.key),
+                          }"
                         >
-                          <span class="training-card__class-label">Turma</span>
-                          {{ item.school_class.name }}
-                        </p>
-                        <p v-if="item.notes" class="training-card__notes">
-                          {{ item.notes }}
-                        </p>
-                      </div>
-                    </article>
-                  </template>
-                </div>
-              </section>
-            </div>
+                          <span class="training-month__switch-thumb" />
+                        </span>
+                      </button>
+                    </div>
+                  </header>
+                  <div
+                    v-show="isMonthExpanded(group.key)"
+                    class="training-cards"
+                  >
+                    <template v-for="item in group.items" :key="item.id">
+                      <article class="training-card">
+                        <template
+                          v-for="p in [formatTrainingCalendarParts(item.class_date)]"
+                          :key="item.id + '-cal'"
+                        >
+                          <div class="training-card__cal" aria-hidden="true">
+                            <span class="training-card__cal-wd">{{ p.weekday }}</span>
+                            <span class="training-card__cal-day">{{ p.day }}</span>
+                            <span class="training-card__cal-mon">{{ p.month }}</span>
+                          </div>
+                        </template>
+                        <div class="training-card__body">
+                          <div class="training-card__top">
+                            <time
+                              class="training-card__date-full"
+                              :datetime="String(item.class_date || '').split('T')[0]"
+                            >
+                              {{ formatDate(item.class_date) }}
+                            </time>
+                            <span
+                              class="training-chip"
+                              :class="{
+                                'training-chip--kids': item.class_type === 'kids',
+                                'training-chip--adult': item.class_type === 'adult',
+                              }"
+                            >
+                              {{ formatClassType(item.class_type) }}
+                            </span>
+                          </div>
+                          <p
+                            v-if="item.school_class?.name"
+                            class="training-card__class"
+                          >
+                            <span class="training-card__class-label">Turma</span>
+                            {{ item.school_class.name }}
+                          </p>
+                          <p v-if="item.notes" class="training-card__notes">
+                            {{ item.notes }}
+                          </p>
+                        </div>
+                      </article>
+                    </template>
+                  </div>
+                </section>
+              </div>
+            </template>
           </template>
         </div>
 
@@ -707,6 +814,15 @@ onMounted(async () => {
   gap: 1.75rem;
 }
 
+.training-year-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+
 .training-month__head {
   display: flex;
   flex-wrap: wrap;
@@ -714,6 +830,69 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 0.5rem 0.75rem;
   margin-bottom: 0.875rem;
+}
+
+.training-month__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.training-month__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.15rem 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: #374151;
+}
+
+.training-month__switch:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.training-month__switch-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.training-month__switch-track {
+  position: relative;
+  width: 2.75rem;
+  height: 1.375rem;
+  border-radius: 9999px;
+  background: #d1d5db;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.training-month__switch-track--on {
+  background: #111827;
+}
+
+.training-month__switch-thumb {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  transform: translateY(-50%);
+  transition: left 0.2s ease;
+}
+
+.training-month__switch-track--on .training-month__switch-thumb {
+  left: calc(100% - 2px - 1.125rem);
 }
 
 .training-month__title {
@@ -879,6 +1058,7 @@ onMounted(async () => {
   line-height: 1.4;
   color: #6b7280;
   display: -webkit-box;
+  line-clamp: 4;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;

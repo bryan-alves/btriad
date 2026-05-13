@@ -356,12 +356,13 @@ onMounted(async () => {
 
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="md:col-span-1">
-                  <label class="font-medium">Foto</label>
+                  <label class="font-medium">Foto <span class="font-normal text-gray-500">(opcional)</span></label>
                   <div v-if="displayPhotoUrl" class="mt-2 mb-2 rounded-lg overflow-hidden border border-gray-200 max-w-[200px]">
                     <img :src="displayPhotoUrl" alt="Foto do aluno" class="w-full h-44 object-cover block" />
                   </div>
                   <input type="file" accept="image/*" class="block w-full text-sm"
                     @change="onPhotoFileChange" />
+                  <p class="text-xs text-gray-500 mt-1">Pode ficar em branco. JPG, PNG ou WebP · até 2 MB</p>
                 </div>
 
               </div>
