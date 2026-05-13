@@ -4,16 +4,15 @@ namespace Database\Seeders;
 
 use App\Models\Student;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class StudentSeeder extends Seeder
 {
     /**
-     * Importa os alunos do export MySQL (38 registros).
-     * Apaga todos os registros de `students` antes de inserir (CASCADE remove vínculos em listas/frequências).
+     * Importa os 38 alunos do export MySQL com ids 1–38 na mesma ordem.
+     * Esvazia `attendance_list_students`, `student_graduations` e `students` e recria os alunos.
      * Rode depois de {@see BeltSeeder}.
-     */
-    /**
-     * Endereço e contatos vazios no mesmo formato do export MySQL.
      */
     private static function defaultAddress(): array
     {
@@ -84,14 +83,19 @@ class StudentSeeder extends Seeder
 
     public function run(): void
     {
-        Student::query()->delete();
+        Schema::withoutForeignKeyConstraints(function () {
+            DB::table('attendance_list_students')->truncate();
+            DB::table('student_graduations')->truncate();
+            DB::table('students')->truncate();
+        });
 
-        $address = self::defaultAddress();
-        $emergency = self::defaultEmergencyContacts();
+        $address = json_encode(self::defaultAddress());
+        $emergency = json_encode(self::defaultEmergencyContacts());
 
         $payload = [];
-        foreach (self::rows() as $row) {
+        foreach (self::rows() as $index => $row) {
             $payload[] = [
+                'id' => $index + 1,
                 'user_id' => null,
                 'belt_id' => $row['belt_id'],
                 'degree' => null,
@@ -101,8 +105,8 @@ class StudentSeeder extends Seeder
                 'photo' => null,
                 'birth_date' => $row['birth_date'],
                 'sex' => null,
-                'address' => json_encode($address),
-                'emergency_contacts' => json_encode($emergency),
+                'address' => $address,
+                'emergency_contacts' => $emergency,
                 'other_sports' => null,
                 'health_issues' => null,
                 'medical_certificate' => null,
@@ -116,6 +120,10 @@ class StudentSeeder extends Seeder
 
         foreach (array_chunk($payload, 50) as $chunk) {
             Student::query()->insert($chunk);
+        }
+
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE students AUTO_INCREMENT = 39');
         }
     }
 }
