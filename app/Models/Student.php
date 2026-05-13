@@ -23,12 +23,17 @@ class Student extends Model
         'other_sports',
         'health_issues',
         'medical_certificate',
+        'registration_form_file',
         'active',
-        'class_type'
+        'class_type',
+        'degree',
+        'first_class_at',
     ];
 
     protected $casts = [
         'birth_date' => 'date',
+        'first_class_at' => 'date',
+        'degree' => 'date',
         'active' => 'boolean',
         'address' => 'array',
         'emergency_contacts' => 'array',
