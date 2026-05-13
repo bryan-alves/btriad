@@ -13,19 +13,19 @@ const belts = ref([]);
 const graduation = ref(null);
 
 const degreeOptions = [
-  { value: 0, label: '0 — sem grau' },
-  { value: 1, label: '1' },
-  { value: 2, label: '2' },
-  { value: 3, label: '3' },
-  { value: 4, label: '4' },
-];
+  { value: '0', label: '0 — sem grau' },
+  { value: '1', label: '1' },
+  { value: '2', label: '2' },
+  { value: '3', label: '3' },
+  { value: '4', label: '4' },
+]
 
 const form = reactive({
   student_id: null,
   belt_id: null,
-  degree: 0,
-  graduated_at: "",
-  notes: ""
+  degree: '0',
+  graduated_at: '',
+  notes: '',
 })
 
 const errors = ref({
@@ -42,7 +42,7 @@ function validate() {
   if (!form.belt_id) e.belt_id = "Selecione uma faixa"
   if (!form.graduated_at) e.graduated_at = "Data de graduação é obrigatória"
 
-  errors.value = e
+  errors.value = { student_id: '', belt_id: '', graduated_at: '', degree: '', ...e }
   return Object.keys(e).length === 0
 }
 
@@ -54,14 +54,14 @@ async function submit() {
     await axios.put(`/api/student-graduations/${route.params.id}`, {
       student_id: form.student_id,
       belt_id: form.belt_id,
-      degree: Math.min(4, Math.max(0, Number(form.degree) || 0)),
+      degree: Math.min(4, Math.max(0, parseInt(String(form.degree), 10) || 0)),
       graduated_at: form.graduated_at,
       notes: form.notes || null
     })
 
     alert('Graduação atualizada com sucesso!')
-  } catch (e) {
-    const err = e.response?.data?.errors
+  } catch (e: any) {
+    const err = e?.response?.data?.errors
     if (err) {
       errors.value = { ...errors.value, ...Object.fromEntries(Object.entries(err).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])) }
     }
@@ -105,7 +105,8 @@ async function getGraduation() {
     form.student_id = data.student_id;
     form.belt_id = data.belt_id;
     const d = Number(data.degree)
-    form.degree = Number.isFinite(d) ? Math.min(4, Math.max(0, d)) : 0
+    const clamped = Number.isFinite(d) ? Math.min(4, Math.max(0, d)) : 0
+    form.degree = String(clamped)
     form.graduated_at = data.graduated_at;
     form.notes = data.notes || "";
   } catch (error) {
