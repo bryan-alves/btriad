@@ -13,13 +13,20 @@ class StoreUserRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'role' => 'student',
+        ]);
+    }
+
     public function rules(): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:users,username'],
             'password' => ['required', 'string'],
-            'role' => ['required', 'in:admin,instructor,student'],
+            'role' => ['required', 'in:student'],
             'student_id' => ['nullable', 'integer', 'exists:students,id'],
         ];
     }
@@ -29,12 +36,6 @@ class StoreUserRequest extends FormRequest
         $validator->after(function (Validator $v) {
             $studentId = $this->input('student_id');
             if (! $studentId) {
-                return;
-            }
-
-            if ($this->input('role') !== 'student') {
-                $v->errors()->add('student_id', 'Só é possível vincular um cadastro de aluno quando o perfil for Aluno.');
-
                 return;
             }
 

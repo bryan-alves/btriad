@@ -28,6 +28,12 @@ class AuthController extends Controller
             ]);
         }
 
+        if (! $user->active) {
+            throw ValidationException::withMessages([
+                'username' => ['Esta conta está desativada.'],
+            ]);
+        }
+
         $user->load(['student.belt']);
 
         return response()->json([

@@ -22,7 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('students', StudentController::class);
     Route::apiResource('users', UserController::class)
-          ->only(['index', 'store']);
+        ->only(['index', 'store', 'show', 'update']);
 
     Route::apiResource('belts', BeltController::class)
           ->only(['index', 'store']);

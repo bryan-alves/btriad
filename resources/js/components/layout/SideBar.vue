@@ -44,6 +44,7 @@ async function logout() {
         <li><RouterLink to="/admin/attendance-lists">Treinos</RouterLink></li>
         <li><RouterLink to="/admin/student-graduations">Graduações</RouterLink></li>
         <li><RouterLink to="/admin/classes">Turmas</RouterLink></li>
+        <li><RouterLink to="/admin/users">Usuários</RouterLink></li>
       </template>
     </ul>
     <button @click="logout" class="logout-button" style="margin-top: auto">

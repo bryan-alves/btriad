@@ -112,6 +112,12 @@ const routes = [
     meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
   },
   {
+    path: '/admin/users/:id/edit',
+    name: 'UsersEdit',
+    component: UsersForm,
+    meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
+  },
+  {
     path: '/admin/classes',
     name: 'ClassesIndex',
     component: ClassIndex,

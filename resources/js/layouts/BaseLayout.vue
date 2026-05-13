@@ -43,6 +43,10 @@ const defaultActionRoute = computed(() => {
     return '/admin/students/create'
   }
 
+  if (route.name === 'UsersIndex') {
+    return '/admin/users/create'
+  }
+
   return '/admin/students/create'
 })
 

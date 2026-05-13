@@ -280,10 +280,8 @@ onMounted(loadAll)
             <li v-for="(row, idx) in timelineAsc" :key="row.id" class="dash-timeline__item">
               <span class="dash-timeline__dot" :class="{ 'dash-timeline__dot--last': idx === timelineAsc.length - 1 }" />
               <div class="dash-timeline__card">
-                <p class="dash-timeline__belt">{{ beltName(row.belt) }}</p>
+                <p class="dash-timeline__belt">{{ beltName(row.belt) }} {{ row.degree ? ` - ${row.degree} graus` : '' }}</p>
                 <p class="dash-timeline__date">{{ formatShortDate(row.graduated_at) }}</p>
-                <p v-if="row.degree" class="dash-timeline__deg">{{ row.degree }}</p>
-                <p v-if="row.notes" class="dash-timeline__notes">{{ row.notes }}</p>
               </div>
             </li>
           </ol>

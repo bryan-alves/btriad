@@ -18,6 +18,7 @@ class AdminUserSeeder extends Seeder
                 'name' => 'Bryan Alves',
                 'role' => 'admin',
                 'password' => '12122017@Br',
+                'active' => true,
             ]
         );
     }
