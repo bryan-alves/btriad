@@ -47,7 +47,7 @@ async function logout() {
         <li><RouterLink to="/admin/users">Usuários</RouterLink></li>
       </template>
     </ul>
-    <button @click="logout" class="logout-button" style="margin-top: auto">
+    <button @click="logout" class="logout-button">
       Sair
     </button>
   </div>
@@ -63,6 +63,8 @@ async function logout() {
   cursor: pointer;
   font-weight: 600;
   width: 100%;
+  margin-top: auto;
+  flex-shrink: 0;
   margin-bottom: 10px;
 
   &:hover {

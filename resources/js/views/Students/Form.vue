@@ -192,7 +192,6 @@ function fillForm(data: any) {
     URL.revokeObjectURL(localPhotoPreview.value)
     localPhotoPreview.value = null
   }
-  ;(form as any).photo = null
 
   Object.assign(form, data)
   form.birth_date = data.birth_date?.split('T')[0] ?? ""
@@ -213,6 +212,8 @@ function fillForm(data: any) {
 
   delete (form as any).photo_url
   delete (form as any).belt
+  /* Caminho no disco vem da API; só enviamos `photo` no update se for File novo */
+  ;(form as any).photo = null
 }
 
 function formatCPF(value) {
@@ -243,6 +244,10 @@ async function submit() {
         data.append(key, JSON.stringify(value))
       } else if (key === "cpf") {
        // data.append(key, value.replace(/\D/g, ''))
+      } else if (key === "photo") {
+        if (value instanceof File) {
+          data.append("photo", value)
+        }
       }
 
       else if (typeof value === "boolean") {

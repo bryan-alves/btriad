@@ -174,7 +174,10 @@ $header-height: 56px;
     position: fixed;
     top: $header-height;
     left: 0;
+    /* vh inclui chrome do browser; svh/dvh usam a área útil (mobile) */
     height: calc(100vh - #{$header-height});
+    height: calc(100svh - #{$header-height});
+    height: calc(100dvh - #{$header-height});
     width: min(280px, 88vw);
     max-width: $sidebar-width;
     transform: translateX(-100%);
@@ -182,6 +185,8 @@ $header-height: 56px;
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
 
     &--open {
       transform: translateX(0);
