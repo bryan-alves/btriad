@@ -22,6 +22,8 @@ const monthLabels = [
 const loading = ref(true)
 const attendanceLists = ref([])
 const activeYearTab = ref('')
+/** Mês 1–12 (string, alinhado aos ids dos toggles). */
+const activeMonth = ref('')
 
 function parseListDate(list) {
   const raw = list.class_date
@@ -32,6 +34,13 @@ function parseListDate(list) {
   const m = parseInt(parts[1], 10)
   if (!y || !m || m < 1 || m > 12) return null
   return { year: y, month: m }
+}
+
+function hasAttendanceInMonth(year, month) {
+  return attendanceLists.value.some((list) => {
+    const p = parseListDate(list)
+    return p && p.year === year && p.month === month && list.students?.length
+  })
 }
 
 const yearTabs = computed(() => {
@@ -59,48 +68,70 @@ watch(
   { immediate: true },
 )
 
+/** Ao mudar o ano, escolhe um mês padrão: mês atual (se for esse ano) ou primeiro mês com treino. */
+watch(activeYearTab, (yearStr) => {
+  const y = parseInt(yearStr, 10)
+  if (!y) {
+    activeMonth.value = ''
+    return
+  }
+  const now = new Date()
+  if (y === now.getFullYear()) {
+    const cm = now.getMonth() + 1
+    if (hasAttendanceInMonth(y, cm)) {
+      activeMonth.value = String(cm)
+      return
+    }
+  }
+  for (let m = 1; m <= 12; m += 1) {
+    if (hasAttendanceInMonth(y, m)) {
+      activeMonth.value = String(m)
+      return
+    }
+  }
+  activeMonth.value = '1'
+})
+
+const monthToggles = computed(() =>
+  monthLabels.map((label, i) => ({
+    id: String(i + 1),
+    name: label,
+  })),
+)
+
 const rankingRows = computed(() => {
   const year = parseInt(activeYearTab.value, 10)
-  if (!year) return []
+  const month = parseInt(activeMonth.value, 10)
+  if (!year || !month) return []
 
   const byStudent = {}
 
   attendanceLists.value.forEach((list) => {
     const parsed = parseListDate(list)
-    if (!parsed || parsed.year !== year || !list.students?.length) return
-
-    const monthIdx = parsed.month - 1
+    if (!parsed || parsed.year !== year || parsed.month !== month || !list.students?.length) return
 
     list.students.forEach((student) => {
       if (!byStudent[student.id]) {
         byStudent[student.id] = {
           id: student.id,
           name: student.name,
-          months: Array(12).fill(0),
-          total: 0,
+          count: 0,
         }
       }
-      const row = byStudent[student.id]
-      row.months[monthIdx] += 1
-      row.total += 1
+      byStudent[student.id].count += 1
     })
   })
 
   return Object.values(byStudent).sort((a, b) => {
-    if (b.total !== a.total) return b.total - a.total
+    if (b.count !== a.count) return b.count - a.count
     return a.name.localeCompare(b.name, 'pt-BR')
   })
 })
 
-/** Totais por mês no ano selecionado (soma de todos os alunos). */
-const monthTotals = computed(() => {
-  const totals = Array(12).fill(0)
-  for (const row of rankingRows.value) {
-    for (let i = 0; i < 12; i += 1) {
-      totals[i] += row.months[i]
-    }
-  }
-  return totals
+const selectedMonthLabel = computed(() => {
+  const m = parseInt(activeMonth.value, 10)
+  if (m < 1 || m > 12) return ''
+  return monthLabels[m - 1]
 })
 
 async function loadRanking() {
@@ -123,7 +154,8 @@ onMounted(loadRanking)
   <BaseLayout title="Ranking de treinos">
     <div class="ranking-page">
       <p class="intro">
-        Alunos que mais participaram das listas de presença. Use as abas para filtrar por ano; cada coluna é a quantidade de treinos naquele mês.
+        Alunos que mais participaram das listas de presença. Escolha o <strong>ano</strong> e o
+        <strong>mês</strong>; o ranking conta só os treinos daquele mês.
       </p>
 
       <div v-if="loading" class="state">Carregando...</div>
@@ -133,60 +165,53 @@ onMounted(loadRanking)
       </div>
 
       <template v-else>
+        <p class="section-label">Ano</p>
         <Tabs
           :tabs="yearTabs"
           :selectedTab="activeYearTab"
           @tab="(id) => (activeYearTab = id)"
         />
 
+        <p class="section-label section-label--month">Mês</p>
+        <div class="month-toggle" role="tablist" aria-label="Filtrar por mês">
+          <button
+            v-for="tab in monthToggles"
+            :key="tab.id"
+            type="button"
+            role="tab"
+            :aria-selected="activeMonth === tab.id"
+            :class="['month-toggle__btn', { 'month-toggle__btn--active': activeMonth === tab.id }]"
+            @click="activeMonth = tab.id"
+          >
+            {{ tab.name }}
+          </button>
+        </div>
+
         <div class="tab-content">
+          <p class="period-hint">
+            {{ selectedMonthLabel }} de {{ activeYearTab }}
+          </p>
           <div class="table-scroll">
             <table class="ranking-table">
               <thead>
                 <tr>
                   <th class="col-rank">#</th>
                   <th class="col-name">Aluno</th>
-                  <th v-for="(label, idx) in monthLabels" :key="label" class="month-cell">
-                    {{ label }}
-                  </th>
-                  <th class="total-col">Total</th>
-                </tr>
-                <tr class="subhead">
-                  <th class="col-rank" />
-                  <th class="col-name text-left text-gray-600 font-normal">
-                    Todos (soma)
-                  </th>
-                  <th
-                    v-for="(label, idx) in monthLabels"
-                    :key="'sum-' + label"
-                    class="month-cell text-gray-600 font-normal"
-                  >
-                    {{ monthTotals[idx] || '—' }}
-                  </th>
-                  <th class="total-col text-gray-700 font-semibold">
-                    {{ monthTotals.reduce((a, b) => a + b, 0) }}
-                  </th>
+                  <th class="col-count">Treinos</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(item, index) in rankingRows" :key="item.id">
                   <td class="col-rank">{{ index + 1 }}</td>
                   <td class="col-name">{{ item.name }}</td>
-                  <td
-                    v-for="(label, idx) in monthLabels"
-                    :key="item.id + '-' + label"
-                    class="month-cell"
-                  >
-                    {{ item.months[idx] || '—' }}
-                  </td>
-                  <td class="total-col font-semibold">{{ item.total }}</td>
+                  <td class="col-count font-semibold">{{ item.count }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <p v-if="!rankingRows.length" class="empty-year">
-            Nenhum treino registrado em {{ activeYearTab }}.
+            Nenhum treino registrado em {{ selectedMonthLabel }} de {{ activeYearTab }}.
           </p>
         </div>
       </template>
@@ -212,6 +237,58 @@ onMounted(loadRanking)
   color: #6b7280;
 }
 
+.section-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+
+.section-label--month {
+  margin-top: 1.25rem;
+}
+
+.month-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f3f4f6;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.month-toggle__btn {
+  flex: 1 1 auto;
+  min-width: 2.75rem;
+  padding: 0.5rem 0.35rem;
+  border: none;
+  border-right: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.month-toggle__btn:last-child {
+  border-right: none;
+}
+
+.month-toggle__btn:hover {
+  background: #e5e7eb;
+}
+
+.month-toggle__btn--active {
+  background: #111827;
+  color: #fff;
+}
+
 .tab-content {
   margin-top: 1rem;
   background: white;
@@ -221,17 +298,25 @@ onMounted(loadRanking)
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
+.period-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 600;
+}
+
 .ranking-table {
   border-collapse: collapse;
   font-size: 0.875rem;
+  width: 100%;
+  max-width: 32rem;
 }
 
 .ranking-table th,
 .ranking-table td {
-  padding: 10px 8px;
+  padding: 10px 12px;
   border-bottom: 1px solid #e5e7eb;
-  text-align: center;
-  white-space: nowrap;
+  text-align: left;
 }
 
 .ranking-table th {
@@ -243,32 +328,18 @@ onMounted(loadRanking)
   background: #fafafa;
 }
 
-.subhead th {
-  background: #f3f4f6;
-  border-bottom: 2px solid #d1d5db;
-  font-size: 0.8125rem;
-}
-
 .col-rank {
   text-align: center;
-  min-width: 2.5rem;
+  width: 3rem;
 }
 
 .col-name {
-  text-align: left;
   min-width: 10rem;
-  max-width: 14rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.month-cell {
-  min-width: 2.75rem;
-}
-
-.total-col {
-  min-width: 3.5rem;
-  background: #f9fafb;
+.col-count {
+  text-align: center;
+  width: 5rem;
 }
 
 .empty-year {

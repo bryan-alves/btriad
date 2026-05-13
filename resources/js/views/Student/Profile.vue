@@ -524,14 +524,8 @@ onMounted(async () => {
                     :class="{ 'prof-timeline__dot--last': idx === timelineAsc.length - 1 }"
                   />
                   <div class="prof-timeline__card">
-                    <p class="prof-timeline__belt">{{ beltLabel(row.belt) }}</p>
+                    <p class="dash-timeline__belt">{{ row.belt.slug !== 'white' && row.degree === 0 ? 'Graduado à' : '' }} Faixa {{ beltLabel(row.belt) }} {{ Number(row.degree) !== 0 ? ` - ${row.degree} ${row.degree === 1 ? 'grau' : 'graus'}` : '' }}</p>
                     <p class="prof-timeline__date">{{ formatDate(row.graduated_at) }}</p>
-                    <p
-                      v-if="row.degree != null && String(row.degree).trim()"
-                      class="prof-timeline__deg"
-                    >
-                      {{ row.degree }}
-                    </p>
                     <p
                       v-if="row.notes != null && String(row.notes).trim()"
                       class="prof-timeline__notes"
