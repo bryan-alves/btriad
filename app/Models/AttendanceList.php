@@ -11,7 +11,6 @@ class AttendanceList extends Model
 
     protected $fillable = [
         'class_date',
-        'class_type',
         'class_id',
         'notes',
     ];

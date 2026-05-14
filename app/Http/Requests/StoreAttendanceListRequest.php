@@ -16,7 +16,6 @@ class StoreAttendanceListRequest extends FormRequest
         return [
             'class_date' => ['required', 'date'],
             'class_id' => ['required', 'integer', 'exists:classes,id'],
-            'class_type' => ['required', 'string', 'in:kids,adult'],
             'notes' => ['nullable', 'string'],
             'student_ids' => ['required', 'array', 'min:1'],
             'student_ids.*' => ['required', 'integer', 'exists:students,id'],

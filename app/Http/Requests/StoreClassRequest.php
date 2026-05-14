@@ -15,6 +15,7 @@ class StoreClassRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'type' => ['required', 'string', 'in:kids,adult'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i'],
             'active' => ['boolean'],

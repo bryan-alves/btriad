@@ -28,6 +28,7 @@ class ClassController extends Controller
 
             $class = SchoolClass::create([
                 'name' => $data['name'],
+                'type' => $data['type'],
                 'start_time' => $data['start_time'],
                 'end_time' => $data['end_time'] ?? null,
                 'active' => $data['active'] ?? true,
@@ -63,6 +64,7 @@ class ClassController extends Controller
 
             $class->update([
                 'name' => $data['name'],
+                'type' => $data['type'],
                 'start_time' => $data['start_time'],
                 'end_time' => $data['end_time'] ?? null,
                 'active' => $data['active'] ?? true,

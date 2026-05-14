@@ -13,7 +13,7 @@ class AttendanceListController extends Controller
     public function index()
     {
         try {
-            $attendanceLists = AttendanceList::with('students')->orderBy('class_date', 'desc')->get();
+            $attendanceLists = AttendanceList::with(['students', 'schoolClass'])->orderBy('class_date', 'desc')->get();
 
             return response()->json($attendanceLists, 200);
         } catch (\Throwable $th) {
@@ -31,7 +31,6 @@ class AttendanceListController extends Controller
             $attendanceList = AttendanceList::create([
                 'class_date' => $data['class_date'],
                 'class_id' => $data['class_id'],
-                'class_type' => $data['class_type'],
                 'notes' => $data['notes'] ?? null,
             ]);
             $studentIds = collect($data['student_ids'])->unique()->values()->all();
@@ -53,11 +52,10 @@ class AttendanceListController extends Controller
                     ->update(['first_class_at' => $attendanceList->class_date]);
             }
 
-            $attendanceList->load(['students']);
+            $attendanceList->load(['students', 'schoolClass']);
 
             return response()->json($attendanceList, 201);
         } catch (\Throwable $th) {
-            dd($th->getMessage());
             return response()->json([
                 'message' => 'Erro ao criar a lista de presença.',
             ], 500);
@@ -67,7 +65,7 @@ class AttendanceListController extends Controller
     public function show($id)
     {
         try {
-            $attendanceList = AttendanceList::with('students')->findOrFail($id);
+            $attendanceList = AttendanceList::with(['students', 'schoolClass'])->findOrFail($id);
 
             return response()->json($attendanceList, 200);
         } catch (\Throwable $th) {
@@ -86,7 +84,6 @@ class AttendanceListController extends Controller
             $attendanceList->update([
                 'class_date' => $data['class_date'],
                 'class_id' => $data['class_id'],
-                'class_type' => $data['class_type'],
                 'notes' => $data['notes'] ?? null,
             ]);
 
@@ -109,7 +106,7 @@ class AttendanceListController extends Controller
                 DB::table('attendance_list_students')->insert($attachments);
             }
 
-            $attendanceList->load(['students']);
+            $attendanceList->load(['students', 'schoolClass']);
 
             return response()->json($attendanceList, 200);
         } catch (\Throwable $th) {

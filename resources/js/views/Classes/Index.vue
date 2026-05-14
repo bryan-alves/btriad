@@ -31,6 +31,7 @@ onMounted(async () => {
         <thead>
           <tr>
             <th>Nome</th>
+            <th>Tipo</th>
             <th>Início</th>
             <th>Fim</th>
             <th>Ativa</th>
@@ -40,6 +41,7 @@ onMounted(async () => {
         <tbody v-if="classes.length">
           <tr v-for="classItem in classes" :key="classItem.id">
             <td>{{ classItem.name }}</td>
+            <td>{{ classItem.type === 'kids' ? 'Kids' : classItem.type === 'adult' ? 'Adulto' : '—' }}</td>
             <td>{{ formatTime(classItem.start_time) }}</td>
             <td>{{ formatTime(classItem.end_time) }}</td>
             <td>{{ classItem.active ? 'Sim' : 'Não' }}</td>
@@ -50,7 +52,7 @@ onMounted(async () => {
         </tbody>
         <tbody v-else>
           <tr>
-            <td colspan="5" style="text-align: center">Nenhuma turma cadastrada!</td>
+            <td colspan="6" style="text-align: center">Nenhuma turma cadastrada!</td>
           </tr>
         </tbody>
       </table>

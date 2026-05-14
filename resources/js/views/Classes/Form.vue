@@ -3,6 +3,7 @@ import axios from "axios"
 import { ref, onMounted, reactive } from 'vue';
 import BaseLayout from '../../layouts/BaseLayout.vue';
 import FormInput from "../../components/form/FormInput.vue";
+import FormSelect from "../../components/form/FormSelect.vue";
 import { useRoute } from 'vue-router'
 
 const route = useRoute();
@@ -11,6 +12,7 @@ const isEdit = ref(false);
 
 const form = reactive({
   name: "",
+  type: "kids",
   start_time: "",
   end_time: "",
   active: true
@@ -18,6 +20,7 @@ const form = reactive({
 
 const errors = ref({
   name: "",
+  type: "",
   start_time: ""
 });
 
@@ -25,6 +28,7 @@ function validate() {
   const e: any = {}
 
   if (!form.name) e.name = "Nome da turma é obrigatório"
+  if (!form.type) e.type = "Tipo da turma é obrigatório"
   if (!form.start_time) e.start_time = "Horário de início é obrigatório"
 
   errors.value = e
@@ -39,6 +43,7 @@ async function submit() {
     if (isEdit.value) {
       await axios.put(`/api/classes/${route.params.id}`, {
         name: form.name,
+        type: form.type,
         start_time: form.start_time,
         end_time: form.end_time || null,
         active: form.active
@@ -48,6 +53,7 @@ async function submit() {
     } else {
       await axios.post('/api/classes', {
         name: form.name,
+        type: form.type,
         start_time: form.start_time,
         end_time: form.end_time || null,
         active: form.active
@@ -55,6 +61,7 @@ async function submit() {
 
       alert('Turma cadastrada com sucesso!')
       form.name = ''
+      form.type = 'kids'
       form.start_time = ''
       form.end_time = ''
       form.active = true
@@ -72,6 +79,7 @@ async function getClass() {
     const { data } = await axios.get(`/api/classes/${route.params.id}`)
 
     form.name = data.name
+    form.type = data.type || 'kids'
     form.start_time = data.start_time
     form.end_time = data.end_time || ''
     form.active = data.active
@@ -99,15 +107,20 @@ onMounted(async () => {
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormInput v-model="form.name" label="Nome da turma" :error="errors.name" />
-            <FormInput type="time" v-model="form.start_time" label="Horário de início" :error="errors.start_time" />
+            <FormSelect v-model="form.type" :options="[
+              { value: 'kids', label: 'Kids' },
+              { value: 'adult', label: 'Adulto' }
+            ]" label="Tipo da turma" placeholder="Selecione" :error="errors.type" />
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormInput type="time" v-model="form.start_time" label="Horário de início" :error="errors.start_time" />
             <FormInput type="time" v-model="form.end_time" label="Horário de término" />
-            <div class="flex items-center gap-3 mt-6">
-              <input id="active" type="checkbox" v-model="form.active" class="h-4 w-4 rounded border-gray-300" />
-              <label for="active" class="font-medium">Turma ativa</label>
-            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <input id="active" type="checkbox" v-model="form.active" class="h-4 w-4 rounded border-gray-300" />
+            <label for="active" class="font-medium">Turma ativa</label>
           </div>
         </div>
 

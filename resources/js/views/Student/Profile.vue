@@ -576,11 +576,11 @@ onMounted(async () => {
                             <span
                               class="training-chip"
                               :class="{
-                                'training-chip--kids': item.class_type === 'kids',
-                                'training-chip--adult': item.class_type === 'adult',
+                                'training-chip--kids': item.school_class?.type === 'kids',
+                                'training-chip--adult': item.school_class?.type === 'adult',
                               }"
                             >
-                              {{ formatClassType(item.class_type) }}
+                              {{ formatClassType(item.school_class?.type) }}
                             </span>
                           </div>
                           <p

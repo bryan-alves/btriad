@@ -16,7 +16,6 @@ const searchFilter = ref("");
 const form = reactive({
   class_date: "",
   class_id: null,
-  class_type: "kids",
   notes: "",
   student_ids: []
 })
@@ -48,7 +47,6 @@ const filteredStudents = computed(() => {
 const errors = ref({
   class_date: "",
   class_id: "",
-  class_type: "",
   student_ids: ""
 })
 
@@ -57,7 +55,6 @@ function validate() {
 
   if (!form.class_date) e.class_date = "Data da aula é obrigatória"
   if (!form.class_id) e.class_id = "Selecione uma turma"
-  if (!form.class_type) e.class_type = "Tipo de turma é obrigatória"
   if (!form.student_ids || form.student_ids.length === 0) e.student_ids = "Selecione pelo menos um aluno"
 
   errors.value = e
@@ -81,7 +78,6 @@ async function submit() {
     await axios.put(`/api/attendance-lists/${route.params.id}`, {
       class_date: form.class_date,
       class_id: form.class_id,
-      class_type: form.class_type,
       notes: form.notes || null,
       student_ids: form.student_ids
     })
@@ -109,7 +105,7 @@ async function getClasses() {
     const { data } = await axios.get('/api/classes');
     classes.value = data.map(c => ({
       value: c.id,
-      label: `${c.name} (${c.start_time}${c.end_time ? ' - ' + c.end_time : ''})`
+      label: `${c.name} (${c.type === 'adult' ? 'Adulto' : 'Kids'}) (${c.start_time}${c.end_time ? ' - ' + c.end_time : ''})`
     }));
   } catch (error) {
     console.error(error)
@@ -124,7 +120,6 @@ async function getAttendanceList() {
     // Preencher formulário
     form.class_date = data.class_date;
     form.class_id = data.class_id;
-    form.class_type = data.class_type;
     form.notes = data.notes || "";
     form.student_ids = data.students?.map(student => student.id) || [];
   } catch (error) {
@@ -151,13 +146,6 @@ onMounted(async () => {
             <FormInput type="date" v-model="form.class_date" label="Data da aula" :error="errors.class_date" />
 
             <FormSelect v-model="form.class_id" :options="classes" label="Turma" placeholder="Selecione uma turma" :error="errors.class_id" />
-          </div>
-
-          <div>
-            <FormSelect v-model="form.class_type" :options="[
-              { value: 'kids', label: 'Kids' },
-              { value: 'adult', label: 'Adulto' }
-            ]" label="Tipo de turma" :error="errors.class_type" />
           </div>
 
           <div>

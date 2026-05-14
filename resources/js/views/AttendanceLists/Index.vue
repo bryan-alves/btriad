@@ -40,7 +40,7 @@ onMounted(async () => {
         <tbody v-if="attendanceLists.length">
           <tr v-for="list in attendanceLists" :key="list.id">
             <td>{{ formatDate(list.class_date) }}</td>
-            <td>{{ list.class_type === 'kids' ? 'Kids' : 'Adulto' }}</td>
+            <td>{{ list.school_class?.type === 'kids' ? 'Kids' : list.school_class?.type === 'adult' ? 'Adulto' : '—' }}</td>
             <td>{{ list.students?.length || 0 }}</td>
             <td><a :href="list.notes">{{ list.notes }}</a></td>
             <td>
