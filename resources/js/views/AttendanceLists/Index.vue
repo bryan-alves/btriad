@@ -15,7 +15,7 @@ async function getAttendanceLists() {
 }
 
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('pt-BR')
+  return date.split('T')[0].split('-').reverse().join('/')
 }
 
 onMounted(async () => {
