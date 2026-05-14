@@ -33,7 +33,7 @@ onMounted(async () => {
             <th>Data da Aula</th>
             <th>Tipo de Turma</th>
             <th>Total de Alunos</th>
-            <th>Observações</th>
+            <th>Foto</th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -42,7 +42,7 @@ onMounted(async () => {
             <td>{{ formatDate(list.class_date) }}</td>
             <td>{{ list.class_type === 'kids' ? 'Kids' : 'Adulto' }}</td>
             <td>{{ list.students?.length || 0 }}</td>
-            <td>{{ list.notes || '-' }}</td>
+            <td><a :href="list.notes">{{ list.notes }}</a></td>
             <td>
               <RouterLink :to="`/admin/attendance-lists/${list.id}/edit`">Editar</RouterLink>
             </td>
