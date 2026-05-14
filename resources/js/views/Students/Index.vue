@@ -79,7 +79,7 @@ onMounted(async () => {
             <td>{{ student.registration_form ? 'Sim' : 'Não' }}</td>
             <td>{{ student.medical_certificate ? 'Sim' : 'Não' }}</td>
             <td>
-              <RouterLink :to="`/admin/students/${student.id}`">Detalhes</RouterLink>
+              <RouterLink :to="`/admin/students/${student.id}/profile`">Detalhes</RouterLink>
             </td>
           </tr>
         </tbody>

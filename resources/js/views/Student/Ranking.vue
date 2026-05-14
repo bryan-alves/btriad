@@ -4,8 +4,9 @@ import axios from 'axios'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import Tabs from '../../components/tabs/Tabs.vue'
 
+const loading = ref(true)
+
 const monthLabels = [
-  'Jan',
   'Fev',
   'Mar',
   'Abr',
@@ -19,7 +20,6 @@ const monthLabels = [
   'Dez',
 ]
 
-const loading = ref(true)
 const attendanceLists = ref([])
 const activeYearTab = ref('')
 /** Mês 1–12 (string, alinhado aos ids dos toggles). */

@@ -472,12 +472,21 @@ onMounted(async () => {
                   @change="e => form.image_authorization_file = e.target.files[0]" />
               </div>
             </div>
-            <div style="display: flex; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
               <router-link to="/admin/students/" class="btn-primary">Voltar</router-link>
-              <button :disabled="loading"
-                class=" bg-blue-600 text-white p-3 rounded font-semibold hover:bg-blue-700 disabled:opacity-50">
-                {{ loading ? "Salvando..." : "Cadastrar" }}
-              </button>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <router-link
+                  v-if="studentId"
+                  :to="`/admin/students/${studentId}/profile`"
+                  class="btn-secondary"
+                >
+                  Ver perfil
+                </router-link>
+                <button :disabled="loading"
+                  class=" bg-blue-600 text-white p-3 rounded font-semibold hover:bg-blue-700 disabled:opacity-50">
+                  {{ loading ? "Salvando..." : "Cadastrar" }}
+                </button>
+              </div>
             </div>
 
           </form>
@@ -560,5 +569,40 @@ onMounted(async () => {
 .input-base:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e0e0e0;
+  color: #333;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    background: #d0d0d0;
+  }
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #2563eb;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid #2563eb;
+  cursor: pointer;
+
+  &:hover {
+    background: #eff6ff;
+  }
 }
 </style>

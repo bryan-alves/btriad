@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\AttendanceList;
 use App\Models\Student;
+use App\Models\StudentGraduation;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentRequest;
 use Illuminate\Http\Request;
@@ -54,7 +56,7 @@ class StudentController extends Controller
     public function show($id)
     {
         try {
-            $student = Student::where('active', true)->with('belt')->findOrFail($id);
+            $student = Student::where('active', true)->with(['belt', 'user'])->findOrFail($id);
 
             return response()->json($student, 200);
 
@@ -101,6 +103,49 @@ class StudentController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Erro ao atualizar aluno'
+            ], 500);
+        }
+    }
+
+    /**
+     * Listas de presença em que o aluno consta (admin/instrutor).
+     */
+    public function trainings(Student $student)
+    {
+        try {
+            $lists = AttendanceList::query()
+                ->whereHas('students', function ($query) use ($student) {
+                    $query->where('students.id', $student->id);
+                })
+                ->with('schoolClass')
+                ->orderByDesc('class_date')
+                ->get();
+
+            return response()->json($lists, 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Erro ao buscar treinos do aluno.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Graduações do aluno (admin/instrutor).
+     */
+    public function graduations(Student $student)
+    {
+        try {
+            $rows = StudentGraduation::query()
+                ->where('student_id', $student->id)
+                ->with('belt')
+                ->orderByDesc('graduated_at')
+                ->orderByDesc('id')
+                ->get();
+
+            return response()->json($rows, 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Erro ao buscar graduações do aluno.',
             ], 500);
         }
     }

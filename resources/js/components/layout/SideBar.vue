@@ -41,6 +41,7 @@ async function logout() {
       </template>
       <template v-else-if="userRole">
         <li><RouterLink to="/admin/students">Alunos</RouterLink></li>
+        <li><RouterLink to="/admin/ranking">Ranking</RouterLink></li>
         <li><RouterLink to="/admin/attendance-lists">Treinos</RouterLink></li>
         <li><RouterLink to="/admin/student-graduations">Graduações</RouterLink></li>
         <li><RouterLink to="/admin/classes">Turmas</RouterLink></li>

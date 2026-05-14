@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import Tabs from '../../components/tabs/Tabs.vue'
+
+const route = useRoute()
+
+const isAdminView = computed(() => route.name === 'AdminStudentProfile')
+const adminStudentId = computed(() =>
+  isAdminView.value && route.params.id ? String(route.params.id) : '',
+)
 
 const loading = ref(true)
 const trainingsLoading = ref(false)
@@ -11,6 +19,13 @@ const user = ref<any>(null)
 const student = ref<any>(null)
 const trainings = ref<any[]>([])
 const graduations = ref<any[]>([])
+
+const pageTitle = computed(() => {
+  if (isAdminView.value) {
+    return student.value?.name ? `Aluno: ${student.value.name}` : 'Aluno'
+  }
+  return 'Meu Perfil'
+})
 
 const activeTab = ref('personal-data')
 
@@ -218,21 +233,44 @@ watch([activeTrainingYear, trainings], () => {
 async function loadProfile() {
   loading.value = true
   try {
-    const { data } = await axios.get('/api/auth/user')
-    user.value = data
-    student.value = data.student || null
+    if (isAdminView.value) {
+      const id = adminStudentId.value
+      if (!id) {
+        student.value = null
+        user.value = null
+        return
+      }
+      const { data } = await axios.get(`/api/students/${id}`)
+      student.value = data
+      user.value = data.user
+        ? { username: data.user.username }
+        : { username: '—' }
+    } else {
+      const { data } = await axios.get('/api/auth/user')
+      user.value = data
+      student.value = data.student || null
+    }
   } catch (error) {
     console.error(error)
+    student.value = null
+    user.value = null
   } finally {
     loading.value = false
   }
 }
 
 async function loadTrainings() {
-  if (!student.value) return
+  if (isAdminView.value) {
+    if (!adminStudentId.value) return
+  } else if (!student.value) {
+    return
+  }
   trainingsLoading.value = true
   try {
-    const { data } = await axios.get('/api/auth/student/trainings')
+    const url = isAdminView.value
+      ? `/api/students/${adminStudentId.value}/trainings`
+      : '/api/auth/student/trainings'
+    const { data } = await axios.get(url)
     trainings.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error(error)
@@ -243,10 +281,17 @@ async function loadTrainings() {
 }
 
 async function loadGraduations() {
-  if (!student.value) return
+  if (isAdminView.value) {
+    if (!adminStudentId.value) return
+  } else if (!student.value) {
+    return
+  }
   graduationsLoading.value = true
   try {
-    const { data } = await axios.get('/api/auth/student/graduations')
+    const url = isAdminView.value
+      ? `/api/students/${adminStudentId.value}/graduations`
+      : '/api/auth/student/graduations'
+    const { data } = await axios.get(url)
     graduations.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error(error)
@@ -262,6 +307,7 @@ function beltLabel(belt: { name?: string; group?: string } | null | undefined) {
 }
 
 async function onProfilePhotoChange(e: Event) {
+  if (isAdminView.value) return
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
@@ -289,6 +335,15 @@ async function onProfilePhotoChange(e: Event) {
   }
 }
 
+watch(
+  () => (isAdminView.value ? String(route.params.id ?? '') : ''),
+  async (newId, oldId) => {
+    if (!isAdminView.value || !newId || newId === oldId) return
+    await loadProfile()
+    await Promise.all([loadTrainings(), loadGraduations()])
+  },
+)
+
 onMounted(async () => {
   await loadProfile()
   await Promise.all([loadTrainings(), loadGraduations()])
@@ -296,7 +351,17 @@ onMounted(async () => {
 </script>
 
 <template>
-  <BaseLayout title="Meu Perfil">
+  <BaseLayout :title="pageTitle">
+    <div v-if="isAdminView" class="admin-student-nav">
+      <RouterLink to="/admin/students" class="admin-student-nav__link">← Lista de alunos</RouterLink>
+      <RouterLink
+        v-if="adminStudentId"
+        :to="`/admin/students/${adminStudentId}/edit`"
+        class="admin-student-nav__link admin-student-nav__link--primary"
+      >
+        Editar cadastro
+      </RouterLink>
+    </div>
     <Tabs :tabs="tabs" :selectedTab="activeTab" @tab="(val) => (activeTab = val)" />
     <div class="tab-content">
       <div v-if="loading" class="py-8 text-center text-gray-600">
@@ -326,29 +391,31 @@ onMounted(async () => {
                   <div v-else class="profile-photo-placeholder mt-2">
                     {{ (student.name || '?').charAt(0).toUpperCase() }}
                   </div>
-                  <input
-                    ref="photoInputRef"
-                    type="file"
-                    class="profile-photo-file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    @change="onProfilePhotoChange"
-                  />
-                  <button
-                    type="button"
-                    class="profile-photo-btn"
-                    :disabled="photoUploading"
-                    @click="photoInputRef?.click()"
-                  >
-                    {{
-                      photoUploading
-                        ? 'Enviando…'
-                        : photoUrl
-                          ? 'Alterar foto'
-                          : 'Adicionar foto'
-                    }}
-                  </button>
-                  <p v-if="photoError" class="profile-photo-err">{{ photoError }}</p>
-                  <p class="text-xs text-gray-500 mt-1">Opcional. JPG, PNG ou WebP · até 2 MB</p>
+                  <template v-if="!isAdminView">
+                    <input
+                      ref="photoInputRef"
+                      type="file"
+                      class="profile-photo-file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      @change="onProfilePhotoChange"
+                    />
+                    <button
+                      type="button"
+                      class="profile-photo-btn"
+                      :disabled="photoUploading"
+                      @click="photoInputRef?.click()"
+                    >
+                      {{
+                        photoUploading
+                          ? 'Enviando…'
+                          : photoUrl
+                            ? 'Alterar foto'
+                            : 'Adicionar foto'
+                      }}
+                    </button>
+                    <p v-if="photoError" class="profile-photo-err">{{ photoError }}</p>
+                    <p class="text-xs text-gray-500 mt-1">Opcional. JPG, PNG ou WebP · até 2 MB</p>
+                  </template>
                 </div>
               </div>
 
@@ -610,7 +677,12 @@ onMounted(async () => {
           <template v-else>
             <h2 class="text-xl font-bold mb-4">Histórico de graduação</h2>
             <p class="text-sm text-gray-600 mb-4">
-              Sua jornada na ordem em que foi registrada. Faixa atual:
+              <template v-if="isAdminView">
+                Histórico na ordem em que foi registrado. Faixa atual do aluno:
+              </template>
+              <template v-else>
+                Sua jornada na ordem em que foi registrada. Faixa atual:
+              </template>
               <strong>{{ beltLabel(student.belt) }}</strong>.
             </p>
             <div v-if="graduationsLoading" class="py-6 text-gray-600">
@@ -651,6 +723,40 @@ onMounted(async () => {
 </template>
 
 <style scoped lang="scss">
+.admin-student-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.admin-student-nav__link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.875rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: #374151;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.admin-student-nav__link:hover {
+  background: #e5e7eb;
+}
+
+.admin-student-nav__link--primary {
+  color: #fff;
+  background: #2563eb;
+  border-color: #1d4ed8;
+}
+
+.admin-student-nav__link--primary:hover {
+  background: #1d4ed8;
+}
+
 .tab-content {
   background: white;
   border: 1px solid #ddd;

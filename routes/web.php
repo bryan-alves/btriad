@@ -12,7 +12,16 @@ Route::get('/admin/students', function () {
 Route::get('/admin/students/create', function () {
     return view('app');
 });
+Route::get('/admin/students/{id}/profile', function () {
+    return view('app');
+});
+Route::get('/admin/students/{id}/edit', function () {
+    return view('app');
+});
 Route::get('/admin/students/{id}', function () {
+    return view('app');
+})->where('id', '[0-9]+');
+Route::get('/admin/ranking', function () {
     return view('app');
 });
 Route::get('/admin/attendance-lists', function () {

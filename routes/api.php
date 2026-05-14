@@ -20,6 +20,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/student/graduations', [AuthController::class, 'studentGraduations']);
     Route::post('/auth/student/photo', [AuthController::class, 'updateStudentPhoto']);
 
+    Route::get('students/{student}/trainings', [StudentController::class, 'trainings']);
+    Route::get('students/{student}/graduations', [StudentController::class, 'graduations']);
     Route::apiResource('students', StudentController::class);
     Route::apiResource('users', UserController::class)
         ->only(['index', 'store', 'show', 'update']);
