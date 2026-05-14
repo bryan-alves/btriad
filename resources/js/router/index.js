@@ -58,20 +58,18 @@ const routes = [
     meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
   },
   {
-    path: '/admin/students/:id/edit',
-    name: 'StudentsEdit',
-    component: StudentForm,
-    meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
+    path: '/admin/students/:id(\\d+)/profile',
+    redirect: (to) => ({ path: `/admin/students/${to.params.id}` }),
   },
   {
-    path: '/admin/students/:id(\\d+)/profile',
-    name: 'AdminStudentProfile',
-    component: StudentProfile,
-    meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
+    path: '/admin/students/:id(\\d+)/edit',
+    redirect: (to) => ({ path: `/admin/students/${to.params.id}` }),
   },
   {
     path: '/admin/students/:id(\\d+)',
-    redirect: (to) => ({ path: `/admin/students/${to.params.id}/profile` }),
+    name: 'AdminStudentProfile',
+    component: StudentProfile,
+    meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
   },
   {
     path: '/admin/ranking',

@@ -2,6 +2,8 @@
 import axios from 'axios'
 import { ref, onMounted, computed } from 'vue'
 import BaseLayout from '../../layouts/BaseLayout.vue'
+import PaginationBar from '../../components/pagination/PaginationBar.vue'
+import { parsePaginatorResponse } from '../../utils/pagination'
 
 type UserRow = {
   id: number
@@ -14,6 +16,15 @@ type UserRow = {
 
 const users = ref<UserRow[]>([])
 const busyId = ref<number | null>(null)
+const perPage = 15
+const meta = ref({
+  current_page: 1,
+  last_page: 1,
+  total: 0,
+  per_page: perPage,
+  from: null as number | null,
+  to: null as number | null,
+})
 
 const currentUserId = computed(() => {
   try {
@@ -24,10 +35,16 @@ const currentUserId = computed(() => {
   }
 })
 
-async function getUsers() {
+async function getUsers(p = 1) {
   try {
-    const { data } = await axios.get('/api/users')
-    users.value = Array.isArray(data) ? data : []
+    const { data } = await axios.get('/api/users', {
+      params: { page: p, per_page: perPage },
+    })
+    const { rows, meta: m } = parsePaginatorResponse<UserRow>(data)
+    users.value = rows
+    if (m) {
+      meta.value = m
+    }
   } catch (error) {
     console.error(error)
   }
@@ -41,7 +58,7 @@ async function toggleActive(user: UserRow) {
   busyId.value = user.id
   try {
     await axios.put(`/api/users/${user.id}`, { active: user.active === false })
-    await getUsers()
+    await getUsers(meta.value.current_page)
   } catch (error: any) {
     const msg = error.response?.data?.message || error.response?.data?.errors?.active?.[0]
     alert(msg || 'Erro ao alterar estado do usuário')
@@ -51,13 +68,17 @@ async function toggleActive(user: UserRow) {
   }
 }
 
+function onPageChange(p: number) {
+  getUsers(p)
+}
+
 onMounted(async () => {
-  await getUsers()
+  await getUsers(1)
 })
 </script>
 
 <template>
-  <BaseLayout :title="`Usuários (${users.length})`" action="Novo usuário" actionRoute="/admin/users/create">
+  <BaseLayout :title="`Usuários (${meta.total})`" action="Novo usuário" actionRoute="/admin/users/create">
     <div class="users">
       <div class="table-scroll">
         <table class="users__table">
@@ -99,6 +120,16 @@ onMounted(async () => {
           </tbody>
         </table>
       </div>
+      <PaginationBar
+        :current-page="meta.current_page"
+        :last-page="meta.last_page"
+        :total="meta.total"
+        :per-page="meta.per_page"
+        :from="meta.from"
+        :to="meta.to"
+        :disabled="busyId != null"
+        @update:page="onPageChange"
+      />
     </div>
   </BaseLayout>
 </template>

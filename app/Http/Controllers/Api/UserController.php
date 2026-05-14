@@ -7,16 +7,23 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Student;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $users = User::query()->with('student')->orderBy('name')->get();
+            $query = User::query()->with('student')->orderBy('name');
 
-            return response()->json($users, 200);
+            if ($request->boolean('all')) {
+                return response()->json($query->get(), 200);
+            }
+
+            $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+
+            return response()->json($query->paginate($perPage), 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Erro ao buscar usuários',

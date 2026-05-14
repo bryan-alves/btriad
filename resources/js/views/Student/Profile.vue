@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import Tabs from '../../components/tabs/Tabs.vue'
+import FormInput from '../../components/form/FormInput.vue'
+import FormSelect from '../../components/form/FormSelect.vue'
 
 const route = useRoute()
 
@@ -11,6 +13,63 @@ const isAdminView = computed(() => route.name === 'AdminStudentProfile')
 const adminStudentId = computed(() =>
   isAdminView.value && route.params.id ? String(route.params.id) : '',
 )
+
+const adminEditMode = ref(false)
+const adminSaveLoading = ref(false)
+const belts = ref<{ label: string; value: number }[]>([])
+const users = ref<{ label: string; value: string | number }[]>([])
+
+const adminForm = reactive({
+  belt_id: null as number | null,
+  photo: null as File | null,
+  name: '',
+  cpf: '',
+  birth_date: '',
+  sex: '',
+  class_type: null as string | null,
+  user_id: '' as string | number,
+  address: {
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+  },
+  emergency_contacts: [
+    { name: '', relationship: '', phone: '' },
+    { name: '', relationship: '', phone: '' },
+  ],
+  other_sports: '',
+  health_issues: '',
+  medical_certificate: null as File | null,
+  registration_form_file: null as File | null,
+})
+
+const adminSavedPhotoUrl = ref<string | null>(null)
+const adminLocalPhotoPreview = ref<string | null>(null)
+const adminDisplayPhotoUrl = computed(
+  () => adminLocalPhotoPreview.value || adminSavedPhotoUrl.value,
+)
+
+const adminFormErrors = ref({
+  belt_id: null as string | null,
+  photo: null as string | null,
+  name: '',
+  cpf: '',
+  birth_date: '',
+  sex: '',
+  class_type: null as string | null,
+  user_id: null as string | null,
+  address: {
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+  },
+})
 
 const loading = ref(true)
 const trainingsLoading = ref(false)
@@ -306,6 +365,191 @@ function beltLabel(belt: { name?: string; group?: string } | null | undefined) {
   return belt.group ? `${belt.name} — ${belt.group}` : belt.name
 }
 
+function validateCPF(cpf: string) {
+  cpf = cpf.replace(/\D/g, '')
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false
+  for (let t = 9; t < 11; t++) {
+    let soma = 0
+    for (let i = 0; i < t; i++) {
+      soma += parseInt(cpf[i], 10) * (t + 1 - i)
+    }
+    const digito = ((10 * soma) % 11) % 10
+    if (parseInt(cpf[t], 10) !== digito) return false
+  }
+  return true
+}
+
+function validateAdminForm() {
+  const e: any = {
+    belt_id: null,
+    photo: null,
+    name: '',
+    cpf: '',
+    birth_date: '',
+    sex: '',
+    class_type: null,
+    user_id: null,
+    address: {
+      cep: '',
+      street: '',
+      number: '',
+      complement: '',
+      neighborhood: '',
+      city: '',
+    },
+  }
+  if (!adminForm.name?.trim()) e.name = 'Nome é obrigatório'
+  if (adminForm.cpf) {
+    if (adminForm.cpf.replace(/\D/g, '').length !== 11 || !validateCPF(adminForm.cpf)) {
+      e.cpf = 'CPF inválido'
+    }
+  }
+  adminFormErrors.value = e
+  return !e.name && !e.cpf
+}
+
+function fillAdminFormFromStudent() {
+  const s = student.value
+  if (!s) return
+  if (adminLocalPhotoPreview.value) {
+    URL.revokeObjectURL(adminLocalPhotoPreview.value)
+    adminLocalPhotoPreview.value = null
+  }
+  adminForm.belt_id = s.belt_id ?? null
+  adminForm.name = s.name ?? ''
+  adminForm.cpf = s.cpf ?? ''
+  adminForm.birth_date = s.birth_date?.split?.('T')?.[0] ?? ''
+  adminForm.sex = s.sex ?? ''
+  adminForm.class_type = s.class_type ?? null
+  adminForm.user_id = s.user_id ?? ''
+  const addr = s.address || {}
+  adminForm.address.cep = addr.cep ?? ''
+  adminForm.address.street = addr.street ?? ''
+  adminForm.address.number = addr.number ?? ''
+  adminForm.address.complement = addr.complement ?? ''
+  adminForm.address.neighborhood = addr.neighborhood ?? ''
+  adminForm.address.city = addr.city ?? ''
+  const ec = Array.isArray(s.emergency_contacts) ? s.emergency_contacts : []
+  adminForm.emergency_contacts[0] = {
+    name: ec[0]?.name ?? '',
+    relationship: ec[0]?.relationship ?? '',
+    phone: ec[0]?.phone ?? '',
+  }
+  adminForm.emergency_contacts[1] = {
+    name: ec[1]?.name ?? '',
+    relationship: ec[1]?.relationship ?? '',
+    phone: ec[1]?.phone ?? '',
+  }
+  adminForm.other_sports = s.other_sports ?? ''
+  adminForm.health_issues = s.health_issues ?? ''
+  adminForm.photo = null
+  adminForm.medical_certificate = null
+  adminForm.registration_form_file = null
+  adminSavedPhotoUrl.value =
+    s.photo_url || (s.photo ? `/storage/${s.photo}` : null)
+}
+
+function onAdminPhotoChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0] ?? null
+  if (adminLocalPhotoPreview.value) {
+    URL.revokeObjectURL(adminLocalPhotoPreview.value)
+    adminLocalPhotoPreview.value = null
+  }
+  adminForm.photo = file
+  adminLocalPhotoPreview.value = file ? URL.createObjectURL(file) : null
+}
+
+async function loadBeltsAndUsers() {
+  try {
+    const [bRes, uRes] = await Promise.all([
+      axios.get('/api/belts'),
+      axios.get('/api/users', { params: { all: 1 } }),
+    ])
+    belts.value = (bRes.data || []).map(({ id, name, group }: any) => ({
+      label: group ? `${name} - ${group}` : name,
+      value: id,
+    }))
+    users.value = (uRes.data || []).map((u: any) => ({
+      label: `${u.name} (${u.username})`,
+      value: u.id,
+    }))
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+function startAdminEdit() {
+  fillAdminFormFromStudent()
+  adminEditMode.value = true
+}
+
+function cancelAdminEdit() {
+  adminEditMode.value = false
+  if (adminLocalPhotoPreview.value) {
+    URL.revokeObjectURL(adminLocalPhotoPreview.value)
+    adminLocalPhotoPreview.value = null
+  }
+  adminForm.photo = null
+}
+
+async function submitAdminStudent() {
+  if (!validateAdminForm()) return
+  const id = adminStudentId.value
+  if (!id) return
+  adminSaveLoading.value = true
+  try {
+    const data = new FormData()
+    Object.entries(adminForm).forEach(([key, value]) => {
+      if (key === 'address' || key === 'emergency_contacts') {
+        data.append(key, JSON.stringify(value))
+      } else if (key === 'cpf') {
+        /* opcional no backend */
+      } else if (key === 'photo') {
+        if (value instanceof File) data.append('photo', value)
+      } else if (key === 'medical_certificate') {
+        if (value instanceof File) data.append('medical_certificate', value)
+      } else if (key === 'registration_form_file') {
+        if (value instanceof File) data.append('registration_form_file', value)
+      } else if (typeof value === 'boolean') {
+        data.append(key, value ? '1' : '0')
+      } else if (value !== null && value !== undefined && value !== '') {
+        data.append(key, value as any)
+      }
+    })
+    if (adminForm.user_id !== '' && adminForm.user_id != null) {
+      data.append('user_id', String(adminForm.user_id))
+    }
+    data.append('_method', 'PUT')
+    await axios.post(`/api/students/${id}`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    await loadProfile()
+    if (student.value?.user) {
+      user.value = { username: student.value.user.username }
+    } else {
+      user.value = { username: '—' }
+    }
+    cancelAdminEdit()
+    alert('Salvo com sucesso')
+  } catch (e) {
+    console.error(e)
+    alert('Erro ao salvar')
+  } finally {
+    adminSaveLoading.value = false
+  }
+}
+
+function onAdminMedicalFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  adminForm.medical_certificate = input.files?.[0] ?? null
+}
+
+function onAdminRegistrationFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  adminForm.registration_form_file = input.files?.[0] ?? null
+}
+
 async function onProfilePhotoChange(e: Event) {
   if (isAdminView.value) return
   const input = e.target as HTMLInputElement
@@ -339,6 +583,7 @@ watch(
   () => (isAdminView.value ? String(route.params.id ?? '') : ''),
   async (newId, oldId) => {
     if (!isAdminView.value || !newId || newId === oldId) return
+    adminEditMode.value = false
     await loadProfile()
     await Promise.all([loadTrainings(), loadGraduations()])
   },
@@ -347,6 +592,7 @@ watch(
 onMounted(async () => {
   await loadProfile()
   await Promise.all([loadTrainings(), loadGraduations()])
+  if (isAdminView.value) await loadBeltsAndUsers()
 })
 </script>
 
@@ -354,13 +600,24 @@ onMounted(async () => {
   <BaseLayout :title="pageTitle">
     <div v-if="isAdminView" class="admin-student-nav">
       <RouterLink to="/admin/students" class="admin-student-nav__link">← Lista de alunos</RouterLink>
-      <RouterLink
-        v-if="adminStudentId"
-        :to="`/admin/students/${adminStudentId}/edit`"
-        class="admin-student-nav__link admin-student-nav__link--primary"
-      >
-        Editar cadastro
-      </RouterLink>
+      <template v-if="adminStudentId">
+        <button
+          v-if="!adminEditMode"
+          type="button"
+          class="admin-student-nav__btn admin-student-nav__btn--primary"
+          @click="startAdminEdit"
+        >
+          Habilitar edição
+        </button>
+        <button
+          v-else
+          type="button"
+          class="admin-student-nav__btn"
+          @click="cancelAdminEdit"
+        >
+          Cancelar edição
+        </button>
+      </template>
     </div>
     <Tabs :tabs="tabs" :selectedTab="activeTab" @tab="(val) => (activeTab = val)" />
     <div class="tab-content">
@@ -375,6 +632,128 @@ onMounted(async () => {
           </div>
 
           <div v-else class="mx-auto space-y-6">
+            <form
+              v-if="isAdminView && adminEditMode"
+              class="space-y-6"
+              @submit.prevent="submitAdminStudent"
+            >
+              <h2 class="text-xl font-bold mb-4">Dados do aluno</h2>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="md:col-span-1">
+                  <label class="font-medium">Foto <span class="font-normal text-gray-500">(opcional)</span></label>
+                  <div v-if="adminDisplayPhotoUrl" class="mt-2 mb-2 rounded-lg overflow-hidden border border-gray-200 max-w-[200px]">
+                    <img :src="adminDisplayPhotoUrl" alt="" class="w-full h-44 object-cover block" />
+                  </div>
+                  <input type="file" accept="image/*" class="block w-full text-sm" @change="onAdminPhotoChange" />
+                  <p class="text-xs text-gray-500 mt-1">JPG, PNG ou WebP · até 2 MB</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormInput v-model="adminForm.name" label="Nome" placeholder="Nome completo" :error="adminFormErrors.name" />
+                <FormSelect
+                  v-model="adminForm.user_id"
+                  :options="[{ value: '', label: 'Nenhum usuário vinculado' }, ...users]"
+                  label="Usuário vinculado"
+                  placeholder="Selecione"
+                  :error="adminFormErrors.user_id"
+                />
+                <FormInput mask="###.###.###-##" v-model="adminForm.cpf" label="CPF" placeholder="000.000.000-00" :error="adminFormErrors.cpf" />
+                <FormInput type="date" v-model="adminForm.birth_date" label="Data de nascimento" :error="adminFormErrors.birth_date" />
+                <FormSelect
+                  v-model="adminForm.sex"
+                  :options="[
+                    { value: '', label: 'Selecione' },
+                    { value: 'M', label: 'Masculino' },
+                    { value: 'F', label: 'Feminino' },
+                  ]"
+                  label="Sexo"
+                  placeholder="Selecione"
+                  :error="adminFormErrors.sex"
+                />
+                <FormSelect
+                  v-model="adminForm.class_type"
+                  :options="[
+                    { value: '', label: 'Selecione' },
+                    { value: 'kids', label: 'Kids' },
+                    { value: 'adult', label: 'Adulto' },
+                  ]"
+                  label="Turma"
+                  placeholder="Selecione"
+                  :error="adminFormErrors.class_type"
+                />
+                <FormSelect v-model="adminForm.belt_id" :options="belts" label="Graduação" placeholder="Selecione" :error="adminFormErrors.belt_id" />
+              </div>
+
+              <div class="mb-4 space-y-4">
+                <h3 class="text-xl font-bold">Endereço</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormInput v-model="adminForm.address.cep" label="CEP" :error="adminFormErrors.address.cep" />
+                  <FormInput v-model="adminForm.address.street" label="Rua" :error="adminFormErrors.address.street" />
+                  <FormInput v-model="adminForm.address.number" label="Número" :error="adminFormErrors.address.number" />
+                  <FormInput v-model="adminForm.address.complement" label="Complemento" :error="adminFormErrors.address.complement" />
+                  <FormInput v-model="adminForm.address.neighborhood" label="Bairro" :error="adminFormErrors.address.neighborhood" />
+                  <FormInput v-model="adminForm.address.city" label="Cidade" :error="adminFormErrors.address.city" />
+                </div>
+              </div>
+
+              <div class="mb-4 space-y-4">
+                <h3 class="text-xl font-bold">Contatos de emergência</h3>
+                <div
+                  v-for="(contact, index) in adminForm.emergency_contacts"
+                  :key="index"
+                  class="grid md:grid-cols-3 gap-4 items-end"
+                >
+                  <FormSelect
+                    v-model="contact.relationship"
+                    :options="[
+                      { value: '', label: 'Selecione' },
+                      { value: 'father', label: 'Pai' },
+                      { value: 'mother', label: 'Mãe' },
+                    ]"
+                    label="Parentesco"
+                    placeholder="Selecione"
+                  />
+                  <FormInput v-model="contact.name" label="Nome" placeholder="Nome do contato" />
+                  <FormInput v-model="contact.phone" label="Telefone" placeholder="Telefone" />
+                </div>
+              </div>
+
+              <div class="mb-4 space-y-4">
+                <h3 class="text-xl font-bold">Saúde</h3>
+                <FormInput v-model="adminForm.other_sports" label="Outros esportes" placeholder="Opcional" />
+                <div>
+                  <label class="font-medium">Problemas de saúde</label>
+                  <textarea v-model="adminForm.health_issues" class="input-base min-h-[5rem]" />
+                </div>
+                <div>
+                  <label class="font-medium">Atestado médico</label>
+                  <input type="file" class="block w-full text-sm" @change="onAdminMedicalFile" />
+                </div>
+              </div>
+
+              <div class="mb-4 space-y-4">
+                <h3 class="text-xl font-bold">Autorizações</h3>
+                <div>
+                  <label class="font-medium">Ficha de cadastro assinada</label>
+                  <input type="file" class="block w-full text-sm" @change="onAdminRegistrationFile" />
+                </div>
+              </div>
+
+              <div class="flex flex-wrap justify-end gap-3">
+                <button type="button" class="admin-student-nav__btn" @click="cancelAdminEdit">Cancelar</button>
+                <button
+                  type="submit"
+                  class="admin-student-nav__btn admin-student-nav__btn--primary"
+                  :disabled="adminSaveLoading"
+                >
+                  {{ adminSaveLoading ? 'Salvando…' : 'Salvar alterações' }}
+                </button>
+              </div>
+            </form>
+
+            <template v-if="!isAdminView || !adminEditMode">
             <div class="mb-4 space-y-4">
               <h2 class="text-xl font-bold mb-4">Dados do aluno</h2>
 
@@ -550,6 +929,7 @@ onMounted(async () => {
                 />
               </div>
             </div>
+            </template>
           </div>
         </div>
 
@@ -755,6 +1135,38 @@ onMounted(async () => {
 
 .admin-student-nav__link--primary:hover {
   background: #1d4ed8;
+}
+
+.admin-student-nav__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.875rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.admin-student-nav__btn:hover {
+  background: #e5e7eb;
+}
+
+.admin-student-nav__btn--primary {
+  color: #fff;
+  background: #2563eb;
+  border-color: #1d4ed8;
+}
+
+.admin-student-nav__btn--primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.admin-student-nav__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .tab-content {

@@ -17,14 +17,19 @@ class StudentController extends Controller
         try {
             $query = Student::query()->with('belt')->orderBy('name');
 
-            // Lista completa para vínculo com usuário (inclui inativos; front mostra quem já tem login)
             if (! $request->boolean('for_user_link')) {
                 $query->where('active', true);
             }
 
-            $students = $query->get();
+            if ($request->boolean('for_user_link') || $request->boolean('all')) {
+                $students = $query->get();
 
-            return response()->json($students, 200);
+                return response()->json($students, 200);
+            }
+
+            $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+
+            return response()->json($query->paginate($perPage), 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Erro ao buscar alunos'

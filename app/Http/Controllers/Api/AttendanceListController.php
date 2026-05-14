@@ -6,16 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAttendanceListRequest;
 use App\Models\AttendanceList;
 use App\Models\Student;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AttendanceListController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $attendanceLists = AttendanceList::with(['students', 'schoolClass'])->orderBy('class_date', 'desc')->get();
+            $query = AttendanceList::with(['students', 'schoolClass'])->orderBy('class_date', 'desc');
 
-            return response()->json($attendanceLists, 200);
+            if (! $request->has('page')) {
+                return response()->json($query->get(), 200);
+            }
+
+            $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+
+            return response()->json($query->paginate($perPage), 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Erro ao buscar listas de presença.',

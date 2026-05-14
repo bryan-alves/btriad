@@ -97,7 +97,7 @@ async function submit() {
 
 async function getStudents() {
   try {
-    const { data } = await axios.get('/api/students');
+    const { data } = await axios.get('/api/students', { params: { all: 1 } });
     students.value = data;
   } catch (error) {
     console.error(error)

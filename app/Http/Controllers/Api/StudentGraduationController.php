@@ -5,15 +5,22 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentGraduationRequest;
 use App\Models\StudentGraduation;
+use Illuminate\Http\Request;
 
 class StudentGraduationController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $graduations = StudentGraduation::with(['student', 'belt'])->orderBy('graduated_at', 'desc')->get();
+            $query = StudentGraduation::with(['student', 'belt'])->orderBy('graduated_at', 'desc');
 
-            return response()->json($graduations, 200);
+            if (! $request->has('page')) {
+                return response()->json($query->get(), 200);
+            }
+
+            $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
+
+            return response()->json($query->paginate($perPage), 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Erro ao buscar graduações.',
