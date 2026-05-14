@@ -590,9 +590,9 @@ onMounted(async () => {
                             <span class="training-card__class-label">Turma</span>
                             {{ item.school_class.name }}
                           </p>
-                          <p v-if="item.notes" class="training-card__notes">
+                          <a :href="item.notes" v-if="item.notes" class="training-card__notes">
                             {{ item.notes }}
-                          </p>
+                          </a>
                         </div>
                       </article>
                     </template>
