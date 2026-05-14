@@ -12,12 +12,12 @@
         <li><a href="#localizacao" data-section-link>Localização</a></li>
       </ul>
 
-      <a href="https://wa.me/5513981245120" target="_blank" rel="noopener noreferrer"
+      <a href="https://wa.link/ue67hy" target="_blank" rel="noopener noreferrer"
         class="nav__cta nav__cta--whatsapp nav__cta--mobile-center" title="WhatsApp">Aula experimental</a>
 
       <div class="nav__bar-end">
         <div class="nav__actions nav__actions--desktop">
-          <a href="https://wa.me/5513981245120" target="_blank" rel="noopener noreferrer"
+          <a href="https://wa.link/ue67hy" target="_blank" rel="noopener noreferrer"
             class="nav__cta nav__cta--whatsapp" title="WhatsApp">Aula experimental</a>
           <a href="{{ url('/login') }}" class="nav__cta nav__cta--portal">Portal do aluno</a>
         </div>
