@@ -163,6 +163,7 @@ class StudentController extends Controller
             return response()->json([
                 'trainings' => $lists,
                 'academy_sessions_by_month' => AcademyTrainingStats::sessionsCountByMonth(),
+                'academy_sessions_by_class_month' => AcademyTrainingStats::sessionsCountByClassMonth(),
             ], 200);
         } catch (\Throwable $th) {
             return response()->json([

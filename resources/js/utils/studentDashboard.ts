@@ -199,9 +199,58 @@ export function attendanceFrequencyPercent(attended: number, totalSessions: numb
   return Math.min(100, Math.round((attended / totalSessions) * 100))
 }
 
+export type TrainingWithClass = {
+  class_date?: string
+  class_id?: number
+  school_class?: { id?: number; name?: string; type?: string }
+}
+
 export type StudentTrainingsPayload = {
-  trainings: { class_date?: string }[]
+  trainings: TrainingWithClass[]
   academySessionsByMonth: Record<string, number>
+  academySessionsByClassMonth: Record<string, Record<string, number>>
+}
+
+export function trainingListClassId(list: TrainingWithClass): number | null {
+  const id = list.class_id ?? list.school_class?.id
+  return id != null ? Number(id) : null
+}
+
+export function filterTrainingsByClassId(
+  trainings: TrainingWithClass[],
+  classId: number,
+): TrainingWithClass[] {
+  return trainings.filter((t) => trainingListClassId(t) === classId)
+}
+
+export function collectClassesFromTrainings(
+  trainings: TrainingWithClass[],
+): { id: number; label: string }[] {
+  const map = new Map<number, { id: number; label: string }>()
+  for (const t of trainings) {
+    const id = trainingListClassId(t)
+    if (!id) continue
+    if (map.has(id)) continue
+    const c = t.school_class
+    const name = c?.name?.trim() || `Turma ${id}`
+    const typeLabel =
+      c?.type === 'kids' ? 'Kids' : c?.type === 'adult' ? 'Adulto' : ''
+    map.set(id, {
+      id,
+      label: typeLabel ? `${name} (${typeLabel})` : name,
+    })
+  }
+  return Array.from(map.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, 'pt-BR'),
+  )
+}
+
+export function sessionsForClassMonth(
+  byClassMonth: Record<string, Record<string, number>>,
+  classId: number,
+  monthKey: string,
+): number {
+  return byClassMonth[String(classId)]?.[monthKey] ?? 0
 }
 
 export type StudentHistoryBounds = {
@@ -279,19 +328,25 @@ export function enumerateMonthKeysBetween(startYm: string, endYm: string): strin
 
 export function parseStudentTrainingsPayload(data: unknown): StudentTrainingsPayload {
   if (Array.isArray(data)) {
-    return { trainings: data, academySessionsByMonth: {} }
+    return {
+      trainings: data,
+      academySessionsByMonth: {},
+      academySessionsByClassMonth: {},
+    }
   }
   if (data && typeof data === 'object') {
     const payload = data as {
       trainings?: unknown
       academy_sessions_by_month?: Record<string, number>
+      academy_sessions_by_class_month?: Record<string, Record<string, number>>
     }
     return {
       trainings: Array.isArray(payload.trainings) ? payload.trainings : [],
       academySessionsByMonth: payload.academy_sessions_by_month ?? {},
+      academySessionsByClassMonth: payload.academy_sessions_by_class_month ?? {},
     }
   }
-  return { trainings: [], academySessionsByMonth: {} }
+  return { trainings: [], academySessionsByMonth: {}, academySessionsByClassMonth: {} }
 }
 
 export interface AnnualRankResult {

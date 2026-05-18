@@ -8,9 +8,12 @@ import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
 import {
   attendanceFrequencyPercent,
+  collectClassesFromTrainings,
   enumerateMonthKeysBetween,
+  filterTrainingsByClassId,
   getStudentTrainingHistoryBounds,
   parseStudentTrainingsPayload,
+  sessionsForClassMonth,
   trainingDateKey,
 } from '../../utils/studentDashboard'
 import { graduationPhotoUrl } from '../../utils/graduation'
@@ -89,6 +92,8 @@ const user = ref<any>(null)
 const student = ref<any>(null)
 const trainings = ref<any[]>([])
 const academySessionsByMonth = ref<Record<string, number>>({})
+const academySessionsByClassMonth = ref<Record<string, Record<string, number>>>({})
+const activeTrainingClassId = ref('')
 const graduations = ref<any[]>([])
 
 const pageTitle = computed(() => {
@@ -213,8 +218,43 @@ function capitalizeMonth(name: string) {
   return name.charAt(0).toLocaleUpperCase('pt-BR') + name.slice(1)
 }
 
+const trainingClassOptions = computed(() => collectClassesFromTrainings(trainings.value))
+
+const trainingClassSelectOptions = computed(() =>
+  trainingClassOptions.value.map((c) => ({
+    label: c.label,
+    value: String(c.id),
+  })),
+)
+
+const selectedTrainingClassId = computed(() => {
+  const id = parseInt(activeTrainingClassId.value, 10)
+  return id > 0 ? id : null
+})
+
+const trainingsForSelectedClass = computed(() => {
+  const classId = selectedTrainingClassId.value
+  if (!classId) return trainings.value
+  return filterTrainingsByClassId(trainings.value, classId)
+})
+
+watch(
+  trainingClassOptions,
+  (options) => {
+    if (!options.length) {
+      activeTrainingClassId.value = ''
+      return
+    }
+    const current = parseInt(activeTrainingClassId.value, 10)
+    if (!current || !options.some((o) => o.id === current)) {
+      activeTrainingClassId.value = String(options[0].id)
+    }
+  },
+  { immediate: true },
+)
+
 const trainingHistoryBounds = computed(() =>
-  getStudentTrainingHistoryBounds(student.value, trainings.value),
+  getStudentTrainingHistoryBounds(student.value, trainingsForSelectedClass.value),
 )
 
 /** Anos do período do histórico (primeiro treino → desativação ou hoje). */
@@ -260,9 +300,10 @@ const trainingsByMonthForYear = computed(() => {
     .filter((key) => key.startsWith(`${yearFilter}-`))
     .reverse()
 
+  const classId = selectedTrainingClassId.value
   const itemsByMonth = new Map<string, any[]>()
 
-  for (const list of trainings.value) {
+  for (const list of trainingsForSelectedClass.value) {
     const k = trainingDateKey(list.class_date)
     if (!k) continue
     const key = k.slice(0, 7)
@@ -280,7 +321,10 @@ const trainingsByMonthForYear = computed(() => {
         : `${m}/${yearFilter}`
     const items = itemsByMonth.get(key) ?? []
     const count = items.length
-    const totalSessions = academySessionsByMonth.value[key] ?? 0
+    const totalSessions =
+      classId != null
+        ? sessionsForClassMonth(academySessionsByClassMonth.value, classId, key)
+        : 0
     const sortedItems = [...items].sort((a, b) =>
       String(b.class_date ?? '').localeCompare(String(a.class_date ?? '')),
     )
@@ -309,7 +353,7 @@ function toggleMonthSection(key: string) {
   monthExpanded.value = { ...monthExpanded.value, [key]: open }
 }
 
-watch([activeTrainingYear, trainings], () => {
+watch([activeTrainingYear, trainingsForSelectedClass, activeTrainingClassId], () => {
   const next = { ...monthExpanded.value }
   for (const g of trainingsByMonthForYear.value) {
     if (!(g.key in next)) next[g.key] = true
@@ -361,10 +405,12 @@ async function loadTrainings() {
     const parsed = parseStudentTrainingsPayload(data)
     trainings.value = parsed.trainings
     academySessionsByMonth.value = parsed.academySessionsByMonth
+    academySessionsByClassMonth.value = parsed.academySessionsByClassMonth
   } catch (error) {
     console.error(error)
     trainings.value = []
     academySessionsByMonth.value = {}
+    academySessionsByClassMonth.value = {}
   } finally {
     trainingsLoading.value = false
   }
@@ -1025,6 +1071,26 @@ onMounted(async () => {
               Nenhum treino registrado ainda.
             </div>
             <template v-else>
+              <div
+                v-if="trainingClassSelectOptions.length > 1"
+                class="training-class-filter"
+              >
+                <FormSelect
+                  v-model="activeTrainingClassId"
+                  label="Turma"
+                  :options="trainingClassSelectOptions"
+                  placeholder="Selecione a turma"
+                />
+                <p class="training-class-hint">
+                  Frequência e totais de aulas são calculados somente para a turma selecionada.
+                </p>
+              </div>
+              <p
+                v-else-if="trainingClassOptions.length === 1"
+                class="training-class-single"
+              >
+                Turma: <strong>{{ trainingClassOptions[0].label }}</strong>
+              </p>
               <p class="training-year-label">Ano</p>
               <Tabs
                 :tabs="trainingYearTabs"
@@ -1068,7 +1134,7 @@ onMounted(async () => {
                             0 de {{ group.totalSessions }} aulas · 0% de frequência
                           </span>
                           <span v-else class="training-month__badge-freq">
-                            Nenhuma aula registrada na academia
+                            Nenhuma aula registrada nesta turma
                           </span>
                         </template>
                       </span>
@@ -1474,6 +1540,24 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
+}
+
+.training-class-filter {
+  max-width: 22rem;
+  margin-bottom: 1rem;
+}
+
+.training-class-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.training-class-single {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: #374151;
 }
 
 .training-year-label {

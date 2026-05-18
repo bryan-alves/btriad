@@ -8,10 +8,13 @@ import {
   currentDayStreak,
   currentWeekStreak,
   attendanceFrequencyPercent,
+  collectClassesFromTrainings,
+  filterTrainingsByClassId,
   lastMonthsTrainingCounts,
   lastTrainingDate,
   maxDayStreak,
   parseStudentTrainingsPayload,
+  sessionsForClassMonth,
   trainingsInMonth,
 } from '../../utils/studentDashboard'
 
@@ -20,6 +23,7 @@ const user = ref<any>(null)
 const student = ref<any>(null)
 const trainings = ref<any[]>([])
 const academySessionsByMonth = ref<Record<string, number>>({})
+const academySessionsByClassMonth = ref<Record<string, Record<string, number>>>({})
 const graduations = ref<any[]>([])
 const attendanceLists = ref<any[]>([])
 const photoUploading = ref(false)
@@ -30,17 +34,49 @@ const now = new Date()
 const currentYear = now.getFullYear()
 const currentMonth = now.getMonth() + 1
 
-const trainingsThisMonth = computed(() =>
-  trainingsInMonth(trainings.value, currentYear, currentMonth),
-)
+const trainingClasses = computed(() => collectClassesFromTrainings(trainings.value))
+
+const primaryTrainingClassId = computed(() => {
+  const options = trainingClasses.value
+  if (!options.length) return null
+  if (options.length === 1) return options[0].id
+  const monthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`
+  let bestId = options[0].id
+  let bestCount = 0
+  for (const opt of options) {
+    const n = filterTrainingsByClassId(trainings.value, opt.id).filter((t) => {
+      const k = String(t.class_date ?? '').split('T')[0]
+      return k.startsWith(monthPrefix)
+    }).length
+    if (n > bestCount) {
+      bestCount = n
+      bestId = opt.id
+    }
+  }
+  return bestId
+})
+
+const trainingsThisMonth = computed(() => {
+  const classId = primaryTrainingClassId.value
+  const list = classId ? filterTrainingsByClassId(trainings.value, classId) : trainings.value
+  return trainingsInMonth(list, currentYear, currentMonth)
+})
 
 const academySessionsThisMonth = computed(() => {
   const key = `${currentYear}-${String(currentMonth).padStart(2, '0')}`
+  const classId = primaryTrainingClassId.value
+  if (classId) {
+    return sessionsForClassMonth(academySessionsByClassMonth.value, classId, key)
+  }
   return academySessionsByMonth.value[key] ?? 0
 })
 
 const frequencyThisMonth = computed(() =>
   attendanceFrequencyPercent(trainingsThisMonth.value, academySessionsThisMonth.value),
+)
+
+const showFrequencyThisMonth = computed(
+  () => trainingClasses.value.length <= 1 && academySessionsThisMonth.value > 0,
 )
 
 const lastTraining = computed(() => lastTrainingDate(trainings.value))
@@ -111,6 +147,7 @@ async function loadAll() {
     const parsed = parseStudentTrainingsPayload(t.data)
     trainings.value = parsed.trainings
     academySessionsByMonth.value = parsed.academySessionsByMonth
+    academySessionsByClassMonth.value = parsed.academySessionsByClassMonth
     graduations.value = Array.isArray(g.data) ? g.data : []
     attendanceLists.value = Array.isArray(lists.data) ? lists.data : []
   } catch (e) {
@@ -223,9 +260,15 @@ onMounted(loadAll)
           <article class="dash-card dash-card--accent">
             <p class="dash-card__label">Treinos este mês</p>
             <p class="dash-card__value">{{ trainingsThisMonth }}</p>
-            <p v-if="academySessionsThisMonth > 0" class="dash-card__hint">
+            <p v-if="showFrequencyThisMonth" class="dash-card__hint">
               {{ trainingsThisMonth }} de {{ academySessionsThisMonth }} aulas no mês
+              <template v-if="trainingClasses.length === 1">
+                ({{ trainingClasses[0].label }})
+              </template>
               · {{ frequencyThisMonth }}% de frequência
+            </p>
+            <p v-else-if="trainingClasses.length > 1" class="dash-card__hint">
+              {{ trainingsThisMonth }} treino(s) no mês. Veja a frequência por turma no histórico de treinos.
             </p>
             <p v-else class="dash-card__hint">
               Quantidade de listas de presença em que você apareceu no mês atual.

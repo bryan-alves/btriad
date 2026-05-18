@@ -68,6 +68,7 @@ class AuthController extends Controller
             return response()->json([
                 'trainings' => [],
                 'academy_sessions_by_month' => AcademyTrainingStats::sessionsCountByMonth(),
+                'academy_sessions_by_class_month' => AcademyTrainingStats::sessionsCountByClassMonth(),
             ], 200);
         }
 
@@ -84,6 +85,7 @@ class AuthController extends Controller
         return response()->json([
             'trainings' => $lists,
             'academy_sessions_by_month' => AcademyTrainingStats::sessionsCountByMonth(),
+            'academy_sessions_by_class_month' => AcademyTrainingStats::sessionsCountByClassMonth(),
         ], 200);
     }
 
