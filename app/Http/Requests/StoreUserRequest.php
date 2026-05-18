@@ -40,7 +40,14 @@ class StoreUserRequest extends FormRequest
             }
 
             $student = Student::query()->find($studentId);
-            if ($student && $student->user_id !== null) {
+            if (! $student) {
+                return;
+            }
+            if (! $student->active) {
+                $v->errors()->add('student_id', 'Só é possível vincular alunos ativos.');
+                return;
+            }
+            if ($student->user_id !== null) {
                 $v->errors()->add('student_id', 'Este aluno já está vinculado a outro usuário.');
             }
         });

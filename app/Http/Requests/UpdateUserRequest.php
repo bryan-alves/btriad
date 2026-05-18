@@ -65,7 +65,15 @@ class UpdateUserRequest extends FormRequest
             }
 
             $student = Student::query()->find($studentId);
-            if ($student && $student->user_id !== null && (int) $student->user_id !== (int) $user->id) {
+            if (! $student) {
+                return;
+            }
+            $alreadyLinkedHere = (int) $student->user_id === (int) $user->id;
+            if (! $student->active && ! $alreadyLinkedHere) {
+                $v->errors()->add('student_id', 'Só é possível vincular alunos ativos.');
+                return;
+            }
+            if ($student->user_id !== null && ! $alreadyLinkedHere) {
                 $v->errors()->add('student_id', 'Este aluno já está vinculado a outro usuário.');
             }
         });

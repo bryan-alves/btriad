@@ -18,9 +18,17 @@ class StudentController extends Controller
         try {
             $query = Student::query()->with('belt')->orderBy('name');
 
-            if (! $request->boolean('for_user_link')
-                && ! $request->boolean('include_inactive')) {
-                $query->where('active', true);
+            if (! $request->boolean('include_inactive')) {
+                $includeStudentId = $request->filled('include_student_id')
+                    ? (int) $request->query('include_student_id')
+                    : null;
+
+                $query->where(function ($q) use ($includeStudentId) {
+                    $q->where('active', true);
+                    if ($includeStudentId) {
+                        $q->orWhere('id', $includeStudentId);
+                    }
+                });
             }
 
             if ($search = trim((string) $request->query('search', ''))) {

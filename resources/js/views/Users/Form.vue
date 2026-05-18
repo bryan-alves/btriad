@@ -72,14 +72,16 @@ const studentSelectOptions = computed(() => {
   return opts
 })
 
-async function loadStudents() {
+async function loadStudents(includeStudentId?: number | string | null) {
   studentsLoadError.value = ''
-  const { data } = await axios.get('/api/students', {
-    params: { for_user_link: 1 },
-  })
+  const params: Record<string, number> = { for_user_link: 1 }
+  if (includeStudentId !== '' && includeStudentId != null) {
+    params.include_student_id = Number(includeStudentId)
+  }
+  const { data } = await axios.get('/api/students', { params })
   students.value = Array.isArray(data) ? data : []
   if (!students.value.length) {
-    studentsLoadError.value = 'Nenhum cadastro de aluno encontrado.'
+    studentsLoadError.value = 'Nenhum aluno ativo disponível para vincular.'
   }
 }
 
@@ -104,8 +106,14 @@ watch(
   async ([name, id]) => {
     if (name === 'UsersEdit' && id != null) {
       await loadUser(Number(id))
+      await loadStudents(form.student_id || null).catch(() => {
+        studentsLoadError.value = 'Não foi possível carregar a lista de alunos.'
+      })
     } else if (name === 'UsersCreate') {
       resetForm()
+      await loadStudents().catch(() => {
+        studentsLoadError.value = 'Não foi possível carregar a lista de alunos.'
+      })
     }
   },
 )
@@ -180,13 +188,17 @@ async function submit() {
 
 const pageTitle = computed(() => (isEdit.value ? 'Editar usuário' : 'Novo usuário'))
 
-onMounted(() => {
-  loadStudents().catch((err) => {
+onMounted(async () => {
+  try {
+    if (isEdit.value && userId.value != null) {
+      await loadUser(userId.value)
+      await loadStudents(form.student_id || null)
+    } else {
+      await loadStudents()
+    }
+  } catch (err) {
     console.error(err)
     studentsLoadError.value = 'Não foi possível carregar a lista de alunos.'
-  })
-  if (isEdit.value && userId.value != null) {
-    loadUser(userId.value)
   }
 })
 </script>
@@ -230,7 +242,8 @@ onMounted(() => {
             {{ studentsLoadError }}
           </p>
           <p v-else class="text-sm text-gray-600">
-            Só é possível escolher alunos ainda sem usuário. O aluno ligado a esta conta aparece habilitado na lista.
+            Apenas alunos ativos aparecem na lista. Só é possível escolher quem ainda não tem usuário;
+            o aluno já ligado a esta conta continua visível na edição.
           </p>
         </template>
 
