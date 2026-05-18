@@ -223,6 +223,19 @@ export function filterTrainingsByClassId(
   return trainings.filter((t) => trainingListClassId(t) === classId)
 }
 
+/** Turmas com pelo menos um treino no ano informado (YYYY). */
+export function collectClassesFromTrainingsInYear(
+  trainings: TrainingWithClass[],
+  year: string | number,
+): { id: number; label: string }[] {
+  const yearStr = String(year)
+  const inYear = trainings.filter((t) => {
+    const k = trainingDateKey(t.class_date)
+    return k && k.startsWith(`${yearStr}-`)
+  })
+  return collectClassesFromTrainings(inYear)
+}
+
 export function collectClassesFromTrainings(
   trainings: TrainingWithClass[],
 ): { id: number; label: string }[] {

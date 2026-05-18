@@ -9,16 +9,13 @@ import FormSelect from '../../components/form/FormSelect.vue'
 import PhotoCropPicker from '../../components/photo/PhotoCropPicker.vue'
 import {
   attendanceFrequencyPercent,
-  collectClassesFromTrainings,
+  collectClassesFromTrainingsInYear,
   enumerateMonthKeysBetween,
-  filterTrainingsByClassId,
   getStudentTrainingHistoryBounds,
-  isTrainingClassAllFilter,
   parseStudentTrainingsPayload,
   sessionsForClassMonth,
-  sessionsForStudentClassesMonth,
-  TRAINING_CLASS_FILTER_ALL,
   trainingDateKey,
+  trainingListClassId,
 } from '../../utils/studentDashboard'
 import {
   buildGraduationTimelineWithClassCounts,
@@ -100,7 +97,6 @@ const student = ref<any>(null)
 const trainings = ref<any[]>([])
 const academySessionsByMonth = ref<Record<string, number>>({})
 const academySessionsByClassMonth = ref<Record<string, Record<string, number>>>({})
-const activeTrainingClassId = ref('')
 const graduations = ref<any[]>([])
 
 const pageTitle = computed(() => {
@@ -220,61 +216,15 @@ function capitalizeMonth(name: string) {
   return name.charAt(0).toLocaleUpperCase('pt-BR') + name.slice(1)
 }
 
-const trainingClassOptions = computed(() => collectClassesFromTrainings(trainings.value))
-
-const trainingClassSelectOptions = computed(() => {
-  const classes = trainingClassOptions.value.map((c) => ({
-    label: c.label,
-    value: String(c.id),
-  }))
-  if (!classes.length) return []
-  return [{ label: 'Todas as turmas', value: TRAINING_CLASS_FILTER_ALL }, ...classes]
-})
-
-const isViewingAllClasses = computed(() =>
-  isTrainingClassAllFilter(activeTrainingClassId.value),
-)
-
-const selectedTrainingClassId = computed(() => {
-  if (isViewingAllClasses.value) return null
-  const id = parseInt(activeTrainingClassId.value, 10)
-  return id > 0 ? id : null
-})
-
-const trainingsForSelectedClass = computed(() => {
-  const classId = selectedTrainingClassId.value
-  if (!classId) return trainings.value
-  return filterTrainingsByClassId(trainings.value, classId)
-})
-
-const studentTrainingClassIds = computed(() =>
-  trainingClassOptions.value.map((c) => c.id),
-)
-
-watch(
-  trainingClassOptions,
-  (options) => {
-    if (!options.length) {
-      activeTrainingClassId.value = ''
-      return
-    }
-    const current = activeTrainingClassId.value
-    if (isTrainingClassAllFilter(current)) {
-      return
-    }
-    const currentId = parseInt(current, 10)
-    if (currentId > 0 && options.some((o) => o.id === currentId)) {
-      return
-    }
-    activeTrainingClassId.value =
-      options.length > 1 ? TRAINING_CLASS_FILTER_ALL : String(options[0].id)
-  },
-  { immediate: true },
-)
-
 const trainingHistoryBounds = computed(() =>
-  getStudentTrainingHistoryBounds(student.value, trainingsForSelectedClass.value),
+  getStudentTrainingHistoryBounds(student.value, trainings.value),
 )
+
+const trainingClassesInActiveYear = computed(() => {
+  const year = activeTrainingYear.value
+  if (!year) return []
+  return collectClassesFromTrainingsInYear(trainings.value, year)
+})
 
 /** Anos do período do histórico (primeiro treino → desativação ou hoje). */
 const trainingYearTabs = computed(() => {
@@ -319,16 +269,16 @@ const trainingsByMonthForYear = computed(() => {
     .filter((key) => key.startsWith(`${yearFilter}-`))
     .reverse()
 
-  const classId = selectedTrainingClassId.value
+  const classesInYear = trainingClassesInActiveYear.value
   const itemsByMonth = new Map<string, any[]>()
 
-  for (const list of trainingsForSelectedClass.value) {
+  for (const list of trainings.value) {
     const k = trainingDateKey(list.class_date)
     if (!k) continue
-    const key = k.slice(0, 7)
-    if (!key.startsWith(`${yearFilter}-`)) continue
-    if (!itemsByMonth.has(key)) itemsByMonth.set(key, [])
-    itemsByMonth.get(key)!.push(list)
+    const monthKey = k.slice(0, 7)
+    if (!monthKey.startsWith(`${yearFilter}-`)) continue
+    if (!itemsByMonth.has(monthKey)) itemsByMonth.set(monthKey, [])
+    itemsByMonth.get(monthKey)!.push(list)
   }
 
   return monthKeys.map((key) => {
@@ -338,29 +288,37 @@ const trainingsByMonthForYear = computed(() => {
       mi >= 0 && mi < 12
         ? capitalizeMonth(monthNamesPt[mi])
         : `${m}/${yearFilter}`
-    const items = itemsByMonth.get(key) ?? []
-    const count = items.length
-    const totalSessions = isViewingAllClasses.value
-      ? sessionsForStudentClassesMonth(
-          academySessionsByClassMonth.value,
-          studentTrainingClassIds.value,
-          key,
-        )
-      : classId != null
-        ? sessionsForClassMonth(academySessionsByClassMonth.value, classId, key)
-        : 0
-    const sortedItems = [...items].sort((a, b) =>
+
+    const monthItems = itemsByMonth.get(key) ?? []
+    const sortedItems = [...monthItems].sort((a, b) =>
       String(b.class_date ?? '').localeCompare(String(a.class_date ?? '')),
     )
+
+    const classStats = classesInYear.map((turma) => {
+      const classId = turma.id
+      const classItems = monthItems.filter((list) => trainingListClassId(list) === classId)
+      const count = classItems.length
+      const totalSessions = sessionsForClassMonth(
+        academySessionsByClassMonth.value,
+        classId,
+        key,
+      )
+      return {
+        classId,
+        label: turma.label,
+        count,
+        totalSessions,
+        frequencyPercent: attendanceFrequencyPercent(count, totalSessions),
+        hasAttendance: count > 0,
+      }
+    })
 
     return {
       key,
       label,
-      count,
-      totalSessions,
-      frequencyPercent: attendanceFrequencyPercent(count, totalSessions),
       items: sortedItems,
-      hasAttendance: count > 0,
+      classStats,
+      hasAttendance: classStats.some((s) => s.hasAttendance),
     }
   })
 })
@@ -377,7 +335,7 @@ function toggleMonthSection(key: string) {
   monthExpanded.value = { ...monthExpanded.value, [key]: open }
 }
 
-watch([activeTrainingYear, trainingsForSelectedClass, activeTrainingClassId], () => {
+watch([activeTrainingYear, trainings], () => {
   const next = { ...monthExpanded.value }
   for (const g of trainingsByMonthForYear.value) {
     if (!(g.key in next)) next[g.key] = true
@@ -1104,23 +1062,12 @@ onMounted(async () => {
               Nenhum treino registrado ainda.
             </div>
             <template v-else>
-              <div v-if="trainingClassSelectOptions.length" class="training-class-filter">
-                <FormSelect
-                  v-model="activeTrainingClassId"
-                  label="Turma"
-                  :options="trainingClassSelectOptions"
-                  placeholder="Selecione a turma"
-                />
-                <p class="training-class-hint">
-                  <template v-if="isViewingAllClasses">
-                    Todas as turmas em que você já treinou. A frequência soma suas presenças em
-                    relação ao total de aulas dessas turmas no mês.
-                  </template>
-                  <template v-else>
-                    Frequência e totais de aulas apenas da turma selecionada.
-                  </template>
-                </p>
-              </div>
+              <p
+                v-if="trainingClassesInActiveYear.length > 1"
+                class="training-class-hint training-class-hint--top"
+              >
+                Frequência por turma em que você treinou em {{ activeTrainingYear }}.
+              </p>
               <p class="training-year-label">Ano</p>
               <Tabs
                 :tabs="trainingYearTabs"
@@ -1136,38 +1083,47 @@ onMounted(async () => {
                   <header class="training-month__head">
                     <h3 class="training-month__title">{{ group.label }}</h3>
                     <div class="training-month__actions">
-                      <span
-                        class="training-month__badge"
-                        :class="{ 'training-month__badge--empty': !group.hasAttendance }"
-                      >
-                        <template v-if="group.hasAttendance">
-                          <span class="training-month__badge-main">
-                            {{ group.count }}
-                            <template v-if="group.totalSessions > 0">
-                              de {{ group.totalSessions }}
+                      <div class="training-month__class-stats">
+                        <div
+                          v-for="stat in group.classStats"
+                          :key="`${group.key}-${stat.classId}`"
+                          class="training-month__class-stat"
+                        >
+                          <span class="training-month__class-name">{{ stat.label }}</span>
+                          <span
+                            class="training-month__badge"
+                            :class="{ 'training-month__badge--empty': !stat.hasAttendance }"
+                          >
+                            <template v-if="stat.hasAttendance">
+                              <span class="training-month__badge-main">
+                                {{ stat.count }}
+                                <template v-if="stat.totalSessions > 0">
+                                  de {{ stat.totalSessions }}
+                                </template>
+                                {{ stat.count === 1 ? 'treino' : 'treinos' }}
+                              </span>
+                              <span
+                                v-if="stat.totalSessions > 0"
+                                class="training-month__badge-freq"
+                              >
+                                {{ stat.frequencyPercent }}% de frequência
+                              </span>
                             </template>
-                            {{ group.count === 1 ? 'treino' : 'treinos' }}
+                            <template v-else>
+                              <span class="training-month__badge-main">Sem frequência</span>
+                              <span
+                                v-if="stat.totalSessions > 0"
+                                class="training-month__badge-freq"
+                              >
+                                0 de {{ stat.totalSessions }} aulas · 0% de frequência
+                              </span>
+                              <span v-else class="training-month__badge-freq">
+                                Nenhuma aula nesta turma no mês
+                              </span>
+                            </template>
                           </span>
-                          <span
-                            v-if="group.totalSessions > 0"
-                            class="training-month__badge-freq"
-                          >
-                            {{ group.frequencyPercent }}% de frequência
-                          </span>
-                        </template>
-                        <template v-else>
-                          <span class="training-month__badge-main">Sem frequência</span>
-                          <span
-                            v-if="group.totalSessions > 0"
-                            class="training-month__badge-freq"
-                          >
-                            0 de {{ group.totalSessions }} aulas · 0% de frequência
-                          </span>
-                          <span v-else class="training-month__badge-freq">
-                            Nenhuma aula registrada nesta turma
-                          </span>
-                        </template>
-                      </span>
+                        </div>
+                      </div>
                       <button
                         v-if="group.hasAttendance"
                         type="button"
@@ -1587,16 +1543,15 @@ onMounted(async () => {
   gap: 1.75rem;
 }
 
-.training-class-filter {
-  max-width: 22rem;
-  margin-bottom: 1rem;
-}
-
 .training-class-hint {
   margin: 0.35rem 0 0;
   font-size: 0.8125rem;
   color: #6b7280;
   line-height: 1.4;
+}
+
+.training-class-hint--top {
+  margin: 0 0 1rem;
 }
 
 .training-class-single {
@@ -1625,9 +1580,37 @@ onMounted(async () => {
 
 .training-month__actions {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
   gap: 0.65rem;
   flex-shrink: 0;
+  max-width: 100%;
+}
+
+.training-month__class-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.training-month__class-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.training-month__class-name {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  max-width: 14rem;
+  text-align: right;
+  line-height: 1.2;
 }
 
 .training-month__switch {
