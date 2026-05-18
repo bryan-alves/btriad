@@ -28,9 +28,15 @@ class StudentGraduation extends Model
 
     public function getPhotoUrlAttribute(): ?string
     {
-        return $this->photo
-            ? asset('storage/'.$this->photo)
-            : null;
+        if (! $this->photo) {
+            return null;
+        }
+
+        if (str_starts_with($this->photo, 'http://') || str_starts_with($this->photo, 'https://')) {
+            return $this->photo;
+        }
+
+        return asset('storage/'.$this->photo);
     }
 
     public function student()

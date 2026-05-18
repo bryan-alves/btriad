@@ -8,8 +8,6 @@ import FormSelect from '../../components/form/FormSelect.vue'
 const loading = ref(false)
 const students = ref([])
 const belts = ref([])
-const photoFile = ref<File | null>(null)
-
 const degreeOptions = [
   { value: '0', label: '0 — sem grau' },
   { value: '1', label: '1' },
@@ -23,6 +21,7 @@ const form = reactive({
   belt_id: null,
   degree: '0',
   graduated_at: '',
+  photo: '',
 })
 
 const errors = ref({
@@ -32,11 +31,6 @@ const errors = ref({
   degree: '',
   photo: '',
 })
-
-function onPhotoChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  photoFile.value = input.files?.[0] ?? null
-}
 
 function validate() {
   const e: Record<string, string> = {}
@@ -49,25 +43,17 @@ function validate() {
   return Object.keys(e).length === 0
 }
 
-function buildFormData() {
-  const fd = new FormData()
-  fd.append('student_id', String(form.student_id))
-  fd.append('belt_id', String(form.belt_id))
-  fd.append('degree', String(Math.min(4, Math.max(0, parseInt(String(form.degree), 10) || 0))))
-  fd.append('graduated_at', form.graduated_at)
-  if (photoFile.value) {
-    fd.append('photo', photoFile.value)
-  }
-  return fd
-}
-
 async function submit() {
   if (!validate()) return
   loading.value = true
 
   try {
-    await axios.post('/api/student-graduations', buildFormData(), {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    await axios.post('/api/student-graduations', {
+      student_id: form.student_id,
+      belt_id: form.belt_id,
+      degree: Math.min(4, Math.max(0, parseInt(String(form.degree), 10) || 0)),
+      graduated_at: form.graduated_at,
+      photo: form.photo.trim() || null,
     })
 
     alert('Graduação registrada com sucesso!')
@@ -75,7 +61,7 @@ async function submit() {
     form.belt_id = null
     form.degree = '0'
     form.graduated_at = ''
-    photoFile.value = null
+    form.photo = ''
   } catch (e: any) {
     const err = e?.response?.data?.errors
     if (err) {
@@ -165,18 +151,13 @@ onMounted(async () => {
             />
           </div>
 
-          <div>
-            <label for="grad-photo" class="font-medium">Foto</label>
-            <input
-              id="grad-photo"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              class="w-full mt-1 text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-gray-100 file:font-medium"
-              @change="onPhotoChange"
-            />
-            <p v-if="errors.photo" class="text-red-500 text-sm mt-1">{{ errors.photo }}</p>
-            <p class="text-sm text-gray-500 mt-1">Opcional. Imagem da graduação (JPG, PNG, WebP ou GIF).</p>
-          </div>
+          <FormInput
+            v-model="form.photo"
+            type="url"
+            label="Foto"
+            placeholder="https://..."
+            :error="errors.photo"
+          />
         </div>
 
         <div style="display: flex; justify-content: space-between; gap: 10px">

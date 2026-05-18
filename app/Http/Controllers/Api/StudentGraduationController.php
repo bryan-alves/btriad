@@ -7,21 +7,18 @@ use App\Http\Requests\StoreStudentGraduationRequest;
 use App\Models\Student;
 use App\Models\StudentGraduation;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class StudentGraduationController extends Controller
 {
-    private function storeGraduationPhoto(Request $request, ?string $existing = null): ?string
+    private function normalizePhotoLink(?string $photo): ?string
     {
-        if (! $request->hasFile('photo')) {
-            return $existing;
+        if ($photo === null) {
+            return null;
         }
 
-        if ($existing) {
-            Storage::disk('public')->delete($existing);
-        }
+        $trimmed = trim($photo);
 
-        return $request->file('photo')->store('student_graduations', 'public');
+        return $trimmed !== '' ? $trimmed : null;
     }
 
     public function index(Request $request)
@@ -72,7 +69,7 @@ class StudentGraduationController extends Controller
                 'belt_id' => $data['belt_id'],
                 'degree' => (int) $data['degree'],
                 'graduated_at' => $data['graduated_at'],
-                'photo' => $this->storeGraduationPhoto($request, $graduation->photo),
+                'photo' => $this->normalizePhotoLink($data['photo'] ?? null),
             ]);
 
             $graduation->student()->update(['belt_id' => $graduation->belt_id]);
@@ -96,7 +93,7 @@ class StudentGraduationController extends Controller
                 'belt_id' => $data['belt_id'],
                 'degree' => (int) $data['degree'],
                 'graduated_at' => $data['graduated_at'],
-                'photo' => $this->storeGraduationPhoto($request),
+                'photo' => $this->normalizePhotoLink($data['photo'] ?? null),
             ]);
 
             $graduation->student()->update(['belt_id' => $graduation->belt_id]);
@@ -115,10 +112,6 @@ class StudentGraduationController extends Controller
         try {
             $graduation = StudentGraduation::findOrFail($id);
             $studentId = $graduation->student_id;
-
-            if ($graduation->photo) {
-                Storage::disk('public')->delete($graduation->photo);
-            }
 
             $graduation->delete();
 
