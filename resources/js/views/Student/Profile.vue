@@ -6,6 +6,7 @@ import BaseLayout from '../../layouts/BaseLayout.vue'
 import Tabs from '../../components/tabs/Tabs.vue'
 import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
+import PhotoCropPicker from '../../components/photo/PhotoCropPicker.vue'
 import {
   attendanceFrequencyPercent,
   collectClassesFromTrainings,
@@ -142,7 +143,8 @@ const photoUrl = computed(() => {
 
 const photoUploading = ref(false)
 const photoError = ref('')
-const photoInputRef = ref<HTMLInputElement | null>(null)
+const photoCropPickerRef = ref<InstanceType<typeof PhotoCropPicker> | null>(null)
+const adminPhotoCropPickerRef = ref<InstanceType<typeof PhotoCropPicker> | null>(null)
 
 const timelineAsc = computed(() =>
   buildGraduationTimelineWithClassCounts(graduations.value, trainings.value),
@@ -548,15 +550,17 @@ function fillAdminFormFromStudent() {
     s.photo_url || (s.photo ? `/storage/${s.photo}` : null)
 }
 
-function onAdminPhotoChange(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0] ?? null
+function onAdminPhotoCropped(file: File) {
   if (adminLocalPhotoPreview.value) {
     URL.revokeObjectURL(adminLocalPhotoPreview.value)
     adminLocalPhotoPreview.value = null
   }
   adminForm.photo = file
-  adminLocalPhotoPreview.value = file ? URL.createObjectURL(file) : null
+  adminLocalPhotoPreview.value = URL.createObjectURL(file)
+}
+
+function onAdminPhotoCropError(message: string) {
+  alert(message)
 }
 
 async function loadBeltsAndUsers() {
@@ -676,12 +680,8 @@ function onAdminRegistrationFile(e: Event) {
   adminForm.registration_form_file = input.files?.[0] ?? null
 }
 
-async function onProfilePhotoChange(e: Event) {
-  if (isAdminView.value) return
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = ''
-  if (!file || !student.value) return
+async function uploadProfilePhoto(file: File) {
+  if (isAdminView.value || !student.value) return
   photoError.value = ''
   photoUploading.value = true
   try {
@@ -703,6 +703,10 @@ async function onProfilePhotoChange(e: Event) {
   } finally {
     photoUploading.value = false
   }
+}
+
+function onProfilePhotoCropError(message: string) {
+  photoError.value = message
 }
 
 watch(
@@ -783,11 +787,22 @@ onMounted(async () => {
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="md:col-span-1">
                   <label class="font-medium">Foto <span class="font-normal text-gray-500">(opcional)</span></label>
-                  <div v-if="adminDisplayPhotoUrl" class="mt-2 mb-2 rounded-lg overflow-hidden border border-gray-200 max-w-[200px]">
-                    <img :src="adminDisplayPhotoUrl" alt="" class="w-full h-44 object-cover block" />
+                  <div v-if="adminDisplayPhotoUrl" class="mt-2 mb-2">
+                    <img :src="adminDisplayPhotoUrl" alt="" class="student-photo-1x1" />
                   </div>
-                  <input type="file" accept="image/*" class="block w-full text-sm" @change="onAdminPhotoChange" />
-                  <p class="text-xs text-gray-500 mt-1">JPG, PNG ou WebP · até 2 MB</p>
+                  <PhotoCropPicker
+                    ref="adminPhotoCropPickerRef"
+                    @cropped="onAdminPhotoCropped"
+                    @error="onAdminPhotoCropError"
+                  />
+                  <button
+                    type="button"
+                    class="profile-photo-btn mt-2"
+                    @click="adminPhotoCropPickerRef?.pick()"
+                  >
+                    {{ adminDisplayPhotoUrl ? 'Alterar foto' : 'Adicionar foto' }}
+                  </button>
+                  <p class="text-xs text-gray-500 mt-1">Quadrado 1:1 · JPG, PNG ou WebP · até 2 MB</p>
                 </div>
               </div>
 
@@ -908,28 +923,22 @@ onMounted(async () => {
                 <div class="md:col-span-1">
                   <label class="font-medium">Foto <span class="font-normal text-gray-500">(opcional)</span></label>
                   <div v-if="photoUrl" class="mt-2">
-                    <img
-                      :src="photoUrl"
-                      alt="Foto do aluno"
-                      class="max-h-48 w-full max-w-xs rounded-lg border border-gray-200 object-cover"
-                    />
+                    <img :src="photoUrl" alt="Foto do aluno" class="student-photo-1x1" />
                   </div>
-                  <div v-else class="profile-photo-placeholder mt-2">
+                  <div v-else class="profile-photo-placeholder student-photo-1x1 mt-2">
                     {{ (student.name || '?').charAt(0).toUpperCase() }}
                   </div>
                   <template v-if="!isAdminView">
-                    <input
-                      ref="photoInputRef"
-                      type="file"
-                      class="profile-photo-file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      @change="onProfilePhotoChange"
+                    <PhotoCropPicker
+                      ref="photoCropPickerRef"
+                      @cropped="uploadProfilePhoto"
+                      @error="onProfilePhotoCropError"
                     />
                     <button
                       type="button"
                       class="profile-photo-btn"
                       :disabled="photoUploading"
-                      @click="photoInputRef?.click()"
+                      @click="photoCropPickerRef?.pick()"
                     >
                       {{
                         photoUploading
@@ -940,7 +949,9 @@ onMounted(async () => {
                       }}
                     </button>
                     <p v-if="photoError" class="profile-photo-err">{{ photoError }}</p>
-                    <p class="text-xs text-gray-500 mt-1">Opcional. JPG, PNG ou WebP · até 2 MB</p>
+                    <p class="text-xs text-gray-500 mt-1">
+                      Opcional. Formato quadrado 1:1 para a escola · até 2 MB
+                    </p>
                   </template>
                 </div>
               </div>
@@ -1409,19 +1420,24 @@ onMounted(async () => {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
 
-.profile-photo-placeholder {
-  width: 100%;
-  max-width: 12rem;
-  height: 10rem;
+.student-photo-1x1 {
+  width: 12rem;
+  height: 12rem;
+  object-fit: cover;
   border-radius: 0.5rem;
-  border: 1px dashed #d1d5db;
+  border: 1px solid #e5e7eb;
+  display: block;
+  background: #f3f4f6;
+}
+
+.profile-photo-placeholder.student-photo-1x1 {
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
   font-weight: 800;
   color: #9ca3af;
-  background: #f9fafb;
+  border-style: dashed;
 }
 
 .profile-photo-file {

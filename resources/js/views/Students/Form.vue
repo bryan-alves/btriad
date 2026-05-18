@@ -5,6 +5,7 @@ import { onMounted, reactive, ref, computed } from 'vue'
 import axios from 'axios'
 import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
+import PhotoCropPicker from '../../components/photo/PhotoCropPicker.vue'
 
 const router = useRouter()
 const loading = ref(false)
@@ -53,17 +54,19 @@ const savedPhotoUrl = ref<string | null>(null)
 const localPhotoPreview = ref<string | null>(null)
 const displayPhotoUrl = computed(() => localPhotoPreview.value || savedPhotoUrl.value)
 
-function onPhotoFileChange(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0] ?? null
+const photoCropPickerRef = ref<InstanceType<typeof PhotoCropPicker> | null>(null)
+
+function onPhotoCropped(file: File) {
   if (localPhotoPreview.value) {
     URL.revokeObjectURL(localPhotoPreview.value)
     localPhotoPreview.value = null
   }
   form.photo = file
-  if (file) {
-    localPhotoPreview.value = URL.createObjectURL(file)
-  }
+  localPhotoPreview.value = URL.createObjectURL(file)
+}
+
+function onPhotoCropError(message: string) {
+  alert(message)
 }
 
 const errors = ref({
@@ -201,10 +204,13 @@ onMounted(async () => {
                   v-if="displayPhotoUrl"
                   class="mt-2 mb-2 rounded-lg overflow-hidden border border-gray-200 max-w-[200px]"
                 >
-                  <img :src="displayPhotoUrl" alt="Foto do aluno" class="w-full h-44 object-cover block" />
+                  <img :src="displayPhotoUrl" alt="Foto do aluno" class="student-photo-1x1" />
                 </div>
-                <input type="file" accept="image/*" class="block w-full text-sm" @change="onPhotoFileChange" />
-                <p class="text-xs text-gray-500 mt-1">Pode ficar em branco. JPG, PNG ou WebP · até 2 MB</p>
+                <PhotoCropPicker ref="photoCropPickerRef" @cropped="onPhotoCropped" @error="onPhotoCropError" />
+                <button type="button" class="student-form-photo-btn mt-2" @click="photoCropPickerRef?.pick()">
+                  {{ displayPhotoUrl ? 'Alterar foto' : 'Adicionar foto' }}
+                </button>
+                <p class="text-xs text-gray-500 mt-1">Quadrado 1:1 · pode ficar em branco · até 2 MB</p>
               </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -351,6 +357,27 @@ onMounted(async () => {
 .input-base:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+.student-photo-1x1 {
+  width: 12rem;
+  height: 12rem;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  display: block;
+  background: #f3f4f6;
+}
+
+.student-form-photo-btn {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
 }
 
 .btn-primary {

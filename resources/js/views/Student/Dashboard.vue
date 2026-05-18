@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import axios from 'axios'
 import BaseLayout from '../../layouts/BaseLayout.vue'
+import PhotoCropPicker from '../../components/photo/PhotoCropPicker.vue'
 import {
   annualRankForStudent,
   currentDayStreak,
@@ -28,7 +29,7 @@ const graduations = ref<any[]>([])
 const attendanceLists = ref<any[]>([])
 const photoUploading = ref(false)
 const photoError = ref('')
-const fileInputRef = ref<HTMLInputElement | null>(null)
+const photoCropPickerRef = ref<InstanceType<typeof PhotoCropPicker> | null>(null)
 
 const now = new Date()
 const currentYear = now.getFullYear()
@@ -167,11 +168,8 @@ function syncUserLocalStorage() {
   }
 }
 
-async function onPhotoSelected(e: Event) {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = ''
-  if (!file || !student.value) return
+async function uploadDashboardPhoto(file: File) {
+  if (!student.value) return
   photoError.value = ''
   photoUploading.value = true
   try {
@@ -189,6 +187,10 @@ async function onPhotoSelected(e: Event) {
   } finally {
     photoUploading.value = false
   }
+}
+
+function onPhotoCropError(message: string) {
+  photoError.value = message
 }
 
 onMounted(loadAll)
@@ -229,11 +231,16 @@ onMounted(loadAll)
               <div v-else class="dash__avatar dash__avatar--placeholder">
                 {{ (student.name || '?').charAt(0).toUpperCase() }}
               </div>
+              <PhotoCropPicker
+                ref="photoCropPickerRef"
+                @cropped="uploadDashboardPhoto"
+                @error="onPhotoCropError"
+              />
               <button
                 type="button"
                 class="dash__photo-btn"
                 :disabled="photoUploading"
-                @click="fileInputRef?.click()"
+                @click="photoCropPickerRef?.pick()"
               >
                 {{
                   photoUploading
@@ -243,15 +250,8 @@ onMounted(loadAll)
                       : 'Adicionar foto'
                 }}
               </button>
-              <input
-                ref="fileInputRef"
-                type="file"
-                class="dash__file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                @change="onPhotoSelected"
-              />
             </div>
-            <p class="dash__photo-hint">Foto opcional</p>
+            <p class="dash__photo-hint">Foto 1:1 para a escola (opcional)</p>
             <p v-if="photoError" class="dash__photo-err">{{ photoError }}</p>
           </div>
         </header>
@@ -472,7 +472,8 @@ onMounted(loadAll)
 .dash__avatar {
   width: 112px;
   height: 112px;
-  border-radius: 1rem;
+  aspect-ratio: 1;
+  border-radius: 0.5rem;
   object-fit: cover;
   border: 3px solid rgba(255, 255, 255, 0.35);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
