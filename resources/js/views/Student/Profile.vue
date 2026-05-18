@@ -93,6 +93,8 @@ const loading = ref(true)
 const trainingsLoading = ref(false)
 const graduationsLoading = ref(false)
 const user = ref<any>(null)
+/** Usuário autenticado (para saber se o aluno exibido é o próprio). */
+const authenticatedUser = ref<any>(null)
 const student = ref<any>(null)
 const trainings = ref<any[]>([])
 const academySessionsByMonth = ref<Record<string, number>>({})
@@ -135,6 +137,14 @@ const photoUrl = computed(() => {
   if (!p) return null
   if (String(p).startsWith('http')) return p
   return `/storage/${p}`
+})
+
+/** Aluno pode alterar a própria foto (área do aluno ou próprio cadastro no admin). */
+const canEditOwnStudentPhoto = computed(() => {
+  if (!student.value?.id) return false
+  if (!isAdminView.value) return true
+  const ownId = authenticatedUser.value?.student?.id
+  return ownId != null && Number(ownId) === Number(student.value.id)
 })
 
 const photoUploading = ref(false)
@@ -351,15 +361,21 @@ async function loadProfile() {
       if (!id) {
         student.value = null
         user.value = null
+        authenticatedUser.value = null
         return
       }
-      const { data } = await axios.get(`/api/students/${id}`)
-      student.value = data
-      user.value = data.user
-        ? { username: data.user.username }
+      const [studentRes, authRes] = await Promise.all([
+        axios.get(`/api/students/${id}`),
+        axios.get('/api/auth/user'),
+      ])
+      student.value = studentRes.data
+      authenticatedUser.value = authRes.data
+      user.value = studentRes.data.user
+        ? { username: studentRes.data.user.username }
         : { username: '—' }
     } else {
       const { data } = await axios.get('/api/auth/user')
+      authenticatedUser.value = data
       user.value = data
       student.value = data.student || null
     }
@@ -367,6 +383,7 @@ async function loadProfile() {
     console.error(error)
     student.value = null
     user.value = null
+    authenticatedUser.value = null
   } finally {
     loading.value = false
   }
@@ -639,7 +656,7 @@ function onAdminRegistrationFile(e: Event) {
 }
 
 async function uploadProfilePhoto(file: File) {
-  if (isAdminView.value || !student.value) return
+  if (!canEditOwnStudentPhoto.value || !student.value) return
   photoError.value = ''
   photoUploading.value = true
   try {
@@ -648,6 +665,7 @@ async function uploadProfilePhoto(file: File) {
     const { data } = await axios.post('/api/auth/student/photo', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
+    authenticatedUser.value = data
     user.value = data
     student.value = data.student || null
     try {
@@ -886,7 +904,7 @@ onMounted(async () => {
                   <div v-else class="profile-photo-placeholder student-photo-1x1 mt-2">
                     {{ (student.name || '?').charAt(0).toUpperCase() }}
                   </div>
-                  <template v-if="!isAdminView">
+                  <template v-if="canEditOwnStudentPhoto">
                     <PhotoCropPicker
                       ref="photoCropPickerRef"
                       @cropped="uploadProfilePhoto"
@@ -894,7 +912,7 @@ onMounted(async () => {
                     />
                     <button
                       type="button"
-                      class="profile-photo-btn"
+                      class="profile-photo-btn mt-2"
                       :disabled="photoUploading"
                       @click="photoCropPickerRef?.pick()"
                     >
@@ -908,7 +926,7 @@ onMounted(async () => {
                     </button>
                     <p v-if="photoError" class="profile-photo-err">{{ photoError }}</p>
                     <p class="text-xs text-gray-500 mt-1">
-                      Opcional. Formato quadrado 1:1 para a escola · até 2 MB
+                      Quadrado 1:1 · JPG, PNG ou WebP · até 2 MB
                     </p>
                   </template>
                 </div>
@@ -1394,14 +1412,6 @@ onMounted(async () => {
   font-weight: 800;
   color: #9ca3af;
   border-style: dashed;
-}
-
-.profile-photo-file {
-  position: absolute;
-  width: 0;
-  height: 0;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .profile-photo-btn {
