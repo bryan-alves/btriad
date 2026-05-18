@@ -204,6 +204,79 @@ export type StudentTrainingsPayload = {
   academySessionsByMonth: Record<string, number>
 }
 
+export type StudentHistoryBounds = {
+  startYm: string
+  endYm: string
+}
+
+export function yearMonthKeyFromDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** Intervalo de meses do histórico: do primeiro treino até hoje (ativo) ou desativação. */
+export function getStudentTrainingHistoryBounds(
+  student: {
+    first_class_at?: string | null
+    active?: boolean
+    updated_at?: string
+  } | null,
+  trainings: { class_date?: string }[],
+): StudentHistoryBounds | null {
+  let startYm: string | null = null
+
+  const firstClass = trainingDateKey(student?.first_class_at ?? undefined)
+  if (firstClass) {
+    startYm = firstClass.slice(0, 7)
+  }
+
+  for (const t of trainings) {
+    const k = trainingDateKey(t.class_date)
+    if (k) {
+      const ym = k.slice(0, 7)
+      if (!startYm || ym < startYm) startYm = ym
+    }
+  }
+
+  if (!startYm) return null
+
+  let endYm: string
+  if (student?.active !== false) {
+    endYm = yearMonthKeyFromDate(new Date())
+  } else if (student?.updated_at) {
+    const raw = String(student.updated_at).trim().split(/[T ]/)[0]
+    const dk = trainingDateKey(raw)
+    endYm = dk ? dk.slice(0, 7) : yearMonthKeyFromDate(new Date())
+  } else {
+    endYm = yearMonthKeyFromDate(new Date())
+  }
+
+  if (endYm < startYm) {
+    endYm = startYm
+  }
+
+  return { startYm, endYm }
+}
+
+/** Meses consecutivos entre YYYY-MM (inclusive), do mais antigo ao mais recente. */
+export function enumerateMonthKeysBetween(startYm: string, endYm: string): string[] {
+  const [sy, sm] = startYm.split('-').map(Number)
+  const [ey, em] = endYm.split('-').map(Number)
+  const keys: string[] = []
+  let y = sy
+  let m = sm
+
+  while (y < ey || (y === ey && m <= em)) {
+    keys.push(`${y}-${String(m).padStart(2, '0')}`)
+    m += 1
+    if (m > 12) {
+      m = 1
+      y += 1
+    }
+  }
+
+  return keys
+}
+
 export function parseStudentTrainingsPayload(data: unknown): StudentTrainingsPayload {
   if (Array.isArray(data)) {
     return { trainings: data, academySessionsByMonth: {} }

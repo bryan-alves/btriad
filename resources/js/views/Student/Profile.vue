@@ -8,7 +8,10 @@ import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
 import {
   attendanceFrequencyPercent,
+  enumerateMonthKeysBetween,
+  getStudentTrainingHistoryBounds,
   parseStudentTrainingsPayload,
+  trainingDateKey,
 } from '../../utils/studentDashboard'
 
 const route = useRoute()
@@ -209,16 +212,23 @@ function capitalizeMonth(name: string) {
   return name.charAt(0).toLocaleUpperCase('pt-BR') + name.slice(1)
 }
 
-/** Anos com treino (tabs), mais recente primeiro. */
+const trainingHistoryBounds = computed(() =>
+  getStudentTrainingHistoryBounds(student.value, trainings.value),
+)
+
+/** Anos do período do histórico (primeiro treino → desativação ou hoje). */
 const trainingYearTabs = computed(() => {
-  const years = new Set<number>()
-  for (const list of trainings.value) {
-    const raw = list.class_date
-    const d = String(raw ?? '').split('T')[0]
-    const y = parseInt(d.split('-')[0] ?? '', 10)
-    if (y) years.add(y)
+  const bounds = trainingHistoryBounds.value
+  if (!bounds) return []
+
+  const [startYear] = bounds.startYm.split('-').map(Number)
+  const [endYear] = bounds.endYm.split('-').map(Number)
+  const years: number[] = []
+  for (let y = startYear; y <= endYear; y += 1) {
+    years.push(y)
   }
-  return Array.from(years)
+
+  return years
     .sort((a, b) => b - a)
     .map((year) => ({ id: String(year), name: String(year) }))
 })
@@ -239,60 +249,51 @@ watch(
   { immediate: true },
 )
 
-/** Meses do ano selecionado (título só com o mês; o ano vem da aba). */
+/** Todos os meses do ano no período do aluno (com ou sem presença). */
 const trainingsByMonthForYear = computed(() => {
+  const bounds = trainingHistoryBounds.value
   const yearFilter = activeTrainingYear.value
-  if (!yearFilter) return []
+  if (!bounds || !yearFilter) return []
 
-  const map = new Map<
-    string,
-    {
-      key: string
-      label: string
-      count: number
-      totalSessions: number
-      frequencyPercent: number
-      items: any[]
-    }
-  >()
+  const monthKeys = enumerateMonthKeysBetween(bounds.startYm, bounds.endYm)
+    .filter((key) => key.startsWith(`${yearFilter}-`))
+    .reverse()
+
+  const itemsByMonth = new Map<string, any[]>()
 
   for (const list of trainings.value) {
-    const raw = list.class_date
-    const d = String(raw ?? '').split('T')[0]
-    const [y, m] = d.split('-')
-    if (!y || !m || y !== yearFilter) continue
-    const key = `${y}-${m}`
-    if (!map.has(key)) {
-      const mi = parseInt(m, 10) - 1
-      const label =
-        mi >= 0 && mi < 12
-          ? capitalizeMonth(monthNamesPt[mi])
-          : `${m}/${y}`
-      const totalSessions = academySessionsByMonth.value[key] ?? 0
-      map.set(key, {
-        key,
-        label,
-        count: 0,
-        totalSessions,
-        frequencyPercent: 0,
-        items: [],
-      })
-    }
-    const g = map.get(key)!
-    g.count += 1
-    g.items.push(list)
+    const k = trainingDateKey(list.class_date)
+    if (!k) continue
+    const key = k.slice(0, 7)
+    if (!key.startsWith(`${yearFilter}-`)) continue
+    if (!itemsByMonth.has(key)) itemsByMonth.set(key, [])
+    itemsByMonth.get(key)!.push(list)
   }
 
-  const groups = Array.from(map.values()).sort((a, b) => (a.key < b.key ? 1 : -1))
-  for (const g of groups) {
-    g.frequencyPercent = attendanceFrequencyPercent(g.count, g.totalSessions)
-  }
-  for (const g of groups) {
-    g.items.sort((a, b) =>
+  return monthKeys.map((key) => {
+    const [, m] = key.split('-')
+    const mi = parseInt(m, 10) - 1
+    const label =
+      mi >= 0 && mi < 12
+        ? capitalizeMonth(monthNamesPt[mi])
+        : `${m}/${yearFilter}`
+    const items = itemsByMonth.get(key) ?? []
+    const count = items.length
+    const totalSessions = academySessionsByMonth.value[key] ?? 0
+    const sortedItems = [...items].sort((a, b) =>
       String(b.class_date ?? '').localeCompare(String(a.class_date ?? '')),
     )
-  }
-  return groups
+
+    return {
+      key,
+      label,
+      count,
+      totalSessions,
+      frequencyPercent: attendanceFrequencyPercent(count, totalSessions),
+      items: sortedItems,
+      hasAttendance: count > 0,
+    }
+  })
 })
 
 /** Mês expandido por defeito; `false` = recolhido. */
@@ -1029,13 +1030,7 @@ onMounted(async () => {
                 :selectedTab="activeTrainingYear"
                 @tab="(id) => (activeTrainingYear = id)"
               />
-              <div
-                v-if="!trainingsByMonthForYear.length"
-                class="text-gray-600 mt-4"
-              >
-                Nenhum treino em {{ activeTrainingYear }}.
-              </div>
-              <div v-else class="training-history mt-4">
+              <div class="training-history mt-4">
                 <section
                   v-for="group in trainingsByMonthForYear"
                   :key="group.key"
@@ -1044,22 +1039,40 @@ onMounted(async () => {
                   <header class="training-month__head">
                     <h3 class="training-month__title">{{ group.label }}</h3>
                     <div class="training-month__actions">
-                      <span class="training-month__badge">
-                        <span class="training-month__badge-main">
-                          {{ group.count }}
-                          <template v-if="group.totalSessions > 0">
-                            de {{ group.totalSessions }}
-                          </template>
-                          {{ group.count === 1 ? 'treino' : 'treinos' }}
-                        </span>
-                        <span
-                          v-if="group.totalSessions > 0"
-                          class="training-month__badge-freq"
-                        >
-                          {{ group.frequencyPercent }}% de frequência
-                        </span>
+                      <span
+                        class="training-month__badge"
+                        :class="{ 'training-month__badge--empty': !group.hasAttendance }"
+                      >
+                        <template v-if="group.hasAttendance">
+                          <span class="training-month__badge-main">
+                            {{ group.count }}
+                            <template v-if="group.totalSessions > 0">
+                              de {{ group.totalSessions }}
+                            </template>
+                            {{ group.count === 1 ? 'treino' : 'treinos' }}
+                          </span>
+                          <span
+                            v-if="group.totalSessions > 0"
+                            class="training-month__badge-freq"
+                          >
+                            {{ group.frequencyPercent }}% de frequência
+                          </span>
+                        </template>
+                        <template v-else>
+                          <span class="training-month__badge-main">Sem frequência</span>
+                          <span
+                            v-if="group.totalSessions > 0"
+                            class="training-month__badge-freq"
+                          >
+                            0 de {{ group.totalSessions }} aulas · 0% de frequência
+                          </span>
+                          <span v-else class="training-month__badge-freq">
+                            Nenhuma aula registrada na academia
+                          </span>
+                        </template>
                       </span>
                       <button
+                        v-if="group.hasAttendance"
                         type="button"
                         class="training-month__switch"
                         role="switch"
@@ -1085,7 +1098,13 @@ onMounted(async () => {
                     </div>
                   </header>
                   <div
-                    v-show="isMonthExpanded(group.key)"
+                    v-if="!group.hasAttendance"
+                    class="training-month__empty"
+                  >
+                    Nenhuma presença registrada neste mês.
+                  </div>
+                  <div
+                    v-else-if="isMonthExpanded(group.key)"
                     class="training-cards"
                   >
                     <template v-for="item in group.items" :key="item.id">
@@ -1547,6 +1566,25 @@ onMounted(async () => {
   font-size: 0.6875rem;
   font-weight: 600;
   color: #6b7280;
+}
+
+.training-month__badge--empty {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.training-month__badge--empty .training-month__badge-freq {
+  color: #b91c1c;
+}
+
+.training-month__empty {
+  margin: 0.5rem 0 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed #e5e7eb;
 }
 
 .training-cards {

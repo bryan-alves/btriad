@@ -4,7 +4,9 @@ import axios from 'axios'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import Tabs from '../../components/tabs/Tabs.vue'
 import {
+  RANKING_FULL_YEAR_MONTH,
   RANKING_MONTH_LABELS,
+  isRankingFullYear,
   monthsWithAttendanceInYear,
   parseRankingPeriodsPayload,
   pickDefaultRankingMonth,
@@ -54,7 +56,10 @@ watch(activeYearTab, (yearStr) => {
     activeMonth.value = ''
     return
   }
-  const months = monthsWithAttendanceInYear(periods.value, year)
+  if (activeMonth.value === String(RANKING_FULL_YEAR_MONTH)) {
+    return
+  }
+  const months = monthsInActiveYear.value
   const current = parseInt(activeMonth.value, 10)
   if (current && months.includes(current)) {
     return
@@ -62,24 +67,36 @@ watch(activeYearTab, (yearStr) => {
   activeMonth.value = pickDefaultRankingMonth(year, months)
 })
 
-const monthToggles = computed(() =>
-  monthLabels.map((label, i) => {
-    const id = String(i + 1)
+const monthToggles = computed(() => {
+  const yearHasTraining = monthsInActiveYear.value.length > 0
+  const toggles = [
+    {
+      id: String(RANKING_FULL_YEAR_MONTH),
+      name: 'Ano todo',
+      disabled: !yearHasTraining,
+    },
+  ]
+  for (let i = 0; i < monthLabels.length; i += 1) {
     const monthNum = i + 1
-    const hasData = monthsInActiveYear.value.includes(monthNum)
-    return {
-      id,
-      name: label,
-      disabled: !hasData,
-    }
-  }),
-)
+    toggles.push({
+      id: String(monthNum),
+      name: monthLabels[i],
+      disabled: !monthsInActiveYear.value.includes(monthNum),
+    })
+  }
+  return toggles
+})
 
 const selectedMonthLabel = computed(() => {
   const m = parseInt(activeMonth.value, 10)
+  if (isRankingFullYear(m)) return 'Ano todo'
   if (m < 1 || m > 12) return ''
   return monthLabels[m - 1]
 })
+
+const isFullYearRanking = computed(() =>
+  isRankingFullYear(parseInt(activeMonth.value, 10)),
+)
 
 const showRankingTable = computed(
   () => !rankingLoading.value && hasTrainingInPeriod.value && rankingRows.value.length > 0,
@@ -93,13 +110,19 @@ async function loadPeriods() {
 async function loadRankingForPeriod() {
   const year = parseInt(activeYearTab.value, 10)
   const month = parseInt(activeMonth.value, 10)
-  if (!year || !month) {
+  if (!year || activeMonth.value === '') {
     rankingRows.value = []
     hasTrainingInPeriod.value = false
     return
   }
 
-  if (!monthsInActiveYear.value.includes(month)) {
+  if (!isRankingFullYear(month) && !monthsInActiveYear.value.includes(month)) {
+    rankingRows.value = []
+    hasTrainingInPeriod.value = false
+    return
+  }
+
+  if (isRankingFullYear(month) && !monthsInActiveYear.value.length) {
     rankingRows.value = []
     hasTrainingInPeriod.value = false
     return
@@ -108,7 +131,7 @@ async function loadRankingForPeriod() {
   rankingLoading.value = true
   try {
     const { data } = await axios.get('/api/attendance-lists/ranking', {
-      params: { year, month },
+      params: { year, month: isRankingFullYear(month) ? RANKING_FULL_YEAR_MONTH : month },
     })
     rankingRows.value = Array.isArray(data?.ranking) ? data.ranking : []
     hasTrainingInPeriod.value = Boolean(data?.has_training)
@@ -146,6 +169,11 @@ onMounted(async () => {
 
 function selectMonth(monthId) {
   const monthNum = parseInt(monthId, 10)
+  if (isRankingFullYear(monthNum)) {
+    if (!monthsInActiveYear.value.length) return
+    activeMonth.value = monthId
+    return
+  }
   if (!monthsInActiveYear.value.includes(monthNum)) return
   activeMonth.value = monthId
 }
@@ -155,8 +183,8 @@ function selectMonth(monthId) {
   <BaseLayout title="Ranking de treinos">
     <div class="ranking-page">
       <p class="intro">
-        Alunos que mais treinaram no mês. Escolha o <strong>ano</strong> e o
-        <strong>mês</strong>. Cada dia com presença conta uma vez (várias turmas no mesmo dia não somam em dobro).
+        Alunos que mais treinaram no período. Escolha o <strong>ano</strong> e o
+        <strong>mês</strong> ou <strong>ano todo</strong>. Cada dia com presença conta uma vez (várias turmas no mesmo dia não somam em dobro).
       </p>
 
       <div v-if="loading" class="state">Carregando...</div>
@@ -197,7 +225,8 @@ function selectMonth(monthId) {
 
         <div class="tab-content">
           <p class="period-hint">
-            {{ selectedMonthLabel }} de {{ activeYearTab }}
+            <template v-if="isFullYearRanking">Ano todo de {{ activeYearTab }}</template>
+            <template v-else>{{ selectedMonthLabel }} de {{ activeYearTab }}</template>
           </p>
 
           <div v-if="rankingLoading" class="state state--inline">Carregando ranking...</div>
@@ -233,7 +262,12 @@ function selectMonth(monthId) {
             </div>
 
             <p v-if="!hasTrainingInPeriod || !rankingRows.length" class="empty-year">
-              Nenhum treino registrado em {{ selectedMonthLabel }} de {{ activeYearTab }}.
+              <template v-if="isFullYearRanking">
+                Nenhum treino registrado em {{ activeYearTab }}.
+              </template>
+              <template v-else>
+                Nenhum treino registrado em {{ selectedMonthLabel }} de {{ activeYearTab }}.
+              </template>
             </p>
           </template>
         </div>
@@ -301,6 +335,10 @@ function selectMonth(monthId) {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+.month-toggle__btn:first-child {
+  min-width: 4.5rem;
 }
 
 .month-toggle__btn:last-child {

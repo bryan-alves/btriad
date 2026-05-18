@@ -140,16 +140,19 @@ export function monthsWithAttendanceInYear(
   return periods.months_by_year[String(year)] ?? []
 }
 
-export function pickDefaultRankingMonth(year: number, monthsInYear: number[]): string {
-  if (!monthsInYear.length) return ''
+export const RANKING_FULL_YEAR_MONTH = 0
 
+export function isRankingFullYear(month: number): boolean {
+  return month === RANKING_FULL_YEAR_MONTH
+}
+
+export function pickDefaultRankingMonth(year: number, monthsInYear: number[]): string {
   const now = new Date()
   if (year === now.getFullYear()) {
-    const currentMonth = now.getMonth() + 1
-    if (monthsInYear.includes(currentMonth)) {
-      return String(currentMonth)
-    }
+    return String(RANKING_FULL_YEAR_MONTH)
   }
+
+  if (!monthsInYear.length) return String(RANKING_FULL_YEAR_MONTH)
 
   return String(monthsInYear[0])
 }
