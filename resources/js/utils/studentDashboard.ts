@@ -245,12 +245,31 @@ export function collectClassesFromTrainings(
   )
 }
 
+export const TRAINING_CLASS_FILTER_ALL = 'all'
+
+export function isTrainingClassAllFilter(value: string): boolean {
+  return value === TRAINING_CLASS_FILTER_ALL || value === ''
+}
+
 export function sessionsForClassMonth(
   byClassMonth: Record<string, Record<string, number>>,
   classId: number,
   monthKey: string,
 ): number {
   return byClassMonth[String(classId)]?.[monthKey] ?? 0
+}
+
+/** Soma aulas do mês nas turmas em que o aluno já treinou. */
+export function sessionsForStudentClassesMonth(
+  byClassMonth: Record<string, Record<string, number>>,
+  classIds: number[],
+  monthKey: string,
+): number {
+  let total = 0
+  for (const classId of classIds) {
+    total += sessionsForClassMonth(byClassMonth, classId, monthKey)
+  }
+  return total
 }
 
 export type StudentHistoryBounds = {

@@ -12,8 +12,11 @@ import {
   enumerateMonthKeysBetween,
   filterTrainingsByClassId,
   getStudentTrainingHistoryBounds,
+  isTrainingClassAllFilter,
   parseStudentTrainingsPayload,
   sessionsForClassMonth,
+  sessionsForStudentClassesMonth,
+  TRAINING_CLASS_FILTER_ALL,
   trainingDateKey,
 } from '../../utils/studentDashboard'
 import { graduationPhotoUrl } from '../../utils/graduation'
@@ -220,14 +223,21 @@ function capitalizeMonth(name: string) {
 
 const trainingClassOptions = computed(() => collectClassesFromTrainings(trainings.value))
 
-const trainingClassSelectOptions = computed(() =>
-  trainingClassOptions.value.map((c) => ({
+const trainingClassSelectOptions = computed(() => {
+  const classes = trainingClassOptions.value.map((c) => ({
     label: c.label,
     value: String(c.id),
-  })),
+  }))
+  if (!classes.length) return []
+  return [{ label: 'Todas as turmas', value: TRAINING_CLASS_FILTER_ALL }, ...classes]
+})
+
+const isViewingAllClasses = computed(() =>
+  isTrainingClassAllFilter(activeTrainingClassId.value),
 )
 
 const selectedTrainingClassId = computed(() => {
+  if (isViewingAllClasses.value) return null
   const id = parseInt(activeTrainingClassId.value, 10)
   return id > 0 ? id : null
 })
@@ -238,6 +248,10 @@ const trainingsForSelectedClass = computed(() => {
   return filterTrainingsByClassId(trainings.value, classId)
 })
 
+const studentTrainingClassIds = computed(() =>
+  trainingClassOptions.value.map((c) => c.id),
+)
+
 watch(
   trainingClassOptions,
   (options) => {
@@ -245,10 +259,16 @@ watch(
       activeTrainingClassId.value = ''
       return
     }
-    const current = parseInt(activeTrainingClassId.value, 10)
-    if (!current || !options.some((o) => o.id === current)) {
-      activeTrainingClassId.value = String(options[0].id)
+    const current = activeTrainingClassId.value
+    if (isTrainingClassAllFilter(current)) {
+      return
     }
+    const currentId = parseInt(current, 10)
+    if (currentId > 0 && options.some((o) => o.id === currentId)) {
+      return
+    }
+    activeTrainingClassId.value =
+      options.length > 1 ? TRAINING_CLASS_FILTER_ALL : String(options[0].id)
   },
   { immediate: true },
 )
@@ -321,8 +341,13 @@ const trainingsByMonthForYear = computed(() => {
         : `${m}/${yearFilter}`
     const items = itemsByMonth.get(key) ?? []
     const count = items.length
-    const totalSessions =
-      classId != null
+    const totalSessions = isViewingAllClasses.value
+      ? sessionsForStudentClassesMonth(
+          academySessionsByClassMonth.value,
+          studentTrainingClassIds.value,
+          key,
+        )
+      : classId != null
         ? sessionsForClassMonth(academySessionsByClassMonth.value, classId, key)
         : 0
     const sortedItems = [...items].sort((a, b) =>
@@ -1071,10 +1096,7 @@ onMounted(async () => {
               Nenhum treino registrado ainda.
             </div>
             <template v-else>
-              <div
-                v-if="trainingClassSelectOptions.length > 1"
-                class="training-class-filter"
-              >
+              <div v-if="trainingClassSelectOptions.length" class="training-class-filter">
                 <FormSelect
                   v-model="activeTrainingClassId"
                   label="Turma"
@@ -1082,15 +1104,15 @@ onMounted(async () => {
                   placeholder="Selecione a turma"
                 />
                 <p class="training-class-hint">
-                  Frequência e totais de aulas são calculados somente para a turma selecionada.
+                  <template v-if="isViewingAllClasses">
+                    Todas as turmas em que você já treinou. A frequência soma suas presenças em
+                    relação ao total de aulas dessas turmas no mês.
+                  </template>
+                  <template v-else>
+                    Frequência e totais de aulas apenas da turma selecionada.
+                  </template>
                 </p>
               </div>
-              <p
-                v-else-if="trainingClassOptions.length === 1"
-                class="training-class-single"
-              >
-                Turma: <strong>{{ trainingClassOptions[0].label }}</strong>
-              </p>
               <p class="training-year-label">Ano</p>
               <Tabs
                 :tabs="trainingYearTabs"
