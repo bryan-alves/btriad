@@ -19,7 +19,10 @@ import {
   TRAINING_CLASS_FILTER_ALL,
   trainingDateKey,
 } from '../../utils/studentDashboard'
-import { graduationPhotoUrl } from '../../utils/graduation'
+import {
+  buildGraduationTimelineWithClassCounts,
+  graduationPhotoUrl,
+} from '../../utils/graduation'
 
 const route = useRoute()
 
@@ -141,15 +144,9 @@ const photoUploading = ref(false)
 const photoError = ref('')
 const photoInputRef = ref<HTMLInputElement | null>(null)
 
-const timelineAsc = computed(() => {
-  return [...graduations.value]
-    .filter((g) => g.graduated_at)
-    .sort((a, b) => {
-      const da = String(a.graduated_at).split('T')[0]
-      const db = String(b.graduated_at).split('T')[0]
-      return da.localeCompare(db)
-    })
-})
+const timelineAsc = computed(() =>
+  buildGraduationTimelineWithClassCounts(graduations.value, trainings.value),
+)
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—'
@@ -1279,8 +1276,11 @@ onMounted(async () => {
                     :class="{ 'prof-timeline__dot--last': idx === timelineAsc.length - 1 }"
                   />
                   <div class="prof-timeline__card">
-                    <p class="dash-timeline__belt">{{ row.belt.slug !== 'white' && row.degree === 0 ? 'Graduado à' : '' }} Faixa {{ beltLabel(row.belt) }} {{ Number(row.degree) !== 0 ? ` - ${row.degree} ${row.degree === 1 ? 'grau' : 'graus'}` : '' }}</p>
+                    <p class="dash-timeline__belt">{{ row.belt?.slug !== 'white' && row.degree === 0 ? 'Graduado à' : '' }} Faixa {{ beltLabel(row.belt) }} {{ Number(row.degree) !== 0 ? ` - ${row.degree} ${row.degree === 1 ? 'grau' : 'graus'}` : '' }}</p>
                     <p class="prof-timeline__date">{{ formatDate(row.graduated_at) }}</p>
+                    <p v-if="row.classesCountLabel" class="prof-timeline__classes">
+                      {{ row.classesCountLabel }}
+                    </p>
                     <a
                       v-if="graduationPhotoUrl(row)"
                       :href="graduationPhotoUrl(row)!"
@@ -1535,6 +1535,13 @@ onMounted(async () => {
   margin: 0.35rem 0 0;
   font-size: 0.8125rem;
   color: #374151;
+}
+
+.prof-timeline__classes {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: #4b5563;
+  font-weight: 500;
 }
 
 .prof-timeline__photo-link {
