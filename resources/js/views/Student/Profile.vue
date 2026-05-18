@@ -1099,7 +1099,34 @@ onMounted(async () => {
                   class="training-month"
                 >
                   <header class="training-month__head">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
                     <h3 class="training-month__title">{{ group.label }}</h3>
+                    
+                      <button
+                        v-if="group.hasAttendance"
+                        type="button"
+                        class="training-month__switch"
+                        role="switch"
+                        :aria-checked="isMonthExpanded(group.key)"
+                        :aria-label="
+                          isMonthExpanded(group.key)
+                            ? `Ocultar treinos de ${group.label}`
+                            : `Mostrar treinos de ${group.label}`
+                        "
+                        @click="toggleMonthSection(group.key)"
+                      >
+                        <span class="training-month__switch-label">Ver</span>
+                        <span
+                          class="training-month__switch-track"
+                          :class="{
+                            'training-month__switch-track--on':
+                              isMonthExpanded(group.key),
+                          }"
+                        >
+                          <span class="training-month__switch-thumb" />
+                        </span>
+                      </button>
+                    </div>
                     <div class="training-month__actions">
                       <div class="training-month__class-stats">
                         <div
@@ -1135,37 +1162,13 @@ onMounted(async () => {
                               >
                                 0 de {{ stat.totalSessions }} aulas · 0% de frequência
                               </span>
-                              <span v-else class="training-month__badge-freq">
-                                Nenhuma aula nesta turma no mês
+                              <span v-else class="training-month__badge-freq">                              
+                              Sem frequência este mês
                               </span>
                             </template>
                           </span>
                         </div>
                       </div>
-                      <button
-                        v-if="group.hasAttendance"
-                        type="button"
-                        class="training-month__switch"
-                        role="switch"
-                        :aria-checked="isMonthExpanded(group.key)"
-                        :aria-label="
-                          isMonthExpanded(group.key)
-                            ? `Ocultar treinos de ${group.label}`
-                            : `Mostrar treinos de ${group.label}`
-                        "
-                        @click="toggleMonthSection(group.key)"
-                      >
-                        <span class="training-month__switch-label">Ver</span>
-                        <span
-                          class="training-month__switch-track"
-                          :class="{
-                            'training-month__switch-track--on':
-                              isMonthExpanded(group.key),
-                          }"
-                        >
-                          <span class="training-month__switch-thumb" />
-                        </span>
-                      </button>
                     </div>
                   </header>
                   <div
@@ -1600,7 +1603,7 @@ onMounted(async () => {
 
 .training-month__class-stats {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-end;
   gap: 0.5rem;
 }
