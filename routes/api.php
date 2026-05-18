@@ -29,11 +29,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('belts', BeltController::class)
           ->only(['index', 'store']);
 
+    Route::get('attendance-lists/ranking-periods', [AttendanceListController::class, 'rankingPeriods']);
+    Route::get('attendance-lists/ranking', [AttendanceListController::class, 'ranking']);
+
     Route::apiResource('attendance-lists', AttendanceListController::class)
           ->only(['index', 'show', 'store', 'update']);
 
     Route::apiResource('student-graduations', StudentGraduationController::class)
-          ->only(['index', 'show', 'store', 'update']);
+          ->only(['index', 'show', 'store', 'update', 'destroy']);
 
     Route::apiResource('classes', ClassController::class)
           ->only(['index', 'show', 'store', 'update']);

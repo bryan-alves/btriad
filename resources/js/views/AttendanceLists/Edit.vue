@@ -5,6 +5,7 @@ import BaseLayout from '../../layouts/BaseLayout.vue';
 import FormInput from "../../components/form/FormInput.vue";
 import FormSelect from "../../components/form/FormSelect.vue";
 import { useRoute } from 'vue-router'
+import { trainingDateKey } from '../../utils/studentDashboard'
 
 const route = useRoute();
 const loading = ref(false)
@@ -118,7 +119,7 @@ async function getAttendanceList() {
     attendanceList.value = data;
 
     // Preencher formulário
-    form.class_date = data.class_date;
+    form.class_date = trainingDateKey(data.class_date) ?? '';
     form.class_id = data.class_id;
     form.notes = data.notes || "";
     form.student_ids = data.students?.map(student => student.id) || [];

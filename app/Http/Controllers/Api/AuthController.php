@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceList;
+use App\Support\AcademyTrainingStats;
 use App\Models\StudentGraduation;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -64,7 +65,10 @@ class AuthController extends Controller
         $user = $request->user()->load('student');
 
         if (! $user->student) {
-            return response()->json([], 200);
+            return response()->json([
+                'trainings' => [],
+                'academy_sessions_by_month' => AcademyTrainingStats::sessionsCountByMonth(),
+            ], 200);
         }
 
         $studentId = $user->student->id;
@@ -77,7 +81,10 @@ class AuthController extends Controller
             ->orderByDesc('class_date')
             ->get();
 
-        return response()->json($lists, 200);
+        return response()->json([
+            'trainings' => $lists,
+            'academy_sessions_by_month' => AcademyTrainingStats::sessionsCountByMonth(),
+        ], 200);
     }
 
     /**

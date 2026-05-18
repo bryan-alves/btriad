@@ -6,6 +6,10 @@ import BaseLayout from '../../layouts/BaseLayout.vue'
 import Tabs from '../../components/tabs/Tabs.vue'
 import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
+import {
+  attendanceFrequencyPercent,
+  parseStudentTrainingsPayload,
+} from '../../utils/studentDashboard'
 
 const route = useRoute()
 
@@ -16,6 +20,9 @@ const adminStudentId = computed(() =>
 
 const adminEditMode = ref(false)
 const adminSaveLoading = ref(false)
+const adminStatusBusy = ref(false)
+
+const isStudentActive = computed(() => student.value?.active !== false)
 const belts = ref<{ label: string; value: number }[]>([])
 const users = ref<{ label: string; value: string | number }[]>([])
 
@@ -77,6 +84,7 @@ const graduationsLoading = ref(false)
 const user = ref<any>(null)
 const student = ref<any>(null)
 const trainings = ref<any[]>([])
+const academySessionsByMonth = ref<Record<string, number>>({})
 const graduations = ref<any[]>([])
 
 const pageTitle = computed(() => {
@@ -238,7 +246,14 @@ const trainingsByMonthForYear = computed(() => {
 
   const map = new Map<
     string,
-    { key: string; label: string; count: number; items: any[] }
+    {
+      key: string
+      label: string
+      count: number
+      totalSessions: number
+      frequencyPercent: number
+      items: any[]
+    }
   >()
 
   for (const list of trainings.value) {
@@ -253,7 +268,15 @@ const trainingsByMonthForYear = computed(() => {
         mi >= 0 && mi < 12
           ? capitalizeMonth(monthNamesPt[mi])
           : `${m}/${y}`
-      map.set(key, { key, label, count: 0, items: [] })
+      const totalSessions = academySessionsByMonth.value[key] ?? 0
+      map.set(key, {
+        key,
+        label,
+        count: 0,
+        totalSessions,
+        frequencyPercent: 0,
+        items: [],
+      })
     }
     const g = map.get(key)!
     g.count += 1
@@ -261,6 +284,9 @@ const trainingsByMonthForYear = computed(() => {
   }
 
   const groups = Array.from(map.values()).sort((a, b) => (a.key < b.key ? 1 : -1))
+  for (const g of groups) {
+    g.frequencyPercent = attendanceFrequencyPercent(g.count, g.totalSessions)
+  }
   for (const g of groups) {
     g.items.sort((a, b) =>
       String(b.class_date ?? '').localeCompare(String(a.class_date ?? '')),
@@ -330,10 +356,13 @@ async function loadTrainings() {
       ? `/api/students/${adminStudentId.value}/trainings`
       : '/api/auth/student/trainings'
     const { data } = await axios.get(url)
-    trainings.value = Array.isArray(data) ? data : []
+    const parsed = parseStudentTrainingsPayload(data)
+    trainings.value = parsed.trainings
+    academySessionsByMonth.value = parsed.academySessionsByMonth
   } catch (error) {
     console.error(error)
     trainings.value = []
+    academySessionsByMonth.value = {}
   } finally {
     trainingsLoading.value = false
   }
@@ -493,6 +522,33 @@ function cancelAdminEdit() {
   adminForm.photo = null
 }
 
+async function toggleStudentActiveStatus() {
+  if (!student.value || !adminStudentId.value) return
+  const activating = !isStudentActive.value
+  const msg = activating
+    ? `Reativar o aluno "${student.value.name}"?`
+    : `Desativar o aluno "${student.value.name}"?`
+  if (!confirm(msg)) return
+
+  adminStatusBusy.value = true
+  try {
+    if (activating) {
+      await axios.put(`/api/students/${adminStudentId.value}`, {
+        active: true,
+        name: student.value.name,
+      })
+    } else {
+      await axios.delete(`/api/students/${adminStudentId.value}`)
+    }
+    await loadProfile()
+    alert(activating ? 'Aluno reativado.' : 'Aluno desativado.')
+  } catch (e: any) {
+    alert(e.response?.data?.message || 'Erro ao alterar estado do aluno')
+  } finally {
+    adminStatusBusy.value = false
+  }
+}
+
 async function submitAdminStudent() {
   if (!validateAdminForm()) return
   const id = adminStudentId.value
@@ -600,7 +656,7 @@ onMounted(async () => {
   <BaseLayout :title="pageTitle">
     <div v-if="isAdminView" class="admin-student-nav">
       <RouterLink to="/admin/students" class="admin-student-nav__link">← Lista de alunos</RouterLink>
-      <template v-if="adminStudentId">
+      <template v-if="adminStudentId && student">
         <button
           v-if="!adminEditMode"
           type="button"
@@ -616,6 +672,21 @@ onMounted(async () => {
           @click="cancelAdminEdit"
         >
           Cancelar edição
+        </button>
+        <button
+          type="button"
+          class="admin-student-nav__btn"
+          :class="isStudentActive ? 'admin-student-nav__btn--danger' : 'admin-student-nav__btn--success'"
+          :disabled="adminStatusBusy || adminSaveLoading"
+          @click="toggleStudentActiveStatus"
+        >
+          {{
+            adminStatusBusy
+              ? '…'
+              : isStudentActive
+                ? 'Desativar aluno'
+                : 'Reativar aluno'
+          }}
         </button>
       </template>
     </div>
@@ -754,6 +825,12 @@ onMounted(async () => {
             </form>
 
             <template v-if="!isAdminView || !adminEditMode">
+            <p
+              v-if="isAdminView && !isStudentActive"
+              class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900"
+            >
+              Este aluno está <strong>inativo</strong> e não aparece nas listagens padrão.
+            </p>
             <div class="mb-4 space-y-4">
               <h2 class="text-xl font-bold mb-4">Dados do aluno</h2>
 
@@ -968,8 +1045,19 @@ onMounted(async () => {
                     <h3 class="training-month__title">{{ group.label }}</h3>
                     <div class="training-month__actions">
                       <span class="training-month__badge">
-                        {{ group.count }}
-                        {{ group.count === 1 ? 'treino' : 'treinos' }}
+                        <span class="training-month__badge-main">
+                          {{ group.count }}
+                          <template v-if="group.totalSessions > 0">
+                            de {{ group.totalSessions }}
+                          </template>
+                          {{ group.count === 1 ? 'treino' : 'treinos' }}
+                        </span>
+                        <span
+                          v-if="group.totalSessions > 0"
+                          class="training-month__badge-freq"
+                        >
+                          {{ group.frequencyPercent }}% de frequência
+                        </span>
                       </span>
                       <button
                         type="button"
@@ -1162,6 +1250,26 @@ onMounted(async () => {
 
 .admin-student-nav__btn--primary:hover:not(:disabled) {
   background: #1d4ed8;
+}
+
+.admin-student-nav__btn--danger {
+  color: #b91c1c;
+  border-color: #f87171;
+  background: #fff;
+}
+
+.admin-student-nav__btn--danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.admin-student-nav__btn--success {
+  color: #166534;
+  border-color: #86efac;
+  background: #fff;
+}
+
+.admin-student-nav__btn--success:hover:not(:disabled) {
+  background: #f0fdf4;
 }
 
 .admin-student-nav__btn:disabled {
@@ -1422,6 +1530,10 @@ onMounted(async () => {
 }
 
 .training-month__badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
   font-size: 0.8125rem;
   font-weight: 600;
   color: #4b5563;
@@ -1429,6 +1541,12 @@ onMounted(async () => {
   padding: 0.35rem 0.65rem;
   border-radius: 9999px;
   white-space: nowrap;
+}
+
+.training-month__badge-freq {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b7280;
 }
 
 .training-cards {

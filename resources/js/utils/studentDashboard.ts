@@ -1,7 +1,7 @@
 /** Data YYYY-MM-DD a partir de class_date da API. */
 export function trainingDateKey(raw: string | null | undefined): string | null {
   if (!raw) return null
-  const d = String(raw).split('T')[0]
+  const d = String(raw).trim().split(/[T ]/)[0]
   return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null
 }
 
@@ -191,6 +191,34 @@ export function monthlyFrequencyPercent(
 ): number {
   if (monthlyGoal <= 0) return 0
   return Math.min(100, Math.round((trainingsThisMonth / monthlyGoal) * 100))
+}
+
+/** Frequência de presença: treinos do aluno ÷ total de aulas no mês na academia. */
+export function attendanceFrequencyPercent(attended: number, totalSessions: number): number {
+  if (totalSessions <= 0) return 0
+  return Math.min(100, Math.round((attended / totalSessions) * 100))
+}
+
+export type StudentTrainingsPayload = {
+  trainings: { class_date?: string }[]
+  academySessionsByMonth: Record<string, number>
+}
+
+export function parseStudentTrainingsPayload(data: unknown): StudentTrainingsPayload {
+  if (Array.isArray(data)) {
+    return { trainings: data, academySessionsByMonth: {} }
+  }
+  if (data && typeof data === 'object') {
+    const payload = data as {
+      trainings?: unknown
+      academy_sessions_by_month?: Record<string, number>
+    }
+    return {
+      trainings: Array.isArray(payload.trainings) ? payload.trainings : [],
+      academySessionsByMonth: payload.academy_sessions_by_month ?? {},
+    }
+  }
+  return { trainings: [], academySessionsByMonth: {} }
 }
 
 export interface AnnualRankResult {

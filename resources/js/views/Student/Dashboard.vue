@@ -7,9 +7,11 @@ import {
   annualRankForStudent,
   currentDayStreak,
   currentWeekStreak,
+  attendanceFrequencyPercent,
   lastMonthsTrainingCounts,
   lastTrainingDate,
   maxDayStreak,
+  parseStudentTrainingsPayload,
   trainingsInMonth,
 } from '../../utils/studentDashboard'
 
@@ -17,6 +19,7 @@ const loading = ref(true)
 const user = ref<any>(null)
 const student = ref<any>(null)
 const trainings = ref<any[]>([])
+const academySessionsByMonth = ref<Record<string, number>>({})
 const graduations = ref<any[]>([])
 const attendanceLists = ref<any[]>([])
 const photoUploading = ref(false)
@@ -29,6 +32,15 @@ const currentMonth = now.getMonth() + 1
 
 const trainingsThisMonth = computed(() =>
   trainingsInMonth(trainings.value, currentYear, currentMonth),
+)
+
+const academySessionsThisMonth = computed(() => {
+  const key = `${currentYear}-${String(currentMonth).padStart(2, '0')}`
+  return academySessionsByMonth.value[key] ?? 0
+})
+
+const frequencyThisMonth = computed(() =>
+  attendanceFrequencyPercent(trainingsThisMonth.value, academySessionsThisMonth.value),
 )
 
 const lastTraining = computed(() => lastTrainingDate(trainings.value))
@@ -96,7 +108,9 @@ async function loadAll() {
     ])
     user.value = u.data
     student.value = u.data.student || null
-    trainings.value = Array.isArray(t.data) ? t.data : []
+    const parsed = parseStudentTrainingsPayload(t.data)
+    trainings.value = parsed.trainings
+    academySessionsByMonth.value = parsed.academySessionsByMonth
     graduations.value = Array.isArray(g.data) ? g.data : []
     attendanceLists.value = Array.isArray(lists.data) ? lists.data : []
   } catch (e) {
@@ -209,7 +223,11 @@ onMounted(loadAll)
           <article class="dash-card dash-card--accent">
             <p class="dash-card__label">Treinos este mês</p>
             <p class="dash-card__value">{{ trainingsThisMonth }}</p>
-            <p class="dash-card__hint">
+            <p v-if="academySessionsThisMonth > 0" class="dash-card__hint">
+              {{ trainingsThisMonth }} de {{ academySessionsThisMonth }} aulas no mês
+              · {{ frequencyThisMonth }}% de frequência
+            </p>
+            <p v-else class="dash-card__hint">
               Quantidade de listas de presença em que você apareceu no mês atual.
             </p>
           </article>

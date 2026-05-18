@@ -8,13 +8,144 @@ use App\Models\AttendanceList;
 use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class AttendanceListController extends Controller
 {
+    public function rankingPeriods()
+    {
+        try {
+            $pairs = DB::table('attendance_lists')
+                ->join('attendance_list_students', 'attendance_list_students.attendance_list_id', '=', 'attendance_lists.id')
+                ->join('students', 'students.id', '=', 'attendance_list_students.student_id')
+                ->where('students.active', true)
+                ->selectRaw('YEAR(attendance_lists.class_date) as year, MONTH(attendance_lists.class_date) as month')
+                ->distinct()
+                ->orderByDesc('year')
+                ->orderBy('month')
+                ->get();
+
+            $monthsByYear = [];
+            $years = [];
+
+            foreach ($pairs as $row) {
+                $year = (int) $row->year;
+                $month = (int) $row->month;
+                if ($month < 1 || $month > 12) {
+                    continue;
+                }
+                $years[$year] = true;
+                $monthsByYear[$year] ??= [];
+                $monthsByYear[$year][$month] = true;
+            }
+
+            $yearList = array_keys($years);
+            rsort($yearList);
+
+            $monthsByYearFormatted = [];
+            foreach ($monthsByYear as $year => $months) {
+                $monthList = array_keys($months);
+                sort($monthList, SORT_NUMERIC);
+                $monthsByYearFormatted[$year] = $monthList;
+            }
+
+            return response()->json([
+                'years' => $yearList,
+                'months_by_year' => $monthsByYearFormatted,
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Erro ao buscar períodos do ranking.',
+            ], 500);
+        }
+    }
+
+    public function ranking(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'year' => ['required', 'integer', 'min:2000', 'max:2100'],
+                'month' => ['required', 'integer', Rule::in(range(1, 12))],
+            ]);
+
+            $year = (int) $validated['year'];
+            $month = (int) $validated['month'];
+
+            $lists = AttendanceList::query()
+                ->with(['students' => fn ($q) => $q->where('students.active', true)])
+                ->whereYear('class_date', $year)
+                ->whereMonth('class_date', $month)
+                ->whereHas('students', fn ($q) => $q->where('students.active', true))
+                ->get();
+
+            $byStudent = [];
+
+            foreach ($lists as $list) {
+                $dateKey = $list->class_date->toDateString();
+
+                foreach ($list->students as $student) {
+                    if (! $student->active) {
+                        continue;
+                    }
+
+                    if (! isset($byStudent[$student->id])) {
+                        $byStudent[$student->id] = [
+                            'id' => $student->id,
+                            'name' => $student->name,
+                            'dates' => [],
+                        ];
+                    }
+
+                    $byStudent[$student->id]['dates'][$dateKey] = true;
+                }
+            }
+
+            $ranking = collect($byStudent)
+                ->map(fn (array $row) => [
+                    'id' => $row['id'],
+                    'name' => $row['name'],
+                    'count' => count($row['dates']),
+                ])
+                ->sort(function (array $a, array $b) {
+                    if ($b['count'] !== $a['count']) {
+                        return $b['count'] <=> $a['count'];
+                    }
+
+                    return strcasecmp($a['name'], $b['name']);
+                })
+                ->values()
+                ->all();
+
+            return response()->json([
+                'ranking' => $ranking,
+                'has_training' => $lists->isNotEmpty(),
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Erro ao buscar ranking.',
+            ], 500);
+        }
+    }
+
     public function index(Request $request)
     {
         try {
             $query = AttendanceList::with(['students', 'schoolClass'])->orderBy('class_date', 'desc');
+
+            if ($request->filled('date_from')) {
+                $query->whereDate('class_date', '>=', $request->query('date_from'));
+            }
+
+            if ($request->filled('date_to')) {
+                $query->whereDate('class_date', '<=', $request->query('date_to'));
+            }
+
+            if ($request->filled('class_type')) {
+                $type = $request->query('class_type');
+                if (in_array($type, ['adult', 'kids'], true)) {
+                    $query->whereHas('schoolClass', fn ($q) => $q->where('type', $type));
+                }
+            }
 
             if (! $request->has('page')) {
                 return response()->json($query->get(), 200);

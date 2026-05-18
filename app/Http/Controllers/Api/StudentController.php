@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\AttendanceList;
 use App\Models\Student;
 use App\Models\StudentGraduation;
+use App\Support\AcademyTrainingStats;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentRequest;
 use Illuminate\Http\Request;
@@ -17,8 +18,41 @@ class StudentController extends Controller
         try {
             $query = Student::query()->with('belt')->orderBy('name');
 
-            if (! $request->boolean('for_user_link')) {
+            if (! $request->boolean('for_user_link')
+                && ! $request->boolean('include_inactive')) {
                 $query->where('active', true);
+            }
+
+            if ($search = trim((string) $request->query('search', ''))) {
+                $query->where('name', 'like', '%'.$search.'%');
+            }
+
+            if ($request->filled('belt_id')) {
+                $query->where('belt_id', (int) $request->query('belt_id'));
+            }
+
+            if ($request->has('has_registration_form')) {
+                if ($request->boolean('has_registration_form')) {
+                    $query->whereNotNull('registration_form_file')
+                        ->where('registration_form_file', '!=', '');
+                } else {
+                    $query->where(function ($q) {
+                        $q->whereNull('registration_form_file')
+                            ->orWhere('registration_form_file', '');
+                    });
+                }
+            }
+
+            if ($request->has('has_medical_certificate')) {
+                if ($request->boolean('has_medical_certificate')) {
+                    $query->whereNotNull('medical_certificate')
+                        ->where('medical_certificate', '!=', '');
+                } else {
+                    $query->where(function ($q) {
+                        $q->whereNull('medical_certificate')
+                            ->orWhere('medical_certificate', '');
+                    });
+                }
             }
 
             if ($request->boolean('for_user_link') || $request->boolean('all')) {
@@ -61,7 +95,7 @@ class StudentController extends Controller
     public function show($id)
     {
         try {
-            $student = Student::where('active', true)->with(['belt', 'user'])->findOrFail($id);
+            $student = Student::with(['belt', 'user'])->findOrFail($id);
 
             return response()->json($student, 200);
 
@@ -126,7 +160,10 @@ class StudentController extends Controller
                 ->orderByDesc('class_date')
                 ->get();
 
-            return response()->json($lists, 200);
+            return response()->json([
+                'trainings' => $lists,
+                'academy_sessions_by_month' => AcademyTrainingStats::sessionsCountByMonth(),
+            ], 200);
         } catch (\Throwable $th) {
             return response()->json([
                 'message' => 'Erro ao buscar treinos do aluno.',

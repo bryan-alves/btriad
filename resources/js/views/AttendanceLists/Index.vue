@@ -3,6 +3,8 @@ import axios from 'axios'
 import { ref, onMounted } from 'vue'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import PaginationBar from '../../components/pagination/PaginationBar.vue'
+import FormInput from '../../components/form/FormInput.vue'
+import FormSelect from '../../components/form/FormSelect.vue'
 import { parsePaginatorResponse } from '../../utils/pagination'
 
 const attendanceLists = ref<any[]>([])
@@ -16,10 +18,33 @@ const meta = ref({
   to: null as number | null,
 })
 
+const filters = ref({
+  date_from: '',
+  date_to: '',
+  class_type: '' as '' | 'adult' | 'kids',
+})
+
+const classTypeOptions = [
+  { label: 'Todos', value: '' },
+  { label: 'Adulto', value: 'adult' },
+  { label: 'Kids', value: 'kids' },
+]
+
+function buildParams(p: number) {
+  const params: Record<string, string | number> = {
+    page: p,
+    per_page: perPage,
+  }
+  if (filters.value.date_from) params.date_from = filters.value.date_from
+  if (filters.value.date_to) params.date_to = filters.value.date_to
+  if (filters.value.class_type) params.class_type = filters.value.class_type
+  return params
+}
+
 async function getAttendanceLists(p = 1) {
   try {
     const { data } = await axios.get('/api/attendance-lists', {
-      params: { page: p, per_page: perPage },
+      params: buildParams(p),
     })
     const { rows, meta: m } = parsePaginatorResponse(data)
     attendanceLists.value = rows
@@ -39,6 +64,15 @@ function onPageChange(p: number) {
   getAttendanceLists(p)
 }
 
+function applyFilters() {
+  getAttendanceLists(1)
+}
+
+function clearFilters() {
+  filters.value = { date_from: '', date_to: '', class_type: '' }
+  getAttendanceLists(1)
+}
+
 onMounted(async () => {
   await getAttendanceLists(1)
 })
@@ -51,6 +85,28 @@ onMounted(async () => {
     actionRoute="/admin/attendance-lists/create"
   >
     <div class="attendance-lists">
+      <div class="attendance-lists__filters">
+        <FormInput v-model="filters.date_from" type="date" label="Data inicial" />
+        <FormInput v-model="filters.date_to" type="date" label="Data final" />
+        <FormSelect
+          v-model="filters.class_type"
+          label="Tipo de turma"
+          :options="classTypeOptions"
+        />
+        <div class="attendance-lists__filter-actions">
+          <button type="button" class="attendance-lists__filter-btn" @click="applyFilters">
+            Filtrar
+          </button>
+          <button
+            type="button"
+            class="attendance-lists__filter-btn attendance-lists__filter-btn--ghost"
+            @click="clearFilters"
+          >
+            Limpar
+          </button>
+        </div>
+      </div>
+
       <div class="table-scroll">
         <table class="attendance-lists__table">
           <thead>
@@ -75,7 +131,7 @@ onMounted(async () => {
           </tbody>
           <tbody v-else>
             <tr>
-              <td colspan="5" style="text-align: center">Nenhuma lista de presença cadastrada!</td>
+              <td colspan="5" style="text-align: center">Nenhuma lista de presença encontrada.</td>
             </tr>
           </tbody>
         </table>
@@ -97,6 +153,37 @@ onMounted(async () => {
 .attendance-lists {
   margin: auto;
   font-family: Arial;
+}
+
+.attendance-lists__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  align-items: end;
+}
+
+.attendance-lists__filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-bottom: 0.15rem;
+}
+
+.attendance-lists__filter-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #111827;
+  color: #fff;
+  cursor: pointer;
+
+  &--ghost {
+    background: #fff;
+    color: #374151;
+  }
 }
 
 .attendance-lists__table {

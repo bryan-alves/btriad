@@ -7,6 +7,7 @@ import PaginationBar from '../../components/pagination/PaginationBar.vue'
 import { parsePaginatorResponse } from '../../utils/pagination'
 
 const studentGraduations = ref<any[]>([])
+const busyId = ref<number | null>(null)
 const perPage = 15
 const meta = ref({
   current_page: 1,
@@ -34,6 +35,22 @@ async function getStudentGraduations(p = 1) {
 
 function formatDate(date: string) {
   return date.split('T')[0].split('-').reverse().join('/')
+}
+
+async function removeGraduation(graduation: { id: number; student?: { name?: string } }) {
+  const name = graduation.student?.name || 'este aluno'
+  if (!confirm(`Excluir a graduação de ${name}? A faixa atual do aluno será recalculada.`)) return
+
+  busyId.value = graduation.id
+  try {
+    await axios.delete(`/api/student-graduations/${graduation.id}`)
+    await getStudentGraduations(meta.value.current_page)
+  } catch (error: any) {
+    alert(error.response?.data?.message || 'Erro ao excluir graduação')
+    console.error(error)
+  } finally {
+    busyId.value = null
+  }
 }
 
 function onPageChange(p: number) {
@@ -71,8 +88,16 @@ onMounted(async () => {
               <td>{{ graduation.degree != null && graduation.degree !== '' ? graduation.degree : '—' }}</td>
               <td>{{ formatDate(graduation.graduated_at) }}</td>
               <td>{{ graduation.notes || '-' }}</td>
-              <td>
+              <td class="grad-actions">
                 <RouterLink :to="`/admin/student-graduations/${graduation.id}/edit`">Editar</RouterLink>
+                <button
+                  type="button"
+                  class="grad-actions__btn grad-actions__btn--danger"
+                  :disabled="busyId === graduation.id"
+                  @click="removeGraduation(graduation)"
+                >
+                  {{ busyId === graduation.id ? '…' : 'Excluir' }}
+                </button>
               </td>
             </tr>
           </tbody>
@@ -90,6 +115,7 @@ onMounted(async () => {
         :per-page="meta.per_page"
         :from="meta.from"
         :to="meta.to"
+        :disabled="busyId != null"
         @update:page="onPageChange"
       />
     </div>
@@ -120,5 +146,31 @@ onMounted(async () => {
 
 .student-graduations__table tr:hover {
   background: #f9f9f9;
+}
+
+.grad-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.grad-actions__btn {
+  font-size: 0.8125rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  background: #fff;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.grad-actions__btn--danger {
+  border-color: #f87171;
+  color: #b91c1c;
 }
 </style>

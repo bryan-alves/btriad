@@ -3,55 +3,35 @@ import { computed, ref, watch, onMounted } from 'vue'
 import axios from 'axios'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import Tabs from '../../components/tabs/Tabs.vue'
+import {
+  RANKING_MONTH_LABELS,
+  monthsWithAttendanceInYear,
+  parseRankingPeriodsPayload,
+  pickDefaultRankingMonth,
+  rankPodiumMeta,
+} from '../../utils/ranking'
 
 const loading = ref(true)
-
-const monthLabels = [
-  'Fev',
-  'Mar',
-  'Abr',
-  'Mai',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Set',
-  'Out',
-  'Nov',
-  'Dez',
-]
-
-const attendanceLists = ref([])
+const rankingLoading = ref(false)
+const periods = ref({ years: [], months_by_year: {} })
+const rankingRows = ref([])
+const hasTrainingInPeriod = ref(false)
 const activeYearTab = ref('')
-/** Mês 1–12 (string, alinhado aos ids dos toggles). */
 const activeMonth = ref('')
 
-function parseListDate(list) {
-  const raw = list.class_date
-  if (!raw) return null
-  const d = String(raw).split('T')[0]
-  const parts = d.split('-')
-  const y = parseInt(parts[0], 10)
-  const m = parseInt(parts[1], 10)
-  if (!y || !m || m < 1 || m > 12) return null
-  return { year: y, month: m }
-}
+const monthLabels = RANKING_MONTH_LABELS
 
-function hasAttendanceInMonth(year, month) {
-  return attendanceLists.value.some((list) => {
-    const p = parseListDate(list)
-    return p && p.year === year && p.month === month && list.students?.length
-  })
-}
+const yearTabs = computed(() =>
+  periods.value.years.map((year) => ({
+    id: String(year),
+    name: String(year),
+  })),
+)
 
-const yearTabs = computed(() => {
-  const years = new Set()
-  attendanceLists.value.forEach((list) => {
-    const p = parseListDate(list)
-    if (p) years.add(p.year)
-  })
-  return Array.from(years)
-    .sort((a, b) => b - a)
-    .map((year) => ({ id: String(year), name: String(year) }))
+const monthsInActiveYear = computed(() => {
+  const year = parseInt(activeYearTab.value, 10)
+  if (!year) return []
+  return monthsWithAttendanceInYear(periods.value, year)
 })
 
 watch(
@@ -68,65 +48,32 @@ watch(
   { immediate: true },
 )
 
-/** Ao mudar o ano, escolhe um mês padrão: mês atual (se for esse ano) ou primeiro mês com treino. */
 watch(activeYearTab, (yearStr) => {
-  const y = parseInt(yearStr, 10)
-  if (!y) {
+  const year = parseInt(yearStr, 10)
+  if (!year) {
     activeMonth.value = ''
     return
   }
-  const now = new Date()
-  if (y === now.getFullYear()) {
-    const cm = now.getMonth() + 1
-    if (hasAttendanceInMonth(y, cm)) {
-      activeMonth.value = String(cm)
-      return
-    }
+  const months = monthsWithAttendanceInYear(periods.value, year)
+  const current = parseInt(activeMonth.value, 10)
+  if (current && months.includes(current)) {
+    return
   }
-  for (let m = 1; m <= 12; m += 1) {
-    if (hasAttendanceInMonth(y, m)) {
-      activeMonth.value = String(m)
-      return
-    }
-  }
-  activeMonth.value = '1'
+  activeMonth.value = pickDefaultRankingMonth(year, months)
 })
 
 const monthToggles = computed(() =>
-  monthLabels.map((label, i) => ({
-    id: String(i + 1),
-    name: label,
-  })),
+  monthLabels.map((label, i) => {
+    const id = String(i + 1)
+    const monthNum = i + 1
+    const hasData = monthsInActiveYear.value.includes(monthNum)
+    return {
+      id,
+      name: label,
+      disabled: !hasData,
+    }
+  }),
 )
-
-const rankingRows = computed(() => {
-  const year = parseInt(activeYearTab.value, 10)
-  const month = parseInt(activeMonth.value, 10)
-  if (!year || !month) return []
-
-  const byStudent = {}
-
-  attendanceLists.value.forEach((list) => {
-    const parsed = parseListDate(list)
-    if (!parsed || parsed.year !== year || parsed.month !== month || !list.students?.length) return
-
-    list.students.forEach((student) => {
-      if (!byStudent[student.id]) {
-        byStudent[student.id] = {
-          id: student.id,
-          name: student.name,
-          count: 0,
-        }
-      }
-      byStudent[student.id].count += 1
-    })
-  })
-
-  return Object.values(byStudent).sort((a, b) => {
-    if (b.count !== a.count) return b.count - a.count
-    return a.name.localeCompare(b.name, 'pt-BR')
-  })
-})
 
 const selectedMonthLabel = computed(() => {
   const m = parseInt(activeMonth.value, 10)
@@ -134,28 +81,82 @@ const selectedMonthLabel = computed(() => {
   return monthLabels[m - 1]
 })
 
+const showRankingTable = computed(
+  () => !rankingLoading.value && hasTrainingInPeriod.value && rankingRows.value.length > 0,
+)
+
+async function loadPeriods() {
+  const { data } = await axios.get('/api/attendance-lists/ranking-periods')
+  periods.value = parseRankingPeriodsPayload(data)
+}
+
+async function loadRankingForPeriod() {
+  const year = parseInt(activeYearTab.value, 10)
+  const month = parseInt(activeMonth.value, 10)
+  if (!year || !month) {
+    rankingRows.value = []
+    hasTrainingInPeriod.value = false
+    return
+  }
+
+  if (!monthsInActiveYear.value.includes(month)) {
+    rankingRows.value = []
+    hasTrainingInPeriod.value = false
+    return
+  }
+
+  rankingLoading.value = true
+  try {
+    const { data } = await axios.get('/api/attendance-lists/ranking', {
+      params: { year, month },
+    })
+    rankingRows.value = Array.isArray(data?.ranking) ? data.ranking : []
+    hasTrainingInPeriod.value = Boolean(data?.has_training)
+  } catch (error) {
+    console.error(error)
+    rankingRows.value = []
+    hasTrainingInPeriod.value = false
+  } finally {
+    rankingLoading.value = false
+  }
+}
+
 async function loadRanking() {
   loading.value = true
   try {
-    const { data } = await axios.get('/api/attendance-lists')
-    attendanceLists.value = Array.isArray(data) ? data : []
+    await loadPeriods()
   } catch (error) {
     console.error(error)
-    attendanceLists.value = []
+    periods.value = { years: [], months_by_year: {} }
   } finally {
     loading.value = false
   }
 }
 
-onMounted(loadRanking)
+watch([activeYearTab, activeMonth], () => {
+  if (!loading.value) {
+    loadRankingForPeriod()
+  }
+})
+
+onMounted(async () => {
+  await loadRanking()
+  await loadRankingForPeriod()
+})
+
+function selectMonth(monthId) {
+  const monthNum = parseInt(monthId, 10)
+  if (!monthsInActiveYear.value.includes(monthNum)) return
+  activeMonth.value = monthId
+}
 </script>
 
 <template>
   <BaseLayout title="Ranking de treinos">
     <div class="ranking-page">
       <p class="intro">
-        Alunos que mais participaram das listas de presença. Escolha o <strong>ano</strong> e o
-        <strong>mês</strong>; o ranking conta só os treinos daquele mês.
+        Alunos que mais treinaram no mês. Escolha o <strong>ano</strong> e o
+        <strong>mês</strong>. Cada dia com presença conta uma vez (várias turmas no mesmo dia não somam em dobro).
       </p>
 
       <div v-if="loading" class="state">Carregando...</div>
@@ -180,8 +181,15 @@ onMounted(loadRanking)
             type="button"
             role="tab"
             :aria-selected="activeMonth === tab.id"
-            :class="['month-toggle__btn', { 'month-toggle__btn--active': activeMonth === tab.id }]"
-            @click="activeMonth = tab.id"
+            :disabled="tab.disabled"
+            :class="[
+              'month-toggle__btn',
+              {
+                'month-toggle__btn--active': activeMonth === tab.id,
+                'month-toggle__btn--disabled': tab.disabled,
+              },
+            ]"
+            @click="selectMonth(tab.id)"
           >
             {{ tab.name }}
           </button>
@@ -191,28 +199,43 @@ onMounted(loadRanking)
           <p class="period-hint">
             {{ selectedMonthLabel }} de {{ activeYearTab }}
           </p>
-          <div class="table-scroll">
-            <table class="ranking-table">
-              <thead>
-                <tr>
-                  <th class="col-rank">#</th>
-                  <th class="col-name">Aluno</th>
-                  <th class="col-count">Treinos</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, index) in rankingRows" :key="item.id">
-                  <td class="col-rank">{{ index + 1 }}</td>
-                  <td class="col-name">{{ item.name }}</td>
-                  <td class="col-count font-semibold">{{ item.count }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
 
-          <p v-if="!rankingRows.length" class="empty-year">
-            Nenhum treino registrado em {{ selectedMonthLabel }} de {{ activeYearTab }}.
-          </p>
+          <div v-if="rankingLoading" class="state state--inline">Carregando ranking...</div>
+
+          <template v-else>
+            <div v-if="showRankingTable" class="table-scroll">
+              <table class="ranking-table">
+                <thead>
+                  <tr>
+                    <th class="col-rank">#</th>
+                    <th class="col-name">Aluno</th>
+                    <th class="col-count">Treinos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(item, index) in rankingRows"
+                    :key="item.id"
+                    :class="rankPodiumMeta(index + 1)?.className"
+                  >
+                    <td class="col-rank">
+                      <span v-if="rankPodiumMeta(index + 1)" class="rank-podium__badge">
+                        <span class="rank-podium__icon" aria-hidden="true">{{ rankPodiumMeta(index + 1).icon }}</span>
+                        <span class="rank-podium__pos">{{ index + 1 }}º</span>
+                      </span>
+                      <span v-else>{{ index + 1 }}</span>
+                    </td>
+                    <td class="col-name">{{ item.name }}</td>
+                    <td class="col-count font-semibold">{{ item.count }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p v-if="!hasTrainingInPeriod || !rankingRows.length" class="empty-year">
+              Nenhum treino registrado em {{ selectedMonthLabel }} de {{ activeYearTab }}.
+            </p>
+          </template>
         </div>
       </template>
     </div>
@@ -235,6 +258,10 @@ onMounted(loadRanking)
   padding: 2rem;
   text-align: center;
   color: #6b7280;
+}
+
+.state--inline {
+  padding: 1rem 0;
 }
 
 .section-label {
@@ -280,13 +307,21 @@ onMounted(loadRanking)
   border-right: none;
 }
 
-.month-toggle__btn:hover {
+.month-toggle__btn:hover:not(:disabled) {
   background: #e5e7eb;
 }
 
 .month-toggle__btn--active {
   background: #111827;
   color: #fff;
+}
+
+.month-toggle__btn--disabled,
+.month-toggle__btn:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .tab-content {
@@ -328,9 +363,45 @@ onMounted(loadRanking)
   background: #fafafa;
 }
 
+.rank-podium--gold {
+  background: linear-gradient(90deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.rank-podium--silver {
+  background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.rank-podium--bronze {
+  background: linear-gradient(90deg, #fff7ed 0%, #ffffff 100%);
+}
+
+.rank-podium__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+}
+
+.rank-podium__icon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.rank-podium--gold .rank-podium__pos {
+  color: #b45309;
+}
+
+.rank-podium--silver .rank-podium__pos {
+  color: #475569;
+}
+
+.rank-podium--bronze .rank-podium__pos {
+  color: #c2410c;
+}
+
 .col-rank {
   text-align: center;
-  width: 3rem;
+  width: 4.5rem;
 }
 
 .col-name {

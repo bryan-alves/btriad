@@ -55,6 +55,12 @@ async function toggleActive(user: UserRow) {
     alert('Não é possível desativar a sua própria conta.')
     return
   }
+  const activating = user.active === false
+  const msg = activating
+    ? `Reativar o usuário "${user.name}"?`
+    : `Desativar o usuário "${user.name}"?`
+  if (!confirm(msg)) return
+
   busyId.value = user.id
   try {
     await axios.put(`/api/users/${user.id}`, { active: user.active === false })
