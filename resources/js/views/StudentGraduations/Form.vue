@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import axios from "axios"
-import { ref, onMounted, reactive } from 'vue';
-import BaseLayout from '../../layouts/BaseLayout.vue';
-import FormInput from "../../components/form/FormInput.vue";
-import FormSelect from "../../components/form/FormSelect.vue";
+import axios from 'axios'
+import { ref, onMounted, reactive } from 'vue'
+import BaseLayout from '../../layouts/BaseLayout.vue'
+import FormInput from '../../components/form/FormInput.vue'
+import FormSelect from '../../components/form/FormSelect.vue'
 
 const loading = ref(false)
-const students = ref([]);
-const belts = ref([]);
+const students = ref([])
+const belts = ref([])
+const photoFile = ref<File | null>(null)
 
-/** Valores em string para combinar com o <select> nativo (sempre string). */
 const degreeOptions = [
   { value: '0', label: '0 — sem grau' },
   { value: '1', label: '1' },
@@ -23,25 +23,42 @@ const form = reactive({
   belt_id: null,
   degree: '0',
   graduated_at: '',
-  notes: '',
 })
 
 const errors = ref({
-  student_id: "",
-  belt_id: "",
-  graduated_at: "",
-  degree: "",
+  student_id: '',
+  belt_id: '',
+  graduated_at: '',
+  degree: '',
+  photo: '',
 })
 
+function onPhotoChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  photoFile.value = input.files?.[0] ?? null
+}
+
 function validate() {
-  const e: any = {}
+  const e: Record<string, string> = {}
 
-  if (!form.student_id) e.student_id = "Selecione um aluno"
-  if (!form.belt_id) e.belt_id = "Selecione uma faixa"
-  if (!form.graduated_at) e.graduated_at = "Data de graduação é obrigatória"
+  if (!form.student_id) e.student_id = 'Selecione um aluno'
+  if (!form.belt_id) e.belt_id = 'Selecione uma faixa'
+  if (!form.graduated_at) e.graduated_at = 'Data de graduação é obrigatória'
 
-  errors.value = { student_id: '', belt_id: '', graduated_at: '', degree: '', ...e }
+  errors.value = { student_id: '', belt_id: '', graduated_at: '', degree: '', photo: '', ...e }
   return Object.keys(e).length === 0
+}
+
+function buildFormData() {
+  const fd = new FormData()
+  fd.append('student_id', String(form.student_id))
+  fd.append('belt_id', String(form.belt_id))
+  fd.append('degree', String(Math.min(4, Math.max(0, parseInt(String(form.degree), 10) || 0))))
+  fd.append('graduated_at', form.graduated_at)
+  if (photoFile.value) {
+    fd.append('photo', photoFile.value)
+  }
+  return fd
 }
 
 async function submit() {
@@ -49,26 +66,27 @@ async function submit() {
   loading.value = true
 
   try {
-    await axios.post('/api/student-graduations', {
-      student_id: form.student_id,
-      belt_id: form.belt_id,
-      degree: Math.min(4, Math.max(0, parseInt(String(form.degree), 10) || 0)),
-      graduated_at: form.graduated_at,
-      notes: form.notes || null
+    await axios.post('/api/student-graduations', buildFormData(), {
+      headers: { 'Content-Type': 'multipart/form-data' },
     })
 
     alert('Graduação registrada com sucesso!')
     form.student_id = null
     form.belt_id = null
     form.degree = '0'
-    form.graduated_at = ""
-    form.notes = ""
+    form.graduated_at = ''
+    photoFile.value = null
   } catch (e: any) {
     const err = e?.response?.data?.errors
     if (err) {
-      errors.value = { ...errors.value, ...Object.fromEntries(Object.entries(err).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])) }
+      errors.value = {
+        ...errors.value,
+        ...Object.fromEntries(
+          Object.entries(err).map(([k, v]) => [k, Array.isArray(v) ? v[0] : String(v)]),
+        ),
+      }
     }
-    alert("Erro ao registrar graduação")
+    alert('Erro ao registrar graduação')
     console.log(e)
   }
 
@@ -77,11 +95,11 @@ async function submit() {
 
 async function getStudents() {
   try {
-    const { data } = await axios.get('/api/students', { params: { all: 1 } });
-    students.value = data.map(student => ({
+    const { data } = await axios.get('/api/students', { params: { all: 1 } })
+    students.value = data.map((student: { name: string; id: number }) => ({
       label: student.name,
-      value: student.id
-    }));
+      value: student.id,
+    }))
   } catch (error) {
     console.error(error)
   }
@@ -89,19 +107,19 @@ async function getStudents() {
 
 async function getBelts() {
   try {
-    const { data } = await axios.get('/api/belts');
-    belts.value = data.map(belt => ({
+    const { data } = await axios.get('/api/belts')
+    belts.value = data.map((belt: { name: string; group: string; id: number }) => ({
       label: `${belt.name} - ${belt.group}`,
-      value: belt.id
-    }));
+      value: belt.id,
+    }))
   } catch (error) {
     console.error(error)
   }
 }
 
 onMounted(async () => {
-  await getStudents();
-  await getBelts();
+  await getStudents()
+  await getBelts()
 })
 </script>
 
@@ -113,27 +131,61 @@ onMounted(async () => {
           <h2 class="text-xl font-bold">Informações da Graduação</h2>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormSelect v-model="form.student_id" :options="students" label="Aluno" placeholder="Selecione um aluno" :error="errors.student_id" />
+            <FormSelect
+              v-model="form.student_id"
+              :options="students"
+              label="Aluno"
+              placeholder="Selecione um aluno"
+              :error="errors.student_id"
+            />
 
-            <FormSelect v-model="form.belt_id" :options="belts" label="Faixa" placeholder="Selecione uma faixa" :error="errors.belt_id" />
+            <FormSelect
+              v-model="form.belt_id"
+              :options="belts"
+              label="Faixa"
+              placeholder="Selecione uma faixa"
+              :error="errors.belt_id"
+            />
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormInput type="date" v-model="form.graduated_at" label="Data de Graduação" :error="errors.graduated_at" />
+            <FormInput
+              type="date"
+              v-model="form.graduated_at"
+              label="Data de Graduação"
+              :error="errors.graduated_at"
+            />
 
-            <FormSelect v-model="form.degree" :options="degreeOptions" label="Grau" placeholder="Grau" :error="errors.degree" />
+            <FormSelect
+              v-model="form.degree"
+              :options="degreeOptions"
+              label="Grau"
+              placeholder="Grau"
+              :error="errors.degree"
+            />
           </div>
 
           <div>
-            <label for="grad-notes" class="font-medium">Observações</label>
-            <textarea id="grad-notes" v-model="form.notes" class="w-full p-2 border border-gray-300 rounded" placeholder="Observações sobre a graduação"></textarea>
+            <label for="grad-photo" class="font-medium">Foto</label>
+            <input
+              id="grad-photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              class="w-full mt-1 text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-gray-100 file:font-medium"
+              @change="onPhotoChange"
+            />
+            <p v-if="errors.photo" class="text-red-500 text-sm mt-1">{{ errors.photo }}</p>
+            <p class="text-sm text-gray-500 mt-1">Opcional. Imagem da graduação (JPG, PNG, WebP ou GIF).</p>
           </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; gap: 10px">
           <router-link to="/admin/student-graduations" class="btn-primary">Voltar</router-link>
-          <button :disabled="loading" class="bg-blue-600 text-white px-6 py-3 rounded font-semibold hover:bg-blue-700 disabled:opacity-50">
-            {{ loading ? "Salvando..." : "Registrar Graduação" }}
+          <button
+            :disabled="loading"
+            class="bg-blue-600 text-white px-6 py-3 rounded font-semibold hover:bg-blue-700 disabled:opacity-50"
+          >
+            {{ loading ? 'Salvando...' : 'Registrar Graduação' }}
           </button>
         </div>
       </form>

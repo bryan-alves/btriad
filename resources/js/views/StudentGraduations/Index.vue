@@ -5,6 +5,7 @@ import BaseLayout from '../../layouts/BaseLayout.vue'
 import BeltBadge from '../../components/ui/Badge/BeltBadge.vue'
 import PaginationBar from '../../components/pagination/PaginationBar.vue'
 import { parsePaginatorResponse } from '../../utils/pagination'
+import { graduationPhotoUrl } from '../../utils/graduation'
 
 const studentGraduations = ref<any[]>([])
 const busyId = ref<number | null>(null)
@@ -77,7 +78,7 @@ onMounted(async () => {
               <th>Faixa</th>
               <th>Grau</th>
               <th>Data de Graduação</th>
-              <th>Observações</th>
+              <th>Foto</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -87,7 +88,17 @@ onMounted(async () => {
               <td><BeltBadge :belt="graduation.belt" /></td>
               <td>{{ graduation.degree != null && graduation.degree !== '' ? graduation.degree : '—' }}</td>
               <td>{{ formatDate(graduation.graduated_at) }}</td>
-              <td>{{ graduation.notes || '-' }}</td>
+              <td>
+                <a
+                  v-if="graduationPhotoUrl(graduation)"
+                  :href="graduationPhotoUrl(graduation)!"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Ver foto
+                </a>
+                <span v-else>—</span>
+              </td>
               <td class="grad-actions">
                 <RouterLink :to="`/admin/student-graduations/${graduation.id}/edit`">Editar</RouterLink>
                 <button

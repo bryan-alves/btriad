@@ -7,9 +7,23 @@ use App\Http\Requests\StoreStudentGraduationRequest;
 use App\Models\Student;
 use App\Models\StudentGraduation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class StudentGraduationController extends Controller
 {
+    private function storeGraduationPhoto(Request $request, ?string $existing = null): ?string
+    {
+        if (! $request->hasFile('photo')) {
+            return $existing;
+        }
+
+        if ($existing) {
+            Storage::disk('public')->delete($existing);
+        }
+
+        return $request->file('photo')->store('student_graduations', 'public');
+    }
+
     public function index(Request $request)
     {
         try {
@@ -58,7 +72,7 @@ class StudentGraduationController extends Controller
                 'belt_id' => $data['belt_id'],
                 'degree' => (int) $data['degree'],
                 'graduated_at' => $data['graduated_at'],
-                'notes' => $data['notes'] ?? null,
+                'photo' => $this->storeGraduationPhoto($request, $graduation->photo),
             ]);
 
             $graduation->student()->update(['belt_id' => $graduation->belt_id]);
@@ -82,7 +96,7 @@ class StudentGraduationController extends Controller
                 'belt_id' => $data['belt_id'],
                 'degree' => (int) $data['degree'],
                 'graduated_at' => $data['graduated_at'],
-                'notes' => $data['notes'] ?? null,
+                'photo' => $this->storeGraduationPhoto($request),
             ]);
 
             $graduation->student()->update(['belt_id' => $graduation->belt_id]);
@@ -101,6 +115,10 @@ class StudentGraduationController extends Controller
         try {
             $graduation = StudentGraduation::findOrFail($id);
             $studentId = $graduation->student_id;
+
+            if ($graduation->photo) {
+                Storage::disk('public')->delete($graduation->photo);
+            }
 
             $graduation->delete();
 

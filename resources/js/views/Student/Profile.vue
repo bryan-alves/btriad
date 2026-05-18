@@ -13,6 +13,7 @@ import {
   parseStudentTrainingsPayload,
   trainingDateKey,
 } from '../../utils/studentDashboard'
+import { graduationPhotoUrl } from '../../utils/graduation'
 
 const route = useRoute()
 
@@ -1192,12 +1193,15 @@ onMounted(async () => {
                   <div class="prof-timeline__card">
                     <p class="dash-timeline__belt">{{ row.belt.slug !== 'white' && row.degree === 0 ? 'Graduado à' : '' }} Faixa {{ beltLabel(row.belt) }} {{ Number(row.degree) !== 0 ? ` - ${row.degree} ${row.degree === 1 ? 'grau' : 'graus'}` : '' }}</p>
                     <p class="prof-timeline__date">{{ formatDate(row.graduated_at) }}</p>
-                    <p
-                      v-if="row.notes != null && String(row.notes).trim()"
-                      class="prof-timeline__notes"
+                    <a
+                      v-if="graduationPhotoUrl(row)"
+                      :href="graduationPhotoUrl(row)!"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="prof-timeline__photo-link"
                     >
-                      {{ row.notes }}
-                    </p>
+                      Ver foto
+                    </a>
                   </div>
                 </li>
               </ol>
@@ -1443,6 +1447,19 @@ onMounted(async () => {
   margin: 0.35rem 0 0;
   font-size: 0.8125rem;
   color: #374151;
+}
+
+.prof-timeline__photo-link {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .prof-timeline__notes {

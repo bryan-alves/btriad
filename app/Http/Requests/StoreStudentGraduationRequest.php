@@ -18,7 +18,7 @@ class StoreStudentGraduationRequest extends FormRequest
             'belt_id' => ['required', 'integer', 'exists:belts,id'],
             'degree' => ['required', 'integer', 'min:0', 'max:4'],
             'graduated_at' => ['required', 'date'],
-            'notes' => ['nullable', 'string'],
+            'photo' => ['nullable', 'image', 'max:10240'],
         ];
     }
 }

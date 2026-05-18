@@ -14,13 +14,24 @@ class StudentGraduation extends Model
         'belt_id',
         'degree',
         'graduated_at',
-        'notes',
+        'photo',
     ];
 
     protected $casts = [
         'degree' => 'integer',
         'graduated_at' => 'date',
     ];
+
+    protected $appends = [
+        'photo_url',
+    ];
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->photo
+            ? asset('storage/'.$this->photo)
+            : null;
+    }
 
     public function student()
     {
