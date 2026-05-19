@@ -1099,7 +1099,7 @@ onMounted(async () => {
                   class="training-month"
                 >
                   <header class="training-month__head">
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;width: 100%">
                     <h3 class="training-month__title">{{ group.label }}</h3>
                     
                       <button
