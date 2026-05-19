@@ -66,10 +66,12 @@ class AttendanceListController extends Controller
             $validated = $request->validate([
                 'year' => ['required', 'integer', 'min:2000', 'max:2100'],
                 'month' => ['required', 'integer', Rule::in(array_merge([0], range(1, 12)))],
+                'class_id' => ['nullable', 'integer', 'exists:classes,id'],
             ]);
 
             $year = (int) $validated['year'];
             $month = (int) $validated['month'];
+            $classId = isset($validated['class_id']) ? (int) $validated['class_id'] : null;
 
             $listsQuery = AttendanceList::query()
                 ->with(['students' => fn ($q) => $q->where('students.active', true)])
@@ -78,6 +80,10 @@ class AttendanceListController extends Controller
 
             if ($month > 0) {
                 $listsQuery->whereMonth('class_date', $month);
+            }
+
+            if ($classId) {
+                $listsQuery->where('class_id', $classId);
             }
 
             $lists = $listsQuery->get();

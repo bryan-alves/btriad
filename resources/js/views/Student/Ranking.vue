@@ -3,9 +3,12 @@ import { computed, ref, watch, onMounted } from 'vue'
 import axios from 'axios'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import Tabs from '../../components/tabs/Tabs.vue'
+import FormSelect from '../../components/form/FormSelect.vue'
 import {
+  RANKING_CLASS_FILTER_ALL,
   RANKING_FULL_YEAR_MONTH,
   RANKING_MONTH_LABELS,
+  buildRankingClassSelectOptions,
   isRankingFullYear,
   monthsWithAttendanceInYear,
   parseRankingPeriodsPayload,
@@ -20,6 +23,8 @@ const rankingRows = ref([])
 const hasTrainingInPeriod = ref(false)
 const activeYearTab = ref('')
 const activeMonth = ref('')
+const activeClassId = ref(RANKING_CLASS_FILTER_ALL)
+const rankingClasses = ref([])
 
 const monthLabels = RANKING_MONTH_LABELS
 
@@ -98,6 +103,16 @@ const isFullYearRanking = computed(() =>
   isRankingFullYear(parseInt(activeMonth.value, 10)),
 )
 
+const classSelectOptions = computed(() =>
+  buildRankingClassSelectOptions(rankingClasses.value),
+)
+
+const selectedClassLabel = computed(() => {
+  if (activeClassId.value === RANKING_CLASS_FILTER_ALL) return 'Todas as turmas'
+  const opt = classSelectOptions.value.find((o) => o.value === activeClassId.value)
+  return opt?.label ?? 'Turma'
+})
+
 const showRankingTable = computed(
   () => !rankingLoading.value && hasTrainingInPeriod.value && rankingRows.value.length > 0,
 )
@@ -105,6 +120,17 @@ const showRankingTable = computed(
 async function loadPeriods() {
   const { data } = await axios.get('/api/attendance-lists/ranking-periods')
   periods.value = parseRankingPeriodsPayload(data)
+}
+
+async function loadRankingClasses() {
+  try {
+    const { data } = await axios.get('/api/classes')
+    const list = Array.isArray(data) ? data : []
+    rankingClasses.value = list.filter((c) => c.active !== false)
+  } catch (error) {
+    console.error(error)
+    rankingClasses.value = []
+  }
 }
 
 async function loadRankingForPeriod() {
@@ -130,9 +156,14 @@ async function loadRankingForPeriod() {
 
   rankingLoading.value = true
   try {
-    const { data } = await axios.get('/api/attendance-lists/ranking', {
-      params: { year, month: isRankingFullYear(month) ? RANKING_FULL_YEAR_MONTH : month },
-    })
+    const params = {
+      year,
+      month: isRankingFullYear(month) ? RANKING_FULL_YEAR_MONTH : month,
+    }
+    if (activeClassId.value && activeClassId.value !== RANKING_CLASS_FILTER_ALL) {
+      params.class_id = Number(activeClassId.value)
+    }
+    const { data } = await axios.get('/api/attendance-lists/ranking', { params })
     rankingRows.value = Array.isArray(data?.ranking) ? data.ranking : []
     hasTrainingInPeriod.value = Boolean(data?.has_training)
   } catch (error) {
@@ -147,7 +178,7 @@ async function loadRankingForPeriod() {
 async function loadRanking() {
   loading.value = true
   try {
-    await loadPeriods()
+    await Promise.all([loadPeriods(), loadRankingClasses()])
   } catch (error) {
     console.error(error)
     periods.value = { years: [], months_by_year: {} }
@@ -156,7 +187,7 @@ async function loadRanking() {
   }
 }
 
-watch([activeYearTab, activeMonth], () => {
+watch([activeYearTab, activeMonth, activeClassId], () => {
   if (!loading.value) {
     loadRankingForPeriod()
   }
@@ -183,8 +214,9 @@ function selectMonth(monthId) {
   <BaseLayout title="Ranking de treinos">
     <div class="ranking-page">
       <p class="intro">
-        Alunos que mais treinaram no período. Escolha o <strong>ano</strong> e o
-        <strong>mês</strong> ou <strong>ano todo</strong>. Cada dia com presença conta uma vez (várias turmas no mesmo dia não somam em dobro).
+        Alunos que mais treinaram no período. Escolha o <strong>ano</strong>, o
+        <strong>mês</strong> (ou <strong>ano todo</strong>) e a <strong>turma</strong>.
+        Cada dia com presença conta uma vez (várias turmas no mesmo dia não somam em dobro).
       </p>
 
       <div v-if="loading" class="state">Carregando...</div>
@@ -223,10 +255,21 @@ function selectMonth(monthId) {
           </button>
         </div>
 
+        <p class="section-label section-label--class">Turma</p>
+        <div class="class-filter">
+          <FormSelect
+            v-model="activeClassId"
+            :options="classSelectOptions"
+            label=""
+            placeholder="Turma"
+          />
+        </div>
+
         <div class="tab-content">
           <p class="period-hint">
             <template v-if="isFullYearRanking">Ano todo de {{ activeYearTab }}</template>
             <template v-else>{{ selectedMonthLabel }} de {{ activeYearTab }}</template>
+            <span class="period-hint__class"> · {{ selectedClassLabel }}</span>
           </p>
 
           <div v-if="rankingLoading" class="state state--inline">Carregando ranking...</div>
@@ -309,6 +352,19 @@ function selectMonth(monthId) {
 
 .section-label--month {
   margin-top: 1.25rem;
+}
+
+.section-label--class {
+  margin-top: 1.25rem;
+}
+
+.class-filter {
+  max-width: 20rem;
+}
+
+.period-hint__class {
+  font-weight: 500;
+  color: #6b7280;
 }
 
 .month-toggle {

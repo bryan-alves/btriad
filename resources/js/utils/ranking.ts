@@ -142,6 +142,35 @@ export function monthsWithAttendanceInYear(
 
 export const RANKING_FULL_YEAR_MONTH = 0
 
+export const RANKING_CLASS_FILTER_ALL = 'all'
+
+export type RankingClassOption = {
+  id: number
+  name?: string
+  type?: string
+  active?: boolean
+}
+
+export function formatRankingClassLabel(c: RankingClassOption): string {
+  const name = c.name?.trim() || `Turma ${c.id}`
+  const typeLabel =
+    c.type === 'kids' ? 'Kids' : c.type === 'adult' ? 'Adulto' : ''
+  return typeLabel ? `${name} (${typeLabel})` : name
+}
+
+export function buildRankingClassSelectOptions(
+  classes: RankingClassOption[],
+): { value: string; label: string }[] {
+  const opts = [{ value: RANKING_CLASS_FILTER_ALL, label: 'Todos' }]
+  const sorted = [...classes].sort((a, b) =>
+    formatRankingClassLabel(a).localeCompare(formatRankingClassLabel(b), 'pt-BR'),
+  )
+  for (const c of sorted) {
+    opts.push({ value: String(c.id), label: formatRankingClassLabel(c) })
+  }
+  return opts
+}
+
 export function isRankingFullYear(month: number): boolean {
   return month === RANKING_FULL_YEAR_MONTH
 }
