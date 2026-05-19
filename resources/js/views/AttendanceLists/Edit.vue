@@ -4,11 +4,13 @@ import { ref, onMounted, computed, reactive } from 'vue';
 import BaseLayout from '../../layouts/BaseLayout.vue';
 import FormInput from "../../components/form/FormInput.vue";
 import FormSelect from "../../components/form/FormSelect.vue";
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { trainingDateKey } from '../../utils/studentDashboard'
 
 const route = useRoute();
+const router = useRouter();
 const loading = ref(false)
+const deleting = ref(false)
 const students = ref([]);
 const classes = ref([]);
 const attendanceList = ref(null);
@@ -90,6 +92,26 @@ async function submit() {
   }
 
   loading.value = false
+}
+
+async function removeAttendanceList() {
+  const dateLabel = form.class_date
+    ? form.class_date.split('-').reverse().join('/')
+    : 'este treino'
+  if (!confirm(`Excluir o treino de ${dateLabel}? Esta ação não pode ser desfeita.`)) {
+    return
+  }
+
+  deleting.value = true
+  try {
+    await axios.delete(`/api/attendance-lists/${route.params.id}`)
+    router.push('/admin/attendance-lists')
+  } catch (e: any) {
+    alert(e.response?.data?.message || 'Erro ao excluir treino')
+    console.error(e)
+  } finally {
+    deleting.value = false
+  }
 }
 
 async function getStudents() {
@@ -187,11 +209,25 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; gap: 10px;">
+        <div class="form-actions">
           <router-link to="/admin/attendance-lists" class="btn-primary">Voltar</router-link>
-          <button :disabled="loading" class="bg-blue-600 text-white px-6 py-3 rounded font-semibold hover:bg-blue-700 disabled:opacity-50">
-            {{ loading ? "Salvando..." : "Atualizar Lista" }}
-          </button>
+          <div class="form-actions__right">
+            <button
+              type="button"
+              class="btn-danger"
+              :disabled="loading || deleting"
+              @click="removeAttendanceList"
+            >
+              {{ deleting ? 'Excluindo…' : 'Excluir treino' }}
+            </button>
+            <button
+              type="submit"
+              :disabled="loading || deleting"
+              class="btn-submit"
+            >
+              {{ loading ? 'Salvando...' : 'Atualizar Lista' }}
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -213,6 +249,58 @@ onMounted(async () => {
 
   &:hover {
     background: #d0d0d0;
+  }
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.form-actions__right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.btn-danger {
+  padding: 0.65rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  &:hover:not(:disabled) {
+    background: #fee2e2;
+  }
+}
+
+.btn-submit {
+  background: #2563eb;
+  color: #fff;
+  padding: 0.65rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
+
+  &:hover:not(:disabled) {
+    background: #1d4ed8;
   }
 }
 </style>

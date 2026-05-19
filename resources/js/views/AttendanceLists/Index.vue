@@ -8,6 +8,7 @@ import FormSelect from '../../components/form/FormSelect.vue'
 import { parsePaginatorResponse } from '../../utils/pagination'
 
 const attendanceLists = ref<any[]>([])
+const deletingId = ref<number | null>(null)
 const perPage = 15
 const meta = ref({
   current_page: 1,
@@ -73,6 +74,29 @@ function clearFilters() {
   getAttendanceLists(1)
 }
 
+function formatListLabel(list: { class_date?: string; school_class?: { name?: string } }) {
+  const date = list.class_date ? formatDate(list.class_date) : '—'
+  const turma = list.school_class?.name?.trim()
+  return turma ? `${date} (${turma})` : date
+}
+
+async function removeAttendanceList(list: { id: number; class_date?: string; school_class?: { name?: string } }) {
+  if (!confirm(`Excluir o treino de ${formatListLabel(list)}? Esta ação não pode ser desfeita.`)) {
+    return
+  }
+
+  deletingId.value = list.id
+  try {
+    await axios.delete(`/api/attendance-lists/${list.id}`)
+    await getAttendanceLists(meta.value.current_page)
+  } catch (error: any) {
+    alert(error.response?.data?.message || 'Erro ao excluir treino')
+    console.error(error)
+  } finally {
+    deletingId.value = null
+  }
+}
+
 onMounted(async () => {
   await getAttendanceLists(1)
 })
@@ -124,8 +148,16 @@ onMounted(async () => {
               <td>{{ list.school_class?.type === 'kids' ? 'Kids' : list.school_class?.type === 'adult' ? 'Adulto' : '—' }}</td>
               <td>{{ list.students?.length || 0 }}</td>
               <td><a :href="list.notes">{{ list.notes }}</a></td>
-              <td>
+              <td class="attendance-lists__actions">
                 <RouterLink :to="`/admin/attendance-lists/${list.id}/edit`">Editar</RouterLink>
+                <button
+                  type="button"
+                  class="attendance-lists__btn attendance-lists__btn--danger"
+                  :disabled="deletingId === list.id"
+                  @click="removeAttendanceList(list)"
+                >
+                  {{ deletingId === list.id ? '…' : 'Excluir' }}
+                </button>
               </td>
             </tr>
           </tbody>
@@ -204,5 +236,32 @@ onMounted(async () => {
 
 .attendance-lists__table tr:hover {
   background: #f9f9f9;
+}
+
+.attendance-lists__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.attendance-lists__btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  color: #b91c1c;
+  font-weight: 600;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  &:hover:not(:disabled) {
+    text-decoration: underline;
+  }
 }
 </style>

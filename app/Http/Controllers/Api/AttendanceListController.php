@@ -269,4 +269,20 @@ class AttendanceListController extends Controller
             ], 500);
         }
     }
+
+    public function destroy($id)
+    {
+        try {
+            $attendanceList = AttendanceList::findOrFail($id);
+            $attendanceList->delete();
+
+            return response()->json([
+                'message' => 'Treino excluído com sucesso.',
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'message' => 'Erro ao excluir treino.',
+            ], 500);
+        }
+    }
 }
