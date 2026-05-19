@@ -216,7 +216,8 @@ function selectMonth(monthId) {
       <p class="intro">
         Alunos que mais treinaram no período. Escolha o <strong>ano</strong>, o
         <strong>mês</strong> (ou <strong>ano todo</strong>) e a <strong>turma</strong>.
-        Cada dia com presença conta uma vez (várias turmas no mesmo dia não somam em dobro).
+        Em <strong>Todos</strong>, cada presença em turma conta; no mesmo dia, turmas diferentes somam.
+        Em uma turma específica, conta um treino por dia naquela turma.
       </p>
 
       <div v-if="loading" class="state">Carregando...</div>

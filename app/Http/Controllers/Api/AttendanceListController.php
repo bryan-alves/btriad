@@ -92,6 +92,7 @@ class AttendanceListController extends Controller
 
             foreach ($lists as $list) {
                 $dateKey = $list->class_date->toDateString();
+                $classKey = (string) ($list->class_id ?? 0);
 
                 foreach ($list->students as $student) {
                     if (! $student->active) {
@@ -102,11 +103,16 @@ class AttendanceListController extends Controller
                         $byStudent[$student->id] = [
                             'id' => $student->id,
                             'name' => $student->name,
-                            'dates' => [],
+                            'sessions' => [],
                         ];
                     }
 
-                    $byStudent[$student->id]['dates'][$dateKey] = true;
+                    // Turma específica: um treino por dia. Todos: soma por turma (mesmo dia em turmas diferentes conta).
+                    $sessionKey = $classId
+                        ? $dateKey
+                        : $dateKey.'|'.$classKey;
+
+                    $byStudent[$student->id]['sessions'][$sessionKey] = true;
                 }
             }
 
@@ -114,7 +120,7 @@ class AttendanceListController extends Controller
                 ->map(fn (array $row) => [
                     'id' => $row['id'],
                     'name' => $row['name'],
-                    'count' => count($row['dates']),
+                    'count' => count($row['sessions']),
                 ])
                 ->sort(function (array $a, array $b) {
                     if ($b['count'] !== $a['count']) {
