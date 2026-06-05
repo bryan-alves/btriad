@@ -17,16 +17,16 @@
         content="Aulas de jiu-jitsu para crianças e adultos. Segundas, quartas e sextas.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url('/') }}">
-    <meta property="og:image" content="{{ url(asset('apjiujitsu-logo.svg')) }}">
+    <meta property="og:image" content="{{ url(asset('apjiujitsu-logo.png')) }}">
     <meta property="og:image:alt" content="Logotipo AP Jiu-Jitsu">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="AP Jiu-Jitsu | Equipe e horários">
     <meta name="twitter:description"
         content="Aulas de jiu-jitsu para crianças e adultos. Segundas, quartas e sextas.">
-    <meta name="twitter:image" content="{{ url(asset('apjiujitsu-logo.svg')) }}">
+    <meta name="twitter:image" content="{{ url(asset('apjiujitsu-logo.png')) }}">
 
-    <link rel="icon" href="{{ asset('apjiujitsu-logo.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ asset('apjiujitsu-logo.png') }}" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
@@ -48,9 +48,9 @@
             'url' => url('/'),
             'logo' => [
                 '@type' => 'ImageObject',
-                'url' => url(asset('apjiujitsu-logo.svg')),
+                'url' => url(asset('apjiujitsu-logo.png')),
             ],
-            'image' => url(asset('apjiujitsu-logo.svg')),
+            'image' => url(asset('apjiujitsu-logo.png')),
             'sameAs' => [
                 'https://apjiujitsu.com.br',
             ],
@@ -97,7 +97,7 @@
         <nav class="nav nav--main" aria-label="Navegação principal">
             <div class="nav__bar">
                 <a href="{{ url('/') }}" class="nav__logo" title="AP Jiu-Jitsu — página inicial">
-                    <img src="{{ asset('apjiujitsu-logo.svg') }}" alt="AP Jiu-Jitsu" decoding="async">
+                    <img src="{{ asset('apjiujitsu-logo.png') }}" alt="AP Jiu-Jitsu" decoding="async">
                 </a>
 
                 <ul class="nav__links nav__links--desktop" aria-label="Seções do site">
@@ -161,7 +161,7 @@
     <main id="conteudo-principal" class="page-sections">
         <section id="sobre" class="page-section page-section--hero" aria-labelledby="sobre-heading">
             <div class="page-section__inner page-section__inner--hero">
-                <img class="page-section__logo" src="{{ asset('apjiujitsu-logo.svg') }}"
+                <img class="page-section__logo" src="{{ asset('apjiujitsu-logo.png') }}"
                     alt="Logotipo AP Jiu-Jitsu" decoding="async">
                 <h1 id="sobre-heading" class="page-section__title"><strong>Estamos no aquecimento!</strong></h1>
                 <p class="page-section__lead">
@@ -231,7 +231,7 @@
 
     <footer class="footer">
         <div class="footer__logo">
-            <img src="{{ asset('apjiujitsu-logo.svg') }}" alt="AP Jiu-Jitsu — logotipo" decoding="async" class="footer__logo-img">
+            <img src="{{ asset('apjiujitsu-logo.png') }}" alt="AP Jiu-Jitsu — logotipo" decoding="async" class="footer__logo-img">
         </div>
         <p>
             <strong>© {{ date('Y') }} • AP Jiu-Jitsu</strong><br>
