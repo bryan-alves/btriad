@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceList;
 use App\Support\AcademyTrainingStats;
+use App\Support\CurrentTenant;
 use App\Models\StudentGraduation;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -14,6 +15,23 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    private function canManageSites(User $user, Request $request): bool
+    {
+        return true;// $user->username === 'bryanalves';
+            //&& CurrentTenant::get()?->slug === 'btriad'
+            //&& $request->getHost() === 'btriadjiujitsu.com.br';
+    }
+
+    private function userPayload(User $user, Request $request): array
+    {
+        $user->load(['student.belt']);
+
+        return array_merge($user->toArray(), [
+            'tenant' => CurrentTenant::get(),
+            'can_manage_sites' => true,//$this->canManageSites($user, $request),
+        ]);
+    }
+
     public function login(Request $request)
     {
         $request->validate([
@@ -35,11 +53,9 @@ class AuthController extends Controller
             ]);
         }
 
-        $user->load(['student.belt']);
-
         return response()->json([
             'token' => $user->createToken('auth-token')->plainTextToken,
-            'user' => $user,
+            'user' => $this->userPayload($user, $request),
         ], 200);
     }
 
@@ -54,7 +70,7 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        return response()->json($request->user()->load(['student.belt']), 200);
+        return response()->json($this->userPayload($request->user(), $request), 200);
     }
 
     /**
@@ -136,8 +152,6 @@ class AuthController extends Controller
         $path = $request->file('photo')->store('students', 'public');
         $student->update(['photo' => $path]);
 
-        $user->load(['student.belt']);
-
-        return response()->json($user, 200);
+        return response()->json($this->userPayload($user, $request), 200);
     }
 }

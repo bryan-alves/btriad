@@ -101,7 +101,7 @@
                 </a>
 
                 <ul class="nav__links nav__links--desktop" aria-label="Seções do site">
-                    <li><a href="#sobre" data-section-link>Sobre</a></li>
+                    <li><a href="#sobre" data-section-link>aaaSobre</a></li>
                     <li><a href="#horarios" data-section-link>Horários</a></li>
                     <li><a href="#avaliacoes" data-section-link>Avaliações</a></li>
                     <li><a href="#localizacao" data-section-link>Localização</a></li>
@@ -255,6 +255,7 @@
             </a>
         </div>
     </footer>
+    @include('home.credits')
 </body>
 
 </html>

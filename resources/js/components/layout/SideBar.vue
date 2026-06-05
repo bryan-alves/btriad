@@ -9,12 +9,22 @@ const user = ref(null)
 onMounted(() => {
   try {
     user.value = JSON.parse(localStorage.getItem('user') || 'null')
+    console.log(user.value)
   } catch {
     user.value = null
   }
 })
 
 const userRole = computed(() => user.value?.role)
+
+function isTruthyPermission(value) {
+  return value === true || value === 1 || value === '1' || value === 'true'
+}
+
+const canManageSites = computed(() => (
+  isTruthyPermission(user.value?.can_manage_sites)
+  || isTruthyPermission(user.value?.canManageSites)
+))
 
 async function logout() {
   try {
@@ -46,6 +56,7 @@ async function logout() {
         <li><RouterLink to="/admin/student-graduations">Graduações</RouterLink></li>
         <li><RouterLink to="/admin/classes">Turmas</RouterLink></li>
         <li><RouterLink to="/admin/users">Usuários</RouterLink></li>
+        <li v-if="canManageSites"><RouterLink to="/admin/site-settings">Sites</RouterLink></li>
       </template>
     </ul>
     <button @click="logout" class="logout-button">

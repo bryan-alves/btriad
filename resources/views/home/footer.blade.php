@@ -26,3 +26,4 @@
     </a>
   </div>
 </footer>
+@include('home.credits')

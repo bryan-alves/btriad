@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Support\CurrentTenant;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreStudentRequest extends FormRequest
 {
@@ -16,7 +18,10 @@ class StoreStudentRequest extends FormRequest
         return [
             // Relacionamento
             'belt_id' => ['nullable', 'exists:belts,id'],
-            'user_id' => ['nullable', 'exists:users,id'],
+            'user_id' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('tenant_id', CurrentTenant::id())),
+            ],
 
             // Dados básicos
             'name' => ['required', 'string', 'max:255'],

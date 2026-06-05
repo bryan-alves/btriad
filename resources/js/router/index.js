@@ -16,6 +16,7 @@ import ClassIndex from '@/views/Classes/Index.vue'
 import ClassForm from '@/views/Classes/Form.vue'
 import UsersIndex from '@/views/Users/Index.vue'
 import UsersForm from '@/views/Users/Form.vue'
+import SiteSettingsIndex from '@/views/SiteSettings/Index.vue'
 
 const routes = [
   {
@@ -148,6 +149,12 @@ const routes = [
     name: 'ClassesEdit',
     component: ClassForm,
     meta: { requiresAuth: true, roles: ['admin', 'instructor'] }
+  },
+  {
+    path: '/admin/site-settings',
+    name: 'SiteSettingsIndex',
+    component: SiteSettingsIndex,
+    meta: { requiresAuth: true, roles: ['admin'], requiresSiteManager: true }
   }
 ]
 
@@ -162,6 +169,14 @@ function getCurrentUser() {
   } catch {
     return null
   }
+}
+
+function isTruthyPermission(value) {
+  return value === true || value === 1 || value === '1' || value === 'true'
+}
+
+function canManageSites(user) {
+  return isTruthyPermission(user?.can_manage_sites) || isTruthyPermission(user?.canManageSites)
 }
 
 router.beforeEach((to, from, next) => {
@@ -184,6 +199,10 @@ router.beforeEach((to, from, next) => {
   }
 
   if (requiresAuth && allowedRoles.length && !allowedRoles.includes(user.role)) {
+    return next(user.role === 'student' ? '/student/dashboard' : '/admin/students')
+  }
+
+  if (requiresAuth && to.meta.requiresSiteManager && !canManageSites(user)) {
     return next(user.role === 'student' ? '/student/dashboard' : '/admin/students')
   }
 

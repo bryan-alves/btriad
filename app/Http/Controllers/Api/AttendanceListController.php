@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAttendanceListRequest;
 use App\Models\AttendanceList;
 use App\Models\Student;
+use App\Support\CurrentTenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -18,6 +19,9 @@ class AttendanceListController extends Controller
             $pairs = DB::table('attendance_lists')
                 ->join('attendance_list_students', 'attendance_list_students.attendance_list_id', '=', 'attendance_lists.id')
                 ->join('students', 'students.id', '=', 'attendance_list_students.student_id')
+                ->where('attendance_lists.tenant_id', CurrentTenant::id())
+                ->where('attendance_list_students.tenant_id', CurrentTenant::id())
+                ->where('students.tenant_id', CurrentTenant::id())
                 ->where('students.active', true)
                 ->selectRaw('YEAR(attendance_lists.class_date) as year, MONTH(attendance_lists.class_date) as month')
                 ->distinct()
@@ -194,6 +198,7 @@ class AttendanceListController extends Controller
                     return [
                         'attendance_list_id' => $attendanceList->id,
                         'student_id' => $studentId,
+                        'tenant_id' => CurrentTenant::id(),
                         'created_at' => now(),
                     ];
                 }, $studentIds);
@@ -244,6 +249,7 @@ class AttendanceListController extends Controller
             // Remover estudiantes antigos
             DB::table('attendance_list_students')
                 ->where('attendance_list_id', $id)
+                ->where('tenant_id', CurrentTenant::id())
                 ->delete();
 
             $studentIds = collect($data['student_ids'])->unique()->values()->all();
@@ -253,6 +259,7 @@ class AttendanceListController extends Controller
                     return [
                         'attendance_list_id' => $attendanceList->id,
                         'student_id' => $studentId,
+                        'tenant_id' => CurrentTenant::id(),
                         'created_at' => now(),
                     ];
                 }, $studentIds);

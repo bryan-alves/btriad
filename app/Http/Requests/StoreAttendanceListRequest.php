@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Support\CurrentTenant;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreAttendanceListRequest extends FormRequest
 {
@@ -15,10 +17,18 @@ class StoreAttendanceListRequest extends FormRequest
     {
         return [
             'class_date' => ['required', 'date'],
-            'class_id' => ['required', 'integer', 'exists:classes,id'],
+            'class_id' => [
+                'required',
+                'integer',
+                Rule::exists('classes', 'id')->where(fn ($query) => $query->where('tenant_id', CurrentTenant::id())),
+            ],
             'notes' => ['nullable', 'string'],
             'student_ids' => ['required', 'array', 'min:1'],
-            'student_ids.*' => ['required', 'integer', 'exists:students,id'],
+            'student_ids.*' => [
+                'required',
+                'integer',
+                Rule::exists('students', 'id')->where(fn ($query) => $query->where('tenant_id', CurrentTenant::id())),
+            ],
         ];
     }
 }

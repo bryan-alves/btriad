@@ -49,6 +49,9 @@ Route::get('/admin/users/create', function () {
 Route::get('/admin/users/{id}', function () {
     return view('app');
 });
+Route::get('/admin/site-settings', function () {
+    return view('app');
+});
 
 Route::get('login', function () {
     return view('app');

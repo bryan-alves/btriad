@@ -1,0 +1,226 @@
+Eu mandei para o chat gpt o readme criado, pois Eu queria criar uma estrutura multi tenant por dominio. Porque eu gostaria de transformar esse sistema em um SaaS, onde todo acessariam o mesmo sistema, mas cada um no seu dominio. E o dominio iria puxar toda personalização através do domonio. Olha o que ele me respondeu:
+
+Arquitetura que eu faria
+
+Uma VPS:
+
+academiaa.com.br
+academiabjj.com
+graciexyz.com.br
+
+        ↓ DNS
+
+        VPS
+
+Nginx
+   ↓
+Laravel único
+   ↓
+Tenant Resolver
+   ↓
+Banco
+
+Todos apontam para a mesma aplicação.
+
+Exemplo:
+
+academiaa.com.br
+→ tenant_id = 1
+
+graciexyz.com.br
+→ tenant_id = 2
+Banco
+
+Hoje provavelmente você tem:
+
+students
+id
+name
+belt_id
+class_id
+
+Viraria:
+
+tenants
+id
+name
+domain
+theme
+logo
+primary_color
+secondary_color
+
+students
+id
+tenant_id
+name
+belt_id
+
+classes
+tenant_id
+
+users
+tenant_id
+
+attendance_lists
+tenant_id
+
+Tudo isolado por:
+
+tenant_id
+
+Isso é o modelo single database multi-tenant.
+
+Mais barato.
+
+Uma VPS aguenta MUITA academia pequena.
+
+Resolver tenant pelo domínio
+
+Middleware Laravel:
+
+class ResolveTenant
+{
+   public function handle($request, Closure $next)
+   {
+      $host = $request->getHost();
+
+      $tenant = Tenant::where(
+         'domain',
+         $host
+      )->firstOrFail();
+
+      app()->instance(
+         'tenant',
+         $tenant
+      );
+
+      return $next($request);
+   }
+}
+
+Se entrar:
+
+graciexyz.com.br
+
+Carrega:
+
+tenant_id = 3
+Query automática
+
+Evite:
+
+Student::where(
+   'tenant_id',
+   $tenant->id
+)
+
+em tudo.
+
+Crie Global Scope:
+
+class TenantScope
+implements Scope
+{
+   public function apply(
+      Builder $builder,
+      Model $model
+   ) {
+      $builder->where(
+         'tenant_id',
+         app('tenant')->id
+      );
+   }
+}
+
+Depois:
+
+Student::all()
+
+já filtra sozinho.
+
+E o site?
+
+Eu faria igual.
+
+Tabela:
+
+tenant_sites
+
+id
+tenant_id
+
+academy_name
+hero_title
+hero_subtitle
+logo
+banner
+primary_color
+instagram
+whatsapp
+about
+
+No Blade:
+
+$tenant = app('tenant');
+
+Exemplo:
+
+<h1>
+ {{ $tenant->academy_name }}
+</h1>
+Templates
+
+Eu não faria template diferente no começo.
+
+Só tema.
+
+Exemplo:
+
+{
+   "primary": "#111827",
+   "secondary": "#f59e0b",
+   "hero_style": "modern",
+   "layout": "default"
+}
+
+CSS:
+
+:root {
+   --primary:
+      {{ $tenant->primary }};
+}
+
+90% das academias querem:
+
+logo
+cor
+banner
+texto
+WhatsApp
+Instagram
+
+Não querem CMS gigante.
+
+Domínio próprio
+
+Cliente compra:
+
+www.graciexyz.com.br
+
+Aponta DNS:
+
+A → IP VPS
+
+Nginx:
+
+server_name _;
+
+ou wildcard:
+
+server_name *.com.br;
+
+Laravel resolve.
+
+Pode ter 100 academias numa VPS.
+

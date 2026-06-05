@@ -8,12 +8,15 @@ use App\Http\Controllers\Api\AttendanceListController;
 use App\Http\Controllers\Api\StudentGraduationController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\SiteSettingController;
+use App\Http\Middleware\EnsureCanManageSites;
+use App\Http\Middleware\EnsureUserBelongsToTenant;
 
 // Rotas públicas
 Route::post('/auth/login', [AuthController::class, 'login']);
 
 // Rotas protegidas
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', EnsureUserBelongsToTenant::class])->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/user', [AuthController::class, 'user']);
     Route::get('/auth/student/trainings', [AuthController::class, 'studentTrainings']);
@@ -40,4 +43,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('classes', ClassController::class)
           ->only(['index', 'show', 'store', 'update']);
+
+    Route::middleware(EnsureCanManageSites::class)->group(function () {
+        Route::get('site-settings', [SiteSettingController::class, 'index']);
+        Route::put('site-settings/{tenant}', [SiteSettingController::class, 'update']);
+    });
 });

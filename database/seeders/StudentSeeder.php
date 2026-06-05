@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Student;
+use App\Models\Tenant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -85,6 +86,8 @@ class StudentSeeder extends Seeder
 
     public function run(): void
     {
+        $tenant = Tenant::where('slug', 'btriad')->firstOrFail();
+
         Schema::withoutForeignKeyConstraints(function () {
             DB::table('attendance_list_students')->truncate();
             DB::table('student_graduations')->truncate();
@@ -98,6 +101,7 @@ class StudentSeeder extends Seeder
         foreach (self::rows() as $row) {
             $payload[] = [
                 'id' => $row['id'],
+                'tenant_id' => $tenant->id,
                 'user_id' => null,
                 'belt_id' => $row['belt_id'],
                 'degree' => null,

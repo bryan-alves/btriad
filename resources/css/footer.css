@@ -48,6 +48,25 @@
   padding: 5px;
 }
 
+.site-credit {
+  background: #050505;
+  color: #bdbdbd;
+  font-size: 12px;
+  padding: 8px 20px;
+  text-align: center;
+}
+
+.site-credit a {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-credit a:hover {
+  color: #c62828;
+  text-decoration: underline;
+}
+
 @media (max-width: 899px) {
   .footer {
     padding-left: 20px;

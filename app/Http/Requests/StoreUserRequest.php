@@ -3,8 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\Student;
+use App\Support\CurrentTenant;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
 {
@@ -24,10 +26,19 @@ class StoreUserRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('users', 'username')->where(fn ($query) => $query->where('tenant_id', CurrentTenant::id())),
+            ],
             'password' => ['required', 'string'],
             'role' => ['required', 'in:student'],
-            'student_id' => ['nullable', 'integer', 'exists:students,id'],
+            'student_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('students', 'id')->where(fn ($query) => $query->where('tenant_id', CurrentTenant::id())),
+            ],
         ];
     }
 

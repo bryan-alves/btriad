@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Student;
 use App\Models\User;
+use App\Support\CurrentTenant;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -27,14 +28,20 @@ class UpdateUserRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('users', 'username')->ignore($user->id),
+                Rule::unique('users', 'username')
+                    ->where(fn ($query) => $query->where('tenant_id', CurrentTenant::id()))
+                    ->ignore($user->id),
             ],
             'password' => ['nullable', 'string', 'min:4'],
             'active' => ['sometimes', 'boolean'],
         ];
 
         if ($user->role === 'student') {
-            $rules['student_id'] = ['nullable', 'integer', 'exists:students,id'];
+            $rules['student_id'] = [
+                'nullable',
+                'integer',
+                Rule::exists('students', 'id')->where(fn ($query) => $query->where('tenant_id', CurrentTenant::id())),
+            ];
         }
 
         return $rules;
