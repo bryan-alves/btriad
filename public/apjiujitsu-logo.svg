@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+    <title id="title">André Petterin Brazilian Jiu-Jitsu</title>
+    <desc id="desc">Logo AP Jiu-Jitsu em SVG com fundo transparente.</desc>
+    <defs>
+        <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f5b13d"/>
+            <stop offset="48%" stop-color="#b36a14"/>
+            <stop offset="100%" stop-color="#f0a629"/>
+        </linearGradient>
+        <linearGradient id="shield" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4b4b4b"/>
+            <stop offset="52%" stop-color="#1c1c1c"/>
+            <stop offset="100%" stop-color="#070707"/>
+        </linearGradient>
+        <path id="topTextPath" d="M 179 492 A 333 333 0 0 1 845 492"/>
+        <path id="bottomTextPath" d="M 844 554 A 333 333 0 0 1 180 554"/>
+        <filter id="softShadow" x="-15%" y="-15%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity=".35"/>
+        </filter>
+    </defs>
+
+    <g filter="url(#softShadow)">
+        <circle cx="512" cy="512" r="468" fill="#111111"/>
+        <circle cx="512" cy="512" r="432" fill="none" stroke="url(#gold)" stroke-width="22"/>
+        <circle cx="512" cy="512" r="392" fill="none" stroke="#2c2c2c" stroke-width="24"/>
+        <circle cx="512" cy="512" r="350" fill="#222222"/>
+
+        <text fill="#f7f1e8" font-family="Arial Black, Montserrat, Arial, sans-serif" font-size="64" font-weight="900" letter-spacing="10">
+            <textPath href="#topTextPath" startOffset="50%" text-anchor="middle">ANDRÉ PETTERIN</textPath>
+        </text>
+
+        <text fill="#f7f1e8" font-family="Arial Black, Montserrat, Arial, sans-serif" font-size="54" font-weight="900" letter-spacing="8">
+            <textPath href="#bottomTextPath" startOffset="50%" text-anchor="middle">BRAZILIAN JIU-JITSU</textPath>
+        </text>
+
+        <g fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-width="8">
+            <path d="M 118 514 L 165 486"/>
+            <path d="M 118 486 L 165 514"/>
+            <path d="M 859 514 L 906 486"/>
+            <path d="M 859 486 L 906 514"/>
+        </g>
+
+        <path d="M512 228 L740 350 L688 657 L512 796 L336 657 L284 350 Z" fill="url(#shield)" stroke="#0b0b0b" stroke-width="20"/>
+        <path d="M512 257 L704 360 L660 635 L512 752 L364 635 L320 360 Z" fill="none" stroke="url(#gold)" stroke-width="14"/>
+        <path d="M512 286 L668 370 L632 612 L512 707 L392 612 L356 370 Z" fill="none" stroke="#4a4a4a" stroke-width="7"/>
+
+        <g transform="translate(0 8)">
+            <path d="M348 616 L474 375 L552 375 L423 616 Z" fill="#ffffff"/>
+            <path d="M469 506 L556 506 C603 506 629 483 629 449 C629 417 604 396 558 396 L507 396 L542 334 L570 334 C653 334 710 380 710 448 C710 520 651 568 561 568 L493 568 Z" fill="#ffffff"/>
+            <path d="M557 606 L633 606 L633 682 L557 682 Z" fill="#c97716"/>
+        </g>
+    </g>
+</svg>
