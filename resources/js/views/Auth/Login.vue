@@ -3,6 +3,10 @@ import axios from "axios"
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router'
 import FormInput from "../../components/form/FormInput.vue";
+import { getAcademyName, getLogoUrl } from '../../utils/publicTenant'
+
+const academyName = getAcademyName()
+const logoUrl = getLogoUrl()
 
 const router = useRouter();
 const loading = ref(false);
@@ -62,8 +66,16 @@ async function submit() {
 <template>
   <div class="login-container">
     <div class="login-box">
-      <h1 class="login-title">B-Triad Jiu-Jitsu</h1>
-      <p class="login-subtitle">Área Administrativa</p>
+      <div class="login-brand">
+        <img
+          v-if="logoUrl"
+          :src="logoUrl"
+          :alt="`Logo ${academyName}`"
+          class="login-logo"
+        >
+        <h1 class="login-title">{{ academyName }}</h1>
+        <p class="login-subtitle">Área Administrativa</p>
+      </div>
 
       <form @submit.prevent="submit" class="login-form">
         <FormInput 
@@ -100,7 +112,7 @@ async function submit() {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1b1b18 0%, #333 100%);
+  background: linear-gradient(135deg, var(--app-header-color, #1b1b18) 0%, var(--app-login-background-color, #333) 100%);
 }
 
 .login-box {
@@ -110,6 +122,21 @@ async function submit() {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 400px;
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.login-logo {
+  display: block;
+  max-width: 160px;
+  max-height: 120px;
+  object-fit: contain;
+  
 }
 
 .login-title {
@@ -123,7 +150,7 @@ async function submit() {
 .login-subtitle {
   color: #666;
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 0;
   font-size: 14px;
 }
 
@@ -134,7 +161,7 @@ async function submit() {
 }
 
 .login-button {
-  background: #1b1b18;
+  background: var(--app-primary-color, #1b1b18);
   color: white;
   padding: 12px;
   border: none;
@@ -145,7 +172,7 @@ async function submit() {
   transition: background 0.3s;
 
   &:hover:not(:disabled) {
-    background: #333;
+    filter: brightness(0.92);
   }
 
   &:disabled {

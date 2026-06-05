@@ -11,7 +11,7 @@ class ResolveTenant
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $domain = Domain::with('tenant')
+        $domain = Domain::with('tenant.site')
             ->where('domain', $request->getHost())
             ->first();
 

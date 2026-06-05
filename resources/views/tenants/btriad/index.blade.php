@@ -2,9 +2,26 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
+    @php
+        $site = $tenant?->site;
+        $academyName = $site?->academy_name ?? 'Equipe B-Triad Jiu-Jitsu';
+        $pageTitle = $site?->page_title ?: 'B-Triad Jiu-Jitsu | Aulas de jiu-jitsu para crianças e adultos';
+        $heroTitle = $site?->hero_title ?: 'Estamos no aquecimento!';
+        $heroSubtitle = $site?->hero_subtitle ?: 'Em breve, o site oficial da Equipe B-Triad Jiu-Jitsu. Fique ligado para novidades sobre nossas aulas, horários e eventos!';
+        $logoUrl = $site?->logo_url ?? asset('logo.png');
+        $primaryColor = $site?->primary_color ?? '#c41e3a';
+        $backgroundColor = $site?->background_color ?? '#3d3d3d';
+        $schedule = $site?->schedule ?: [
+            ['day' => 'Segunda-feira', 'kids_time' => '18h - 19h', 'adults_time' => '19h - 20h'],
+            ['day' => 'Quarta-feira', 'kids_time' => '18h - 19h', 'adults_time' => '19h - 20h'],
+            ['day' => 'Sexta-feira', 'kids_time' => '18h - 19h', 'adults_time' => '19h - 20h'],
+        ];
+        $reviews = $tenant?->reviews ?? collect();
+        $address = $site?->address ?: "R. Cel. Antônio Pietscher, 160 — Vila Jockei Clube\nSão Vicente, SP — CEP 11360-330\nBrasil";
+    @endphp
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>B-Triad Jiu-Jitsu | Aulas de jiu-jitsu para crianças e adultos</title>
+    <title>{{ $pageTitle }}</title>
     <meta name="description"
         content="Equipe B-Triad Jiu-Jitsu em São Vicente (SP): aulas para crianças e adultos na R. Cel. Antônio Pietscher, 160. Horários segundas, quartas e sextas. Aula experimental pelo WhatsApp.">
     <link rel="canonical" href="{{ url('/') }}">
@@ -12,19 +29,19 @@
     <meta name="theme-color" content="#1b1b18">
 
     <meta property="og:locale" content="pt_BR">
-    <meta property="og:title" content="B-Triad Jiu-Jitsu | Equipe e horários">
+    <meta property="og:title" content="{{ $pageTitle }}">
     <meta property="og:description"
         content="Aulas de jiu-jitsu para crianças e adultos em São Vicente (SP). Segundas, quartas e sextas. R. Cel. Antônio Pietscher, 160 — Vila Jockei Clube.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url('/') }}">
-    <meta property="og:image" content="{{ url(asset('logo.png')) }}">
-    <meta property="og:image:alt" content="Logotipo Equipe B-Triad Jiu-Jitsu">
+    <meta property="og:image" content="{{ url($logoUrl) }}">
+    <meta property="og:image:alt" content="Logotipo {{ $academyName }}">
 
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="B-Triad Jiu-Jitsu | Equipe e horários">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
     <meta name="twitter:description"
         content="Aulas em São Vicente (SP), Vila Jockei Clube. Segundas, quartas e sextas. Aula experimental pelo WhatsApp.">
-    <meta name="twitter:image" content="{{ url(asset('logo.png')) }}">
+    <meta name="twitter:image" content="{{ url($logoUrl) }}">
 
     <link rel="icon" href="/img/logo/triangulo.png" type="image/x-icon">
     <!-- Fonts -->
@@ -37,7 +54,7 @@
     '@graph' => [
         [
             '@type' => 'WebSite',
-            'name' => 'B-Triad Jiu-Jitsu',
+            'name' => $academyName,
             'url' => url('/'),
             'inLanguage' => 'pt-BR',
             'description' => 'Site da Equipe B-Triad Jiu-Jitsu — aulas, horários e contato.',
@@ -45,13 +62,13 @@
         [
             '@type' => 'Organization',
             '@id' => url('/').'#organization',
-            'name' => 'Equipe B-Triad Jiu-Jitsu',
+            'name' => $academyName,
             'url' => url('/'),
             'logo' => [
                 '@type' => 'ImageObject',
-                'url' => url(asset('logo.png')),
+                'url' => url($logoUrl),
             ],
-            'image' => url(asset('logo.png')),
+            'image' => url($logoUrl),
             'address' => [
                 '@type' => 'PostalAddress',
                 'streetAddress' => 'R. Cel. Antônio Pietscher, 160 - Vila Jockei Clube',
@@ -80,19 +97,18 @@
     @stack('styles')
 </head>
 
-<body>
+<body style="--site-primary-color: {{ $primaryColor }}; --site-background-color: {{ $backgroundColor }};">
     <a class="skip-link" href="#conteudo-principal">Ir para o conteúdo</a>
     @include('home.header')
 
     <main id="conteudo-principal" class="page-sections">
         <section id="sobre" class="page-section page-section--hero" aria-labelledby="sobre-heading">
             <div class="page-section__inner page-section__inner--hero">
-                <img class="page-section__logo" src="{{ asset('logo.png') }}"
-                    alt="Logotipo Equipe B-Triad Jiu-Jitsu" decoding="async">
-                <h1 id="sobre-heading" class="page-section__title"><strong>Estamos no aquecimento!</strong></h1>
+                <img class="page-section__logo" src="{{ $logoUrl }}"
+                    alt="Logotipo {{ $academyName }}" decoding="async">
+                <h1 id="sobre-heading" class="page-section__title"><strong>{{ $heroTitle }}</strong></h1>
                 <p class="page-section__lead">
-                    Em breve, o site oficial da <strong>Equipe B-Triad Jiu-Jitsu.</strong>
-                    Fique ligado para novidades sobre nossas aulas, horários e eventos!
+                    {{ $heroSubtitle }}
                 </p>
             </div>
         </section>
@@ -101,7 +117,7 @@
             <div class="page-section__inner page-section__inner--wide page-section__inner--stack">
                 <h2 id="horarios-heading" class="page-section__heading page-section__heading--center">Horários</h2>
                 <p class="page-section__intro page-section__text">
-                    Aulas às <strong>segundas</strong>, <strong>quartas</strong> e <strong>sextas-feiras</strong>.
+                    Confira os dias e horários das aulas.
                 </p>
 
                 <div class="schedule-table-wrap">
@@ -110,26 +126,18 @@
                         <thead>
                             <tr>
                                 <th scope="col" class="schedule-table__col-day">Dia</th>
-                                <th scope="col">Crianças</th>
+                                <th scope="col">Criançasaaaa</th>
                                 <th scope="col">Adultos</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <th scope="row" class="schedule-table__col-day">Segunda-feira</th>
-                                <td>18h – 19h</td>
-                                <td>19h – 20h</td>
-                            </tr>
-                            <tr>
-                                <th scope="row" class="schedule-table__col-day">Quarta-feira</th>
-                                <td>18h – 19h</td>
-                                <td>19h – 20h</td>
-                            </tr>
-                            <tr>
-                                <th scope="row" class="schedule-table__col-day">Sexta-feira</th>
-                                <td>18h – 19h</td>
-                                <td>19h – 20h</td>
-                            </tr>
+                            @foreach ($schedule as $row)
+                                <tr>
+                                    <th scope="row" class="schedule-table__col-day">{{ $row['day'] ?? '' }}</th>
+                                    <td>{{ $row['kids_time'] ?? '-' }}</td>
+                                    <td>{{ $row['adults_time'] ?? '-' }}</td>
+                                </tr>
+                            @endforeach
                         </tbody>
                     </table>
                 </div>
@@ -139,7 +147,21 @@
         <section id="avaliacoes" class="page-section" aria-labelledby="avaliacoes-heading">
             <div class="page-section__inner page-section__inner--stack">
                 <h2 id="avaliacoes-heading" class="page-section__heading">Avaliações</h2>
-                <p class="page-section__text">Depoimentos em breve.</p>
+                @if ($reviews->isNotEmpty())
+                    <div class="reviews-grid">
+                        @foreach ($reviews as $review)
+                            <article class="review-card">
+                                <div class="review-card__rating" aria-label="{{ $review->rating }} de 5 estrelas">
+                                    {{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}
+                                </div>
+                                <p>{{ $review->comment }}</p>
+                                <strong>{{ $review->author_name }}</strong>
+                            </article>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="page-section__text">Depoimentos em breve.</p>
+                @endif
             </div>
         </section>
 
@@ -148,10 +170,8 @@
                 <h2 id="localizacao-heading" class="page-section__heading page-section__heading--center">Localização</h2>
 
                 <address class="location-address">
-                    <span class="location-address__name">Equipe B-Triad Jiu-Jitsu</span><br>
-                    R. Cel. Antônio Pietscher, 160 — Vila Jockei Clube<br>
-                    São Vicente, SP — CEP 11360-330<br>
-                    Brasil
+                    <span class="location-address__name">{{ $academyName }}</span><br>
+                    {!! nl2br(e($address)) !!}
                 </address>
                 <div class="location-map">
                     <iframe

@@ -1,4 +1,7 @@
 <script setup>
+import { onMounted, onUnmounted, ref } from 'vue'
+import { getAcademyName } from '../../utils/publicTenant'
+
 defineProps({
   menuOpen: {
     type: Boolean,
@@ -7,6 +10,20 @@ defineProps({
 })
 
 defineEmits(['toggle-sidebar'])
+
+const academyName = ref(getAcademyName())
+
+function refreshTenantBrand() {
+  academyName.value = getAcademyName()
+}
+
+onMounted(() => {
+  window.addEventListener('app-tenant-updated', refreshTenantBrand)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('app-tenant-updated', refreshTenantBrand)
+})
 </script>
 
 <template>
@@ -23,7 +40,7 @@ defineEmits(['toggle-sidebar'])
       <span class="menu-toggle__bar" />
       <span class="menu-toggle__bar" />
     </button>
-    <h1 class="header__title">B-Triad</h1>
+    <h1 class="header__title">{{ academyName }}</h1>
   </header>
 </template>
 
@@ -37,7 +54,7 @@ $breakpoint: 768px;
   padding: 12px 16px;
   width: 100%;
   min-height: 56px;
-  background-color: #1b1b18;
+  background-color: var(--app-header-color, #1b1b18);
   box-sizing: border-box;
 }
 

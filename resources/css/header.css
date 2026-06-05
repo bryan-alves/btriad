@@ -13,7 +13,7 @@
 .nav--main {
   position: relative;
   z-index: 2;
-  background: #1b1b18;
+  background: var(--site-header-color, #1b1b18);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -69,7 +69,7 @@
 .nav__links--desktop a.is-active,
 .nav-sections__list a.is-active {
   color: #fff;
-  box-shadow: inset 0 -2px 0 #c41e3a;
+  box-shadow: inset 0 -2px 0 var(--site-primary-color, #c41e3a);
 }
 
 /* Mobile: centered WhatsApp in bar (middle column) */
@@ -111,22 +111,22 @@
 }
 
 .nav__cta--whatsapp {
-  background: #c41e3a;
+  background: var(--site-trial-button-color, #c41e3a);
   color: #fff;
 }
 
 .nav__cta--whatsapp:hover {
-  background: #a01830;
+  filter: brightness(0.9);
   transform: translateY(-1px);
 }
 
 .nav__cta--portal {
-  background: #2563eb;
+  background: var(--site-portal-button-color, #2563eb);
   color: #fff;
 }
 
 .nav__cta--portal:hover {
-  background: #1d4ed8;
+  filter: brightness(0.9);
   transform: translateY(-1px);
 }
 
@@ -185,7 +185,7 @@
 .nav-sections {
   position: relative;
   z-index: 1;
-  background: #252522;
+  background: var(--site-header-color, #252522);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -252,7 +252,7 @@
   right: 0;
   width: min(320px, 88vw);
   height: 100%;
-  background: #1b1b18;
+  background: var(--site-header-color, #1b1b18);
   z-index: 200;
   transform: translateX(100%);
   transition: transform 0.25s ease;
@@ -323,7 +323,7 @@
 
 .nav__drawer-list a.is-active {
   background: rgba(196, 30, 58, 0.12);
-  border-left-color: #c41e3a;
+  border-left-color: var(--site-primary-color, #c41e3a);
   color: #fff;
 }
 

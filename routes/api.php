@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\StudentGraduationController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SiteSettingController;
+use App\Http\Controllers\Api\SiteReviewController;
 use App\Http\Middleware\EnsureCanManageSites;
 use App\Http\Middleware\EnsureUserBelongsToTenant;
 
@@ -46,6 +47,9 @@ Route::middleware(['auth:sanctum', EnsureUserBelongsToTenant::class])->group(fun
 
     Route::middleware(EnsureCanManageSites::class)->group(function () {
         Route::get('site-settings', [SiteSettingController::class, 'index']);
+        Route::post('site-settings/{tenant}', [SiteSettingController::class, 'update']);
         Route::put('site-settings/{tenant}', [SiteSettingController::class, 'update']);
+        Route::apiResource('site-reviews', SiteReviewController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
     });
 });

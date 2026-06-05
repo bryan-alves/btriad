@@ -8,7 +8,13 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $tenant = CurrentTenant::get();
+        $tenant = CurrentTenant::get()->load([
+            'site',
+            'reviews' => fn ($query) => $query
+                ->where('active', true)
+                ->orderBy('sort_order')
+                ->orderByDesc('id'),
+        ]);
         $view = "tenants.{$tenant->slug}.index";
 
         if (! view()->exists($view)) {

@@ -49,7 +49,7 @@ body {
     left: 0;
     top: 0;
     padding: 0.75rem 1rem;
-    background: #c41e3a;
+    background: var(--site-primary-color, #c41e3a);
     color: #fff;
     font-weight: 600;
     text-decoration: none;
@@ -95,7 +95,7 @@ body {
     margin-top: 20px;
     min-width: 0;
     max-width: 100%;
-    background: #3d3d3d;
+    background: var(--site-background-color, #3d3d3d);
     padding-top: var(--site-header-h, 110px);
     padding-bottom: 2.5rem;
     padding-inline: 0;
@@ -193,6 +193,38 @@ body {
     text-align: center;
 }
 
+/* Avaliações */
+.reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    width: 100%;
+}
+
+.review-card {
+    display: grid;
+    gap: 0.75rem;
+    text-align: left;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.review-card__rating {
+    color: var(--site-primary-color, #c41e3a);
+    letter-spacing: 0.08em;
+}
+
+.review-card p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.review-card strong {
+    color: #fff;
+}
+
 /* Horários — tabela */
 .schedule-table-wrap {
     overflow-x: auto;
@@ -220,7 +252,7 @@ body {
 }
 
 .schedule-table th {
-    background: #c41e3a;
+    background: var(--site-primary-color, #c41e3a);
     font-weight: 600;
     color: #fff;
 }
@@ -276,13 +308,13 @@ body {
     font-size: 0.95rem;
     text-decoration: none;
     color: #fff;
-    background: #c41e3a;
+    background: var(--site-primary-color, #c41e3a);
     border: 1px solid rgba(255, 255, 255, 0.12);
     transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .location-cta:hover {
-    background: #a01830;
+    filter: brightness(0.9);
     transform: translateY(-1px);
 }
 

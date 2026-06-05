@@ -22,4 +22,9 @@ class Tenant extends Model
     {
         return $this->hasOne(TenantSite::class);
     }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(SiteReview::class);
+    }
 }

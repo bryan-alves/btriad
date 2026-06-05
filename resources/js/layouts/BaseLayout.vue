@@ -205,6 +205,7 @@ $header-height: 56px;
 .main-column__body {
   padding: 1.5rem 1rem;
   min-width: 0;
+  background: color-mix(in srgb, var(--app-background-color, #f3f4f6) 8%, #f8fafc);
 
   @media (min-width: $breakpoint) {
     padding: 2rem 2.5rem;
@@ -233,7 +234,7 @@ $header-height: 56px;
   width: 100%;
   height: auto;
   min-height: $header-height;
-  background-color: #1b1b18;
+  background-color: var(--app-header-color, #1b1b18);
   display: flex;
   align-items: center;
   position: relative;
@@ -247,7 +248,7 @@ $header-height: 56px;
   align-items: center;
   width: 100%;
   min-height: 100vh;
-  background-color: #1b1b18;
+  background-color: var(--app-header-color, #1b1b18);
   padding: 20px 20px;
   box-sizing: border-box;
 }
@@ -266,9 +267,16 @@ $header-height: 56px;
 
 .sidebar li {
   margin: 10px 0;
-  background-color: #333;
+  background-color: color-mix(in srgb, var(--app-header-color, #1b1b18) 82%, #fff 18%);
   width: 100%;
   padding: 10px;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+
+  &:has(a.router-link-active) {
+    border-left-color: var(--app-primary-color, #111827);
+    background-color: color-mix(in srgb, var(--app-primary-color, #111827) 28%, var(--app-header-color, #1b1b18));
+  }
 
   a {
     width: 100%;
@@ -279,7 +287,7 @@ $header-height: 56px;
 }
 
 .btn-primary {
-  background: black;
+  background: var(--app-primary-color, #111827);
   color: white;
   border: none;
   padding: 9px 14px;
@@ -288,5 +296,9 @@ $header-height: 56px;
   text-decoration: none;
   font-size: 0.875rem;
   white-space: nowrap;
+
+  &:hover {
+    filter: brightness(0.92);
+  }
 }
 </style>

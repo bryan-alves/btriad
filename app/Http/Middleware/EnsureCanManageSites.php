@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Support\CurrentTenant;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,11 +12,7 @@ class EnsureCanManageSites
     {
         $user = $request->user();
 
-        if (
-            $user?->username !== 'bryanalves'
-            //|| CurrentTenant::get()?->slug !== 'btriad'
-            //|| $request->getHost() !== 'btriadjiujitsu.com.br'
-        ) {
+        if ($user?->role !== 'admin') {
             abort(403, 'Você não tem permissão para gerenciar sites.');
         }
 

@@ -1,10 +1,13 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { getAcademyName, getLogoUrl } from '../../utils/publicTenant'
 
 const router = useRouter()
 const user = ref(null)
+const academyName = ref(getAcademyName())
+const logoUrl = ref(getLogoUrl())
 
 onMounted(() => {
   try {
@@ -13,6 +16,19 @@ onMounted(() => {
   } catch {
     user.value = null
   }
+})
+
+function refreshTenantBrand() {
+  academyName.value = getAcademyName()
+  logoUrl.value = getLogoUrl()
+}
+
+onMounted(() => {
+  window.addEventListener('app-tenant-updated', refreshTenantBrand)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('app-tenant-updated', refreshTenantBrand)
 })
 
 const userRole = computed(() => user.value?.role)
@@ -41,8 +57,8 @@ async function logout() {
 
 <template>
   <div class="sidebar">
-    <img src="/public/logo-2.png" alt="" style="max-width: 150px;margin-bottom: 1rem">
-    <h1 style="color: #FFF;font-size: 1.5rem">B-Triad Jiu-Jitsu</h1>
+    <img v-if="logoUrl" :src="logoUrl" :alt="academyName" class="sidebar__logo">
+    <h1 class="sidebar__title">{{ academyName }}</h1>
     <ul style="color: #FFF">
       <template v-if="userRole === 'student'">
         <li><RouterLink to="/student/dashboard">Início</RouterLink></li>
@@ -66,6 +82,20 @@ async function logout() {
 </template>
 
 <style lang="scss" scoped>
+.sidebar__logo {
+  max-width: 150px;
+  max-height: 120px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+}
+
+.sidebar__title {
+  color: #fff;
+  font-size: 1.5rem;
+  text-align: center;
+  margin: 0 0 1rem;
+}
+
 .logout-button {
   background: #d32f2f;
   color: white;

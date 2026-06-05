@@ -91,7 +91,7 @@
                     alt="Logotipo Equipe B-Triad Jiu-Jitsu" decoding="async">
                 <h1 id="sobre-heading" class="page-section__title"><strong>Estamos no aquecimento!</strong></h1>
                 <p class="page-section__lead">
-                    Em breve, o site oficial da <strong>Equipe B-Triad Jiu-Jitsu.</strong>
+                    aaaaEm breve, o site oficial da <strong>Equipe B-Triad Jiu-Jitsu.</strong>
                     Fique ligado para novidades sobre nossas aulas, horários e eventos!
                 </p>
             </div>

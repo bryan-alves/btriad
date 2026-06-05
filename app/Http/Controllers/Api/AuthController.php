@@ -17,9 +17,7 @@ class AuthController extends Controller
 {
     private function canManageSites(User $user, Request $request): bool
     {
-        return true;// $user->username === 'bryanalves';
-            //&& CurrentTenant::get()?->slug === 'btriad'
-            //&& $request->getHost() === 'btriadjiujitsu.com.br';
+        return $user->role === 'admin';
     }
 
     private function userPayload(User $user, Request $request): array
@@ -28,7 +26,7 @@ class AuthController extends Controller
 
         return array_merge($user->toArray(), [
             'tenant' => CurrentTenant::get(),
-            'can_manage_sites' => true,//$this->canManageSites($user, $request),
+            'can_manage_sites' => $this->canManageSites($user, $request),
         ]);
     }
 

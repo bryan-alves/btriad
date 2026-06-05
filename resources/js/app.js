@@ -2,8 +2,11 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router';
 import axios from 'axios'
+import { applyTenantTheme } from './utils/publicTenant'
 
 const app = createApp(App)
+
+applyTenantTheme()
 
 // Configurar axios com token do localStorage
 const token = localStorage.getItem('token')
