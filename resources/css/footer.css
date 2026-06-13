@@ -126,6 +126,6 @@
   .footer p {
     grid-area: copyright;
     align-self: start;
-    text-align: right;
+    text-align: center;
   }
 }
