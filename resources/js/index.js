@@ -278,12 +278,32 @@ function initReviewsCarousel() {
     return Math.max(0, Math.ceil(cards.length / step) - 1)
   }
 
-  function stepOffset() {
-    const first = cards[0]
-    if (!first) return 0
+  function applySlideWidths() {
+    const viewport = carousel.querySelector('.reviews-carousel__viewport')
+    if (!viewport) return 0
 
+    const isMobile = perPage() === 1
+    const width = isMobile ? viewport.clientWidth : (cards[0]?.getBoundingClientRect().width || 300)
+
+    cards.forEach((card) => {
+      if (isMobile) {
+        card.style.flexBasis = `${width}px`
+        card.style.width = `${width}px`
+        card.style.maxWidth = `${width}px`
+      } else {
+        card.style.flexBasis = ''
+        card.style.width = ''
+        card.style.maxWidth = ''
+      }
+    })
+
+    return width
+  }
+
+  function stepOffset() {
     const gap = Number.parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap || '0') || 0
-    return perPage() * (first.getBoundingClientRect().width + gap)
+    const slideWidth = applySlideWidths()
+    return perPage() * (slideWidth + gap)
   }
 
   function syncControls() {
