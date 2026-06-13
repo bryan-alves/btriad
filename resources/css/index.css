@@ -173,6 +173,13 @@ body {
     border-block: 1px solid rgba(255, 255, 255, 0.14);
     background: rgba(0, 0, 0, 0.22);
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+    touch-action: pan-y pinch-zoom;
+    cursor: grab;
+    user-select: none;
+}
+
+.hero-carousel.is-swipe-tracking {
+    cursor: grabbing;
 }
 
 .hero-carousel__track {
@@ -188,6 +195,8 @@ body {
     object-fit: cover;
     opacity: 0;
     transition: opacity 0.28s ease;
+    -webkit-user-drag: none;
+    user-select: none;
 }
 
 .hero-carousel__slide.is-active {
@@ -286,11 +295,21 @@ body {
     width: 100%;
     max-width: calc(300px * 3 + 1rem * 2);
     margin: 0 auto;
+    touch-action: pan-y pinch-zoom;
+    cursor: grab;
+    user-select: none;
+}
+
+.reviews-carousel.is-swipe-tracking,
+.reviews-carousel__viewport.is-swipe-tracking {
+    cursor: grabbing;
 }
 
 .reviews-carousel__viewport {
     overflow: hidden;
     width: 100%;
+    touch-action: pan-y pinch-zoom;
+    cursor: grab;
 }
 
 .reviews-carousel__track {

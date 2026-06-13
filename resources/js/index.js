@@ -7,6 +7,80 @@ function isMobileNav() {
   return window.matchMedia('(max-width: 899px)').matches
 }
 
+/**
+ * Navegação por arrastar/deslizar (touch e mouse).
+ * Deslize para a esquerda = próximo; para a direita = anterior.
+ */
+function bindSwipe(root, { onSwipeLeft, onSwipeRight, canSwipe = () => true }) {
+  if (!root) return
+
+  let startX = 0
+  let startY = 0
+  let tracking = false
+  const threshold = 48
+
+  root.addEventListener('dragstart', (event) => {
+    if (event.target instanceof HTMLImageElement) {
+      event.preventDefault()
+    }
+  })
+
+  root.addEventListener('pointerdown', (event) => {
+    if (!canSwipe()) return
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    if (event.target instanceof Element && event.target.closest('button, a')) return
+
+    tracking = true
+    startX = event.clientX
+    startY = event.clientY
+    root.classList.add('is-swipe-tracking')
+
+    try {
+      root.setPointerCapture(event.pointerId)
+    } catch (_) {
+      /* ignore */
+    }
+  })
+
+  function finishSwipe(event) {
+    if (!tracking) return
+
+    tracking = false
+    root.classList.remove('is-swipe-tracking')
+
+    try {
+      root.releasePointerCapture(event.pointerId)
+    } catch (_) {
+      /* ignore */
+    }
+
+    const dx = event.clientX - startX
+    const dy = event.clientY - startY
+
+    if (Math.abs(dx) < threshold || Math.abs(dx) <= Math.abs(dy) * 1.15) {
+      return
+    }
+
+    if (dx < 0) {
+      onSwipeLeft()
+    } else {
+      onSwipeRight()
+    }
+  }
+
+  root.addEventListener('pointerup', finishSwipe)
+  root.addEventListener('pointercancel', (event) => {
+    tracking = false
+    root.classList.remove('is-swipe-tracking')
+
+    try {
+      root.releasePointerCapture(event.pointerId)
+    } catch (_) {
+      /* ignore */
+    }
+  })
+}
+
 function updateHeaderCssVars() {
   const siteHeader = document.getElementById('site-header')
   const main = document.querySelector('.nav--main')
@@ -165,6 +239,19 @@ function initHeroCarousel() {
     })
   })
 
+  if (slides.length > 1) {
+    bindSwipe(carousel, {
+      onSwipeLeft: () => {
+        show(current + 1)
+        restart()
+      },
+      onSwipeRight: () => {
+        show(current - 1)
+        restart()
+      },
+    })
+  }
+
   restart()
 }
 
@@ -216,6 +303,12 @@ function initReviewsCarousel() {
 
   prev?.addEventListener('click', () => show(page - 1))
   next?.addEventListener('click', () => show(page + 1))
+
+  bindSwipe(carousel.querySelector('.reviews-carousel__viewport') || carousel, {
+    canSwipe: () => cards.length > perPage(),
+    onSwipeLeft: () => show(page + 1),
+    onSwipeRight: () => show(page - 1),
+  })
 
   window.addEventListener('resize', () => {
     const currentPerPage = perPage()
