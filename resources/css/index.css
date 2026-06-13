@@ -418,7 +418,6 @@ body {
 @media (max-width: 767px) {
     .reviews-carousel {
         max-width: min(300px, 100%);
-        padding-inline: 2.25rem;
     }
 
     .review-card {
