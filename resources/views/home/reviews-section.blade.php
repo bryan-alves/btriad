@@ -33,7 +33,7 @@
                                         </span>
                                     </div>
                                 </div>
-                                <p class="review-card__comment">{{ $review->comment }}</p>
+                                <p class="review-card__comment">{{ \Illuminate\Support\Str::limit($review->comment, \App\Models\SiteReview::MAX_COMMENT_LENGTH) }}</p>
                             </article>
                         @endforeach
                     </div>

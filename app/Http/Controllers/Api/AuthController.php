@@ -187,7 +187,7 @@ class AuthController extends Controller
 
         $data = $request->validate([
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
-            'comment' => ['required', 'string', 'min:10', 'max:2000'],
+            'comment' => ['required', 'string', 'min:10', 'max:'.SiteReview::MAX_COMMENT_LENGTH],
         ]);
 
         $student = $user->student;

@@ -138,6 +138,8 @@ const reviewForm = reactive({
   sort_order: 0,
 })
 
+const REVIEW_COMMENT_MAX = 200
+
 const authorPhotoFile = ref<File | null>(null)
 const editingAuthorPhotoUrl = ref<string | null>(null)
 const reviewPhotoFieldKey = ref(0)
@@ -426,7 +428,7 @@ function editReview(review: SiteReview) {
   reviewForm.author_name = review.author_name
   reviewForm.author_photo_path = review.author_photo_path ?? ''
   reviewForm.rating = review.rating
-  reviewForm.comment = review.comment
+  reviewForm.comment = review.comment.slice(0, REVIEW_COMMENT_MAX)
   reviewForm.active = review.active
   reviewForm.sort_order = review.sort_order
   authorPhotoFile.value = null
@@ -791,7 +793,8 @@ watch(activeTab, (tab) => {
 
           <label class="site-settings__field">
             <span>Comentário</span>
-            <textarea v-model="reviewForm.comment" rows="4" />
+            <textarea v-model="reviewForm.comment" rows="4" :maxlength="REVIEW_COMMENT_MAX" />
+            <small class="site-settings__hint">{{ reviewForm.comment.length }}/{{ REVIEW_COMMENT_MAX }} caracteres</small>
             <small v-if="reviewErrors.comment">{{ reviewErrors.comment }}</small>
           </label>
 

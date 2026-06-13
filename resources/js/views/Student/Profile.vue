@@ -145,6 +145,8 @@ const studentReviewForm = reactive({
   comment: '',
 })
 
+const REVIEW_COMMENT_MAX = 200
+
 const profileTabs = computed(() => {
   const items = [
     { id: 'personal-data', name: 'Dados do aluno' },
@@ -788,7 +790,7 @@ async function loadStudentReview() {
 
     if (studentReview.value) {
       studentReviewForm.rating = studentReview.value.rating
-      studentReviewForm.comment = studentReview.value.comment
+      studentReviewForm.comment = studentReview.value.comment.slice(0, REVIEW_COMMENT_MAX)
     } else {
       studentReviewForm.rating = 5
       studentReviewForm.comment = ''
@@ -1525,8 +1527,12 @@ onMounted(async () => {
                   v-model="studentReviewForm.comment"
                   class="input-base min-h-[6rem]"
                   rows="4"
+                  :maxlength="REVIEW_COMMENT_MAX"
                   placeholder="Conte como tem sido sua experiência na academia"
                 />
+                <small class="student-review-form__counter">
+                  {{ studentReviewForm.comment.length }}/{{ REVIEW_COMMENT_MAX }} caracteres
+                </small>
                 <small v-if="studentReviewErrors.comment" class="student-review-form__error">
                   {{ studentReviewErrors.comment }}
                 </small>
@@ -2227,6 +2233,11 @@ onMounted(async () => {
 .student-review-form__field {
   display: grid;
   gap: 0.5rem;
+}
+
+.student-review-form__counter {
+  color: #6b7280;
+  font-size: 0.8125rem;
 }
 
 .student-review-form__error {

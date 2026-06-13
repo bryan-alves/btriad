@@ -98,7 +98,7 @@ class SiteReviewController extends Controller
             'author_photo_path' => ['nullable', 'string', 'max:255'],
             'author_photo' => ['nullable', 'image', 'max:2048'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
-            'comment' => ['required', 'string'],
+            'comment' => ['required', 'string', 'min:10', 'max:'.SiteReview::MAX_COMMENT_LENGTH],
             'active' => ['required', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);

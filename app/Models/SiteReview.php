@@ -10,6 +10,8 @@ class SiteReview extends Model
 {
     use BelongsToTenant;
 
+    public const MAX_COMMENT_LENGTH = 200;
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_APPROVED = 'approved';
