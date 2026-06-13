@@ -98,12 +98,12 @@ class StudentSeeder extends Seeder
         $emergency = json_encode(self::defaultEmergencyContacts());
 
         $payload = [];
+        $graduationPayload = [];
         foreach (self::rows() as $row) {
             $payload[] = [
                 'id' => $row['id'],
                 'tenant_id' => $tenant->id,
                 'user_id' => null,
-                'belt_id' => $row['belt_id'],
                 'degree' => null,
                 'name' => $row['name'],
                 'cpf' => null,
@@ -122,10 +122,27 @@ class StudentSeeder extends Seeder
                 'created_at' => $row['created_at'],
                 'updated_at' => $row['updated_at'],
             ];
+
+            if ($row['belt_id']) {
+                $graduationPayload[] = [
+                    'tenant_id' => $tenant->id,
+                    'student_id' => $row['id'],
+                    'belt_id' => $row['belt_id'],
+                    'degree' => 0,
+                    'graduated_at' => $row['first_class_at'] ?? substr((string) $row['created_at'], 0, 10),
+                    'photo' => null,
+                    'created_at' => $row['created_at'],
+                    'updated_at' => $row['updated_at'],
+                ];
+            }
         }
 
         foreach (array_chunk($payload, 50) as $chunk) {
             Student::query()->insert($chunk);
+        }
+
+        foreach (array_chunk($graduationPayload, 50) as $chunk) {
+            DB::table('student_graduations')->insert($chunk);
         }
 
         if (DB::getDriverName() === 'mysql') {

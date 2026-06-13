@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SchoolClass;
 use App\Support\CurrentTenant;
+use App\Support\SiteScheduleFromClasses;
 
 class HomeController extends Controller
 {
@@ -15,12 +17,14 @@ class HomeController extends Controller
                 ->orderBy('sort_order')
                 ->orderByDesc('id'),
         ]);
-        $view = "tenants.{$tenant->slug}.index";
 
-        if (! view()->exists($view)) {
-            abort(404, 'Página inicial não configurada para este tenant.');
-        }
+        $classes = SchoolClass::query()
+            ->where('active', true)
+            ->orderBy('name')
+            ->get();
 
-        return view($view, compact('tenant'));
+        $schedule = SiteScheduleFromClasses::build($classes);
+
+        return view('tenants.index', compact('tenant', 'schedule'));
     }
 }

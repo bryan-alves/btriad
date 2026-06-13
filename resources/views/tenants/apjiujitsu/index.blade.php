@@ -2,9 +2,17 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
+    @php
+        $site = $tenant?->site;
+        $academyName = $site?->academy_name ?? 'AP Jiu-Jitsu';
+        $heroTitle = $site?->hero_title ?: 'Estamos no aquecimento!';
+        $heroSubtitle = $site?->hero_subtitle ?: 'Em breve, o site oficial da AP Jiu-Jitsu. Fique ligado para novidades sobre nossas aulas, horários e eventos!';
+        $logoUrl = $site?->logo_url ?? asset('apjiujitsu-logo.png');
+        $carouselImages = $site?->carousel_image_urls ?? [];
+    @endphp
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>AP Jiu-Jitsu | Aulas de jiu-jitsu para crianças e adultos</title>
+    <title>{{ $site?->page_title ?: 'AP Jiu-Jitsu | Aulas de jiu-jitsu para crianças e adultos' }}</title>
     <meta name="description"
         content="AP Jiu-Jitsu: aulas de jiu-jitsu para crianças e adultos. Horários segundas, quartas e sextas. Aula experimental pelo WhatsApp.">
     <link rel="canonical" href="{{ url('/') }}">
@@ -17,16 +25,16 @@
         content="Aulas de jiu-jitsu para crianças e adultos. Segundas, quartas e sextas.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url('/') }}">
-    <meta property="og:image" content="{{ url(asset('apjiujitsu-logo.png')) }}">
-    <meta property="og:image:alt" content="Logotipo AP Jiu-Jitsu">
+    <meta property="og:image" content="{{ url($logoUrl) }}">
+    <meta property="og:image:alt" content="Logotipo {{ $academyName }}">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="AP Jiu-Jitsu | Equipe e horários">
     <meta name="twitter:description"
         content="Aulas de jiu-jitsu para crianças e adultos. Segundas, quartas e sextas.">
-    <meta name="twitter:image" content="{{ url(asset('apjiujitsu-logo.png')) }}">
+    <meta name="twitter:image" content="{{ url($logoUrl) }}">
 
-    <link rel="icon" href="{{ asset('apjiujitsu-logo.png') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ $logoUrl }}" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
@@ -36,7 +44,7 @@
     '@graph' => [
         [
             '@type' => 'WebSite',
-            'name' => 'AP Jiu-Jitsu',
+            'name' => $academyName,
             'url' => url('/'),
             'inLanguage' => 'pt-BR',
             'description' => 'Site da AP Jiu-Jitsu — aulas, horários e contato.',
@@ -44,13 +52,13 @@
         [
             '@type' => 'Organization',
             '@id' => url('/').'#organization',
-            'name' => 'AP Jiu-Jitsu',
+            'name' => $academyName,
             'url' => url('/'),
             'logo' => [
                 '@type' => 'ImageObject',
-                'url' => url(asset('apjiujitsu-logo.png')),
+                'url' => url($logoUrl),
             ],
-            'image' => url(asset('apjiujitsu-logo.png')),
+            'image' => url($logoUrl),
             'sameAs' => [
                 'https://apjiujitsu.com.br',
             ],
@@ -96,8 +104,8 @@
     <header class="site-header" id="site-header">
         <nav class="nav nav--main" aria-label="Navegação principal">
             <div class="nav__bar">
-                <a href="{{ url('/') }}" class="nav__logo" title="AP Jiu-Jitsu — página inicial">
-                    <img src="{{ asset('apjiujitsu-logo.png') }}" alt="AP Jiu-Jitsu" decoding="async">
+                <a href="{{ url('/') }}" class="nav__logo" title="{{ $academyName }} — página inicial">
+                    <img src="{{ $logoUrl }}" alt="{{ $academyName }}" decoding="async">
                 </a>
 
                 <ul class="nav__links nav__links--desktop" aria-label="Seções do site">
@@ -139,7 +147,7 @@
 
         <aside class="nav__drawer" id="nav-drawer" aria-hidden="true" aria-label="Menu lateral">
             <div class="nav__drawer-head">
-                <span class="nav__drawer-brand">AP Jiu-Jitsu</span>
+                <span class="nav__drawer-brand">{{ $academyName }}</span>
                 <button type="button" class="nav__drawer-close" id="nav-drawer-close" aria-label="Fechar menu">&times;</button>
             </div>
 
@@ -161,12 +169,42 @@
     <main id="conteudo-principal" class="page-sections">
         <section id="sobre" class="page-section page-section--hero" aria-labelledby="sobre-heading">
             <div class="page-section__inner page-section__inner--hero">
-                <img class="page-section__logo" src="{{ asset('apjiujitsu-logo.png') }}"
-                    alt="Logotipo AP Jiu-Jitsu" decoding="async">
-                <h1 id="sobre-heading" class="page-section__title"><strong>Estamos no aquecimento!</strong></h1>
+                @if (! empty($carouselImages))
+                    <div class="hero-carousel" data-hero-carousel>
+                        <div class="hero-carousel__track">
+                            @foreach ($carouselImages as $imageUrl)
+                                <img
+                                    class="hero-carousel__slide {{ $loop->first ? 'is-active' : '' }}"
+                                    src="{{ $imageUrl }}"
+                                    alt="Foto da {{ $academyName }}"
+                                    decoding="async"
+                                    loading="{{ $loop->first ? 'eager' : 'lazy' }}"
+                                >
+                            @endforeach
+                        </div>
+
+                        @if (count($carouselImages) > 1)
+                            <button type="button" class="hero-carousel__control hero-carousel__control--prev" data-hero-carousel-prev aria-label="Foto anterior">&lsaquo;</button>
+                            <button type="button" class="hero-carousel__control hero-carousel__control--next" data-hero-carousel-next aria-label="Próxima foto">&rsaquo;</button>
+                            <div class="hero-carousel__dots" aria-label="Fotos do carrossel">
+                                @foreach ($carouselImages as $imageUrl)
+                                    <button
+                                        type="button"
+                                        class="hero-carousel__dot {{ $loop->first ? 'is-active' : '' }}"
+                                        data-hero-carousel-dot="{{ $loop->index }}"
+                                        aria-label="Mostrar foto {{ $loop->iteration }}"
+                                    ></button>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @else
+                    <img class="page-section__logo" src="{{ $logoUrl }}"
+                        alt="Logotipo {{ $academyName }}" decoding="async">
+                @endif
+                <h1 id="sobre-heading" class="page-section__title"><strong>{{ $heroTitle }}</strong></h1>
                 <p class="page-section__lead">
-                    Em breve, o site oficial da <strong>AP Jiu-Jitsu.</strong>
-                    Fique ligado para novidades sobre nossas aulas, horários e eventos!
+                    {{ $heroSubtitle }}
                 </p>
             </div>
         </section>
@@ -222,7 +260,7 @@
                 <h2 id="localizacao-heading" class="page-section__heading page-section__heading--center">Localização</h2>
 
                 <address class="location-address">
-                    <span class="location-address__name">AP Jiu-Jitsu</span><br>
+                    <span class="location-address__name">{{ $academyName }}</span><br>
                     Endereço em breve
                 </address>
             </div>
@@ -231,10 +269,10 @@
 
     <footer class="footer">
         <div class="footer__logo">
-            <img src="{{ asset('apjiujitsu-logo.png') }}" alt="AP Jiu-Jitsu — logotipo" decoding="async" class="footer__logo-img">
+            <img src="{{ $logoUrl }}" alt="{{ $academyName }} — logotipo" decoding="async" class="footer__logo-img">
         </div>
         <p>
-            <strong>© {{ date('Y') }} • AP Jiu-Jitsu</strong><br>
+            <strong>© {{ date('Y') }} • {{ $academyName }}</strong><br>
             <span>Todos os direitos reservados</span>
         </p>
         <div class="footer__social-links">

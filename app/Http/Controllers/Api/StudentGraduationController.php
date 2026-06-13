@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentGraduationRequest;
-use App\Models\Student;
 use App\Models\StudentGraduation;
 use Illuminate\Http\Request;
 
@@ -72,7 +71,6 @@ class StudentGraduationController extends Controller
                 'photo' => $this->normalizePhotoLink($data['photo'] ?? null),
             ]);
 
-            $graduation->student()->update(['belt_id' => $graduation->belt_id]);
             $graduation->load(['student', 'belt']);
 
             return response()->json($graduation, 200);
@@ -96,7 +94,6 @@ class StudentGraduationController extends Controller
                 'photo' => $this->normalizePhotoLink($data['photo'] ?? null),
             ]);
 
-            $graduation->student()->update(['belt_id' => $graduation->belt_id]);
             $graduation->load(['student', 'belt']);
 
             return response()->json($graduation, 201);
@@ -114,16 +111,6 @@ class StudentGraduationController extends Controller
             $studentId = $graduation->student_id;
 
             $graduation->delete();
-
-            $latest = StudentGraduation::query()
-                ->where('student_id', $studentId)
-                ->orderByDesc('graduated_at')
-                ->orderByDesc('id')
-                ->first();
-
-            Student::query()
-                ->whereKey($studentId)
-                ->update(['belt_id' => $latest?->belt_id]);
 
             return response()->json([
                 'message' => 'Graduação excluída com sucesso.',

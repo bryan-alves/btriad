@@ -16,7 +16,9 @@ class StudentController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Student::query()->with('belt')->orderBy('name');
+            $query = Student::query()
+                ->with('currentGraduation.belt')
+                ->orderBy('name');
 
             if (! $request->boolean('include_inactive')) {
                 $includeStudentId = $request->filled('include_student_id')
@@ -36,7 +38,9 @@ class StudentController extends Controller
             }
 
             if ($request->filled('belt_id')) {
-                $query->where('belt_id', (int) $request->query('belt_id'));
+                $query->whereHas('currentGraduation', function ($q) use ($request) {
+                    $q->where('belt_id', (int) $request->query('belt_id'));
+                });
             }
 
             if ($request->has('has_registration_form')) {
@@ -103,7 +107,7 @@ class StudentController extends Controller
     public function show($id)
     {
         try {
-            $student = Student::with(['belt', 'user'])->findOrFail($id);
+            $student = Student::with(['currentGraduation.belt', 'user'])->findOrFail($id);
 
             return response()->json($student, 200);
 
@@ -143,7 +147,7 @@ class StudentController extends Controller
 
             $student->update($data);
 
-            $student->load('belt');
+            $student->load('currentGraduation.belt');
 
             return response()->json($student, 200);
 

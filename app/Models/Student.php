@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Carbon\Carbon;
 
 class Student extends Model
@@ -13,7 +14,6 @@ class Student extends Model
 
     protected $fillable = [
         'tenant_id',
-        'belt_id',
         'user_id',
         'photo',
         'name',
@@ -43,6 +43,7 @@ class Student extends Model
 
     protected $appends = [
         'photo_url',
+        'belt',
     ];
 
     public function getAgeAttribute()
@@ -62,8 +63,21 @@ class Student extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function belt()
+    public function currentGraduation(): HasOne
     {
-        return $this->belongsTo(Belt::class);
+        return $this->hasOne(StudentGraduation::class)
+            ->ofMany([
+                'graduated_at' => 'max',
+                'id' => 'max',
+            ]);
+    }
+
+    public function getBeltAttribute(): ?Belt
+    {
+        if (! $this->relationLoaded('currentGraduation')) {
+            $this->load('currentGraduation.belt');
+        }
+
+        return $this->currentGraduation?->belt;
     }
 }

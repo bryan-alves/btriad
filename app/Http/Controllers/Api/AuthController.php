@@ -22,7 +22,7 @@ class AuthController extends Controller
 
     private function userPayload(User $user, Request $request): array
     {
-        $user->load(['student.belt']);
+        $user->load(['student.currentGraduation.belt']);
 
         return array_merge($user->toArray(), [
             'tenant' => CurrentTenant::get(),

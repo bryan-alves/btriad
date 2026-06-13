@@ -4,48 +4,45 @@
 <head>
     @php
         $site = $tenant?->site;
-        $academyName = $site?->academy_name ?? 'Equipe B-Triad Jiu-Jitsu';
-        $pageTitle = $site?->page_title ?: 'B-Triad Jiu-Jitsu | Aulas de jiu-jitsu para crianças e adultos';
-        $heroTitle = $site?->hero_title ?: 'Estamos no aquecimento!';
-        $heroSubtitle = $site?->hero_subtitle ?: 'Em breve, o site oficial da Equipe B-Triad Jiu-Jitsu. Fique ligado para novidades sobre nossas aulas, horários e eventos!';
-        $logoUrl = $site?->logo_url ?? asset('logo.png');
+        $academyName = $site?->academy_name ?? $tenant?->name ?? 'Academia';
+        $pageTitle = $site?->page_title ?: "{$academyName} | Aulas de jiu-jitsu";
+        $heroTitle = $site?->hero_title ?: $academyName;
+        $heroSubtitle = $site?->hero_subtitle ?: 'Aulas de jiu-jitsu para crianças e adultos.';
+        $navLogoUrl = $site?->nav_logo_url ?? $site?->logo_url ?? asset('img/logo/triangulo.png');
+        $heroLogoUrl = $site?->hero_logo_url ?? $site?->logo_url ?? asset('img/logo/triangulo.png');
         $carouselImages = $site?->carousel_image_urls ?? [];
         $primaryColor = $site?->primary_color ?? '#c41e3a';
         $backgroundColor = $site?->background_color ?? '#3d3d3d';
-        $schedule = $site?->schedule ?: [
-            ['day' => 'Segunda-feira', 'kids_time' => '18h - 19h', 'adults_time' => '19h - 20h'],
-            ['day' => 'Quarta-feira', 'kids_time' => '18h - 19h', 'adults_time' => '19h - 20h'],
-            ['day' => 'Sexta-feira', 'kids_time' => '18h - 19h', 'adults_time' => '19h - 20h'],
-        ];
+        $schedule = is_array($schedule ?? null) ? $schedule : ['weekdays' => [], 'rows' => []];
+        $scheduleRows = $schedule['rows'] ?? [];
         $reviews = $tenant?->reviews ?? collect();
-        $address = $site?->address ?: "R. Cel. Antônio Pietscher, 160 — Vila Jockei Clube\nSão Vicente, SP — CEP 11360-330\nBrasil";
+        $address = trim((string) ($site?->address ?? ''));
+        $metaDescription = trim($heroSubtitle.' '.($address ? "Endereço: {$address}" : ''));
+        $mapQuery = $address ?: $academyName;
+        $sameAs = array_values(array_filter([$site?->youtube, $site?->instagram, $site?->whatsapp]));
     @endphp
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>{{ $pageTitle }}</title>
-    <meta name="description"
-        content="Equipe B-Triad Jiu-Jitsu em São Vicente (SP): aulas para crianças e adultos na R. Cel. Antônio Pietscher, 160. Horários segundas, quartas e sextas. Aula experimental pelo WhatsApp.">
+    <meta name="description" content="{{ $metaDescription }}">
     <link rel="canonical" href="{{ url('/') }}">
     <meta name="robots" content="index, follow">
-    <meta name="theme-color" content="#1b1b18">
+    <meta name="theme-color" content="{{ $site?->header_color ?? '#1b1b18' }}">
 
     <meta property="og:locale" content="pt_BR">
     <meta property="og:title" content="{{ $pageTitle }}">
-    <meta property="og:description"
-        content="Aulas de jiu-jitsu para crianças e adultos em São Vicente (SP). Segundas, quartas e sextas. R. Cel. Antônio Pietscher, 160 — Vila Jockei Clube.">
+    <meta property="og:description" content="{{ $metaDescription }}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url('/') }}">
-    <meta property="og:image" content="{{ url($logoUrl) }}">
+    <meta property="og:image" content="{{ url($navLogoUrl) }}">
     <meta property="og:image:alt" content="Logotipo {{ $academyName }}">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $pageTitle }}">
-    <meta name="twitter:description"
-        content="Aulas em São Vicente (SP), Vila Jockei Clube. Segundas, quartas e sextas. Aula experimental pelo WhatsApp.">
-    <meta name="twitter:image" content="{{ url($logoUrl) }}">
+    <meta name="twitter:description" content="{{ $metaDescription }}">
+    <meta name="twitter:image" content="{{ url($navLogoUrl) }}">
 
-    <link rel="icon" href="/img/logo/triangulo.png" type="image/x-icon">
-    <!-- Fonts -->
+    <link rel="icon" href="{{ $navLogoUrl }}" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
@@ -58,7 +55,7 @@
             'name' => $academyName,
             'url' => url('/'),
             'inLanguage' => 'pt-BR',
-            'description' => 'Site da Equipe B-Triad Jiu-Jitsu — aulas, horários e contato.',
+            'description' => $metaDescription,
         ],
         [
             '@type' => 'Organization',
@@ -67,33 +64,16 @@
             'url' => url('/'),
             'logo' => [
                 '@type' => 'ImageObject',
-                'url' => url($logoUrl),
+                'url' => url($navLogoUrl),
             ],
-            'image' => url($logoUrl),
-            'address' => [
-                '@type' => 'PostalAddress',
-                'streetAddress' => 'R. Cel. Antônio Pietscher, 160 - Vila Jockei Clube',
-                'addressLocality' => 'São Vicente',
-                'addressRegion' => 'SP',
-                'postalCode' => '11360-330',
-                'addressCountry' => 'BR',
-            ],
-            'geo' => [
-                '@type' => 'GeoCoordinates',
-                'latitude' => -23.9455525,
-                'longitude' => -46.3987499,
-            ],
-            'hasMap' => 'https://www.google.com/maps/place/Equipe+B-Triad+Jiu-Jitsu/@-23.9455525,-46.3987499,17z',
-            'sameAs' => [
-                'https://www.instagram.com/equipe.btriad.jiujitsu',
-                'https://wa.me/5513981245120',
-            ],
+            'image' => url($navLogoUrl),
+            'address' => $address ?: null,
+            'sameAs' => $sameAs,
         ],
     ],
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
     </script>
 
-    <!-- Styles / Scripts -->
     @vite(['resources/css/index.css', 'resources/js/index.js'])
     @stack('styles')
 </head>
@@ -135,44 +115,49 @@
                         @endif
                     </div>
                 @else
-                    <img class="page-section__logo" src="{{ $logoUrl }}"
+                    <img class="page-section__logo" src="{{ $heroLogoUrl }}"
                         alt="Logotipo {{ $academyName }}" decoding="async">
                 @endif
-                <h1 id="sobre-heading" class="page-section__title"><strong>{{ $heroTitle }}</strong></h1>
-                <p class="page-section__lead">
-                    {{ $heroSubtitle }}
-                </p>
+
+                <div class="page-section__copy">
+                    <h1 id="sobre-heading" class="page-section__title"><strong>{{ $heroTitle }}</strong></h1>
+                    <p class="page-section__lead">{{ $heroSubtitle }}</p>
+                </div>
             </div>
         </section>
 
         <section id="horarios" class="page-section" aria-labelledby="horarios-heading">
             <div class="page-section__inner page-section__inner--wide page-section__inner--stack">
                 <h2 id="horarios-heading" class="page-section__heading page-section__heading--center">Horários</h2>
-                <p class="page-section__intro page-section__text">
-                    Confira os dias e horários das aulas.
-                </p>
+                @if (! empty($scheduleRows))
+                    <p class="page-section__intro page-section__text">Confira os dias e horários das aulas.</p>
 
-                <div class="schedule-table-wrap">
-                    <table class="schedule-table">
-                        <caption class="visually-hidden">Grade de horários por dia e faixa etária</caption>
-                        <thead>
-                            <tr>
-                                <th scope="col" class="schedule-table__col-day">Dia</th>
-                                <th scope="col">Crianças</th>
-                                <th scope="col">Adultos</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($schedule as $row)
+                    <div class="schedule-table-wrap">
+                        <table class="schedule-table schedule-table--matrix">
+                            <caption class="visually-hidden">Grade de horários por turma e dia da semana</caption>
+                            <thead>
                                 <tr>
-                                    <th scope="row" class="schedule-table__col-day">{{ $row['day'] ?? '' }}</th>
-                                    <td>{{ $row['kids_time'] ?? '-' }}</td>
-                                    <td>{{ $row['adults_time'] ?? '-' }}</td>
+                                    <th scope="col" class="schedule-table__col-class">Turma</th>
+                                    @foreach ($schedule['weekdays'] ?? [] as $weekday)
+                                        <th scope="col">{{ $weekday['label'] ?? '' }}</th>
+                                    @endforeach
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                @foreach ($scheduleRows as $row)
+                                    <tr>
+                                        <th scope="row" class="schedule-table__col-class">{{ $row['class_name'] ?? '' }}</th>
+                                        @foreach ($row['times'] ?? [] as $time)
+                                            <td>{{ $time ?: '-' }}</td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="page-section__text">Horários em breve.</p>
+                @endif
             </div>
         </section>
 
@@ -214,24 +199,31 @@
                 <h2 id="localizacao-heading" class="page-section__heading page-section__heading--center">Localização</h2>
 
                 <address class="location-address">
-                    <span class="location-address__name">{{ $academyName }}</span><br>
-                    {!! nl2br(e($address)) !!}
+                    <span class="location-address__name">{{ $academyName }}</span>
+                    @if ($address)
+                        <br>{!! nl2br(e($address)) !!}
+                    @else
+                        <br>Endereço em breve
+                    @endif
                 </address>
-                <div class="location-map">
-                    <iframe
-                        src="https://www.google.com/maps?q=-23.9455525,-46.3987499&amp;z=17&amp;output=embed"
-                        title="Mapa do Google: localização da Equipe B-Triad Jiu-Jitsu em São Vicente"
-                        width="600"
-                        height="350"
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade"
-                        allowfullscreen></iframe>
-                </div>
 
-                <a class="location-cta" href="https://www.google.com/maps/dir/?api=1&amp;destination={{ rawurlencode('R. Cel. Antônio Pietscher, 160 - Vila Jockei Clube, São Vicente - SP, 11360-330, Brasil') }}"
-                    target="_blank" rel="noopener noreferrer">
-                    Como chegar
-                </a>
+                @if ($address)
+                    <div class="location-map">
+                        <iframe
+                            src="https://www.google.com/maps?q={{ rawurlencode($mapQuery) }}&amp;output=embed"
+                            title="Mapa do Google: localização da {{ $academyName }}"
+                            width="600"
+                            height="350"
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade"
+                            allowfullscreen></iframe>
+                    </div>
+
+                    <a class="location-cta" href="https://www.google.com/maps/dir/?api=1&amp;destination={{ rawurlencode($mapQuery) }}"
+                        target="_blank" rel="noopener noreferrer">
+                        Como chegar
+                    </a>
+                @endif
             </div>
         </section>
     </main>

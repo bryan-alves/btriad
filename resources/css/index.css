@@ -116,6 +116,10 @@ body {
     justify-content: center;
 }
 
+.page-section--hero {
+    padding-inline: 0;
+}
+
 .page-section__inner {
     max-width: 640px;
     margin: 0 auto;
@@ -153,6 +157,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 1rem;
+    max-width: 100%;
 }
 
 .page-section__logo {
@@ -161,9 +166,92 @@ body {
     display: block;
 }
 
+.hero-carousel {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+    overflow: hidden;
+    border-block: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(0, 0, 0, 0.22);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+}
+
+.hero-carousel__track {
+    position: relative;
+    height: clamp(260px, 48vw, 620px);
+}
+
+.hero-carousel__slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.28s ease;
+}
+
+.hero-carousel__slide.is-active {
+    opacity: 1;
+}
+
+.hero-carousel__control {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.48);
+    color: #fff;
+    cursor: pointer;
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.hero-carousel__control:hover {
+    background: var(--site-primary-color, #c41e3a);
+}
+
+.hero-carousel__control--prev {
+    left: 0.75rem;
+}
+
+.hero-carousel__control--next {
+    right: 0.75rem;
+}
+
+.hero-carousel__dots {
+    position: absolute;
+    left: 50%;
+    bottom: 0.75rem;
+    display: flex;
+    gap: 0.4rem;
+    transform: translateX(-50%);
+}
+
+.hero-carousel__dot {
+    width: 10px;
+    height: 10px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+}
+
+.hero-carousel__dot.is-active {
+    width: 24px;
+    background: var(--site-primary-color, #c41e3a);
+}
+
 .page-section__title {
     font-size: 1.625rem;
     margin: 0;
+}
+
+.page-section__copy {
+    width: min(640px, calc(100% - 2.5rem));
 }
 
 .page-section__lead {
@@ -221,6 +309,20 @@ body {
     line-height: 1.5;
 }
 
+.review-card__author {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.review-card__photo {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
 .review-card strong {
     color: #fff;
 }
@@ -267,11 +369,19 @@ body {
     border-bottom: none;
 }
 
-.schedule-table .schedule-table__col-day {
+.schedule-table .schedule-table__col-day,
+.schedule-table .schedule-table__col-class {
     text-align: left;
-    font-weight: 600;
-    color: #fff;
     white-space: nowrap;
+}
+
+.schedule-table--matrix thead th:first-child,
+.schedule-table--matrix tbody th {
+    text-align: left;
+}
+
+.schedule-table--matrix tbody td {
+    min-width: 5.5rem;
 }
 
 /* Localização */

@@ -33,6 +33,7 @@ class TenantSeeder extends Seeder
                     'app_background_color' => '#f8fafc',
                     'app_login_background_color' => '#333333',
                     'logo_path' => 'logo.png',
+                    'carousel_images' => [],
                     'schedule' => [
                         ['day' => 'Segunda-feira', 'kids_time' => '18h - 19h', 'adults_time' => '19h - 20h'],
                         ['day' => 'Quarta-feira', 'kids_time' => '18h - 19h', 'adults_time' => '19h - 20h'],
@@ -59,6 +60,7 @@ class TenantSeeder extends Seeder
                     'app_background_color' => '#f8fafc',
                     'app_login_background_color' => '#1f2937',
                     'logo_path' => 'apjiujitsu-logo.png',
+                    'carousel_images' => [],
                     'schedule' => [],
                 ],
             ],

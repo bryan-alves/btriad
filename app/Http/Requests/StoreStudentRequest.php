@@ -17,7 +17,6 @@ class StoreStudentRequest extends FormRequest
     {
         return [
             // Relacionamento
-            'belt_id' => ['nullable', 'exists:belts,id'],
             'user_id' => [
                 'nullable',
                 Rule::exists('users', 'id')->where(fn ($query) => $query->where('tenant_id', CurrentTenant::id())),

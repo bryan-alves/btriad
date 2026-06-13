@@ -7,6 +7,7 @@ import Tabs from '../../components/tabs/Tabs.vue'
 import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
 import PhotoCropPicker from '../../components/photo/PhotoCropPicker.vue'
+import { toastDanger, toastSuccess } from '../../utils/toast'
 import {
   attendanceFrequencyPercent,
   collectClassesFromTrainingsInYear,
@@ -34,11 +35,9 @@ const adminSaveLoading = ref(false)
 const adminStatusBusy = ref(false)
 
 const isStudentActive = computed(() => student.value?.active !== false)
-const belts = ref<{ label: string; value: number }[]>([])
 const users = ref<{ label: string; value: string | number }[]>([])
 
 const adminForm = reactive({
-  belt_id: null as number | null,
   photo: null as File | null,
   name: '',
   cpf: '',
@@ -71,7 +70,6 @@ const adminDisplayPhotoUrl = computed(
 )
 
 const adminFormErrors = ref({
-  belt_id: null as string | null,
   photo: null as string | null,
   name: '',
   cpf: '',
@@ -437,7 +435,7 @@ async function loadGraduations() {
 }
 
 function beltLabel(belt: { name?: string; group?: string } | null | undefined) {
-  if (!belt?.name) return '—'
+  if (!belt?.name) return 'Graduação não cadastrada'
   return belt.group ? `${belt.name} — ${belt.group}` : belt.name
 }
 
@@ -457,7 +455,6 @@ function validateCPF(cpf: string) {
 
 function validateAdminForm() {
   const e: any = {
-    belt_id: null,
     photo: null,
     name: '',
     cpf: '',
@@ -491,7 +488,6 @@ function fillAdminFormFromStudent() {
     URL.revokeObjectURL(adminLocalPhotoPreview.value)
     adminLocalPhotoPreview.value = null
   }
-  adminForm.belt_id = s.belt_id ?? null
   adminForm.name = s.name ?? ''
   adminForm.cpf = s.cpf ?? ''
   adminForm.birth_date = s.birth_date?.split?.('T')?.[0] ?? ''
@@ -535,20 +531,13 @@ function onAdminPhotoCropped(file: File) {
 }
 
 function onAdminPhotoCropError(message: string) {
-  alert(message)
+  toastDanger(message)
 }
 
-async function loadBeltsAndUsers() {
+async function loadUsers() {
   try {
-    const [bRes, uRes] = await Promise.all([
-      axios.get('/api/belts'),
-      axios.get('/api/users', { params: { all: 1 } }),
-    ])
-    belts.value = (bRes.data || []).map(({ id, name, group }: any) => ({
-      label: group ? `${name} - ${group}` : name,
-      value: id,
-    }))
-    users.value = (uRes.data || []).map((u: any) => ({
+    const { data } = await axios.get('/api/users', { params: { all: 1 } })
+    users.value = (data || []).map((u: any) => ({
       label: `${u.name} (${u.username})`,
       value: u.id,
     }))
@@ -590,9 +579,9 @@ async function toggleStudentActiveStatus() {
       await axios.delete(`/api/students/${adminStudentId.value}`)
     }
     await loadProfile()
-    alert(activating ? 'Aluno reativado.' : 'Aluno desativado.')
+    toastSuccess(activating ? 'Aluno reativado.' : 'Aluno desativado.')
   } catch (e: any) {
-    alert(e.response?.data?.message || 'Erro ao alterar estado do aluno')
+    toastDanger(e.response?.data?.message || 'Erro ao alterar estado do aluno')
   } finally {
     adminStatusBusy.value = false
   }
@@ -636,10 +625,10 @@ async function submitAdminStudent() {
       user.value = { username: '—' }
     }
     cancelAdminEdit()
-    alert('Salvo com sucesso')
+    toastSuccess('Salvo com sucesso')
   } catch (e) {
     console.error(e)
-    alert('Erro ao salvar')
+    toastDanger('Erro ao salvar')
   } finally {
     adminSaveLoading.value = false
   }
@@ -698,7 +687,7 @@ watch(
 onMounted(async () => {
   await loadProfile()
   await Promise.all([loadTrainings(), loadGraduations()])
-  if (isAdminView.value) await loadBeltsAndUsers()
+  if (isAdminView.value) await loadUsers()
 })
 </script>
 
@@ -815,7 +804,6 @@ onMounted(async () => {
                   placeholder="Selecione"
                   :error="adminFormErrors.class_type"
                 />
-                <FormSelect v-model="adminForm.belt_id" :options="belts" label="Graduação" placeholder="Selecione" :error="adminFormErrors.belt_id" />
               </div>
 
               <div class="mb-4 space-y-4">
@@ -967,7 +955,7 @@ onMounted(async () => {
                     {{
                       student.belt
                         ? `${student.belt.name}${student.belt.group ? ` — ${student.belt.group}` : ''}`
-                        : '—'
+                        : 'Graduação não cadastrada'
                     }}
                   </div>
                 </div>

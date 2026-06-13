@@ -12,6 +12,9 @@ export type PublicTenant = {
     app_background_color?: string | null
     app_login_background_color?: string | null
     logo_url?: string | null
+    nav_logo_url?: string | null
+    footer_logo_url?: string | null
+    hero_logo_url?: string | null
   } | null
 }
 

@@ -6,12 +6,12 @@ import axios from 'axios'
 import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
 import PhotoCropPicker from '../../components/photo/PhotoCropPicker.vue'
+import { toastDanger, toastSuccess } from '../../utils/toast'
 
 const router = useRouter()
 const loading = ref(false)
 
 const form = reactive({
-  belt_id: null,
   photo: null as File | null,
   name: '',
   cpf: '',
@@ -47,7 +47,6 @@ function onCreateRegistrationFile(e: Event) {
   form.registration_form_file = input.files?.[0] ?? null
 }
 
-const belts = ref<{ label: string; value: number }[]>([])
 const users = ref<{ label: string; value: number }[]>([])
 
 const savedPhotoUrl = ref<string | null>(null)
@@ -66,11 +65,10 @@ function onPhotoCropped(file: File) {
 }
 
 function onPhotoCropError(message: string) {
-  alert(message)
+  toastDanger(message)
 }
 
 const errors = ref({
-  belt_id: null as string | null,
   photo: null as string | null,
   name: '',
   cpf: '',
@@ -145,30 +143,18 @@ async function submit() {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
 
-    alert('Cadastrado com sucesso')
+    toastSuccess('Aluno cadastrado com sucesso.')
     if (created?.id) {
       router.push(`/admin/students/${created.id}`)
     } else {
       router.push('/admin/students')
     }
   } catch (e) {
-    alert('Erro ao cadastrar')
+    toastDanger('Erro ao cadastrar aluno.')
     console.log(e)
   }
 
   loading.value = false
-}
-
-async function getBelts() {
-  try {
-    const { data } = await axios.get('/api/belts')
-    belts.value = data.map(({ id, name, group }: any) => ({
-      label: group ? `${name} - ${group}` : name,
-      value: id,
-    }))
-  } catch {
-    /* ignore */
-  }
 }
 
 async function getUsers() {
@@ -184,7 +170,6 @@ async function getUsers() {
 }
 
 onMounted(async () => {
-  await getBelts()
   await getUsers()
 })
 </script>
@@ -258,7 +243,6 @@ onMounted(async () => {
                 :error="errors.class_type"
               />
 
-              <FormSelect v-model="form.belt_id" :options="belts" label="Graduação" placeholder="Selecione" :error="errors.belt_id" />
             </div>
           </div>
           <div class="mb-4 space-y-4">

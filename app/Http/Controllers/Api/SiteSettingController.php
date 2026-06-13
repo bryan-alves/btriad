@@ -7,7 +7,9 @@ use App\Models\Tenant;
 use App\Models\TenantSite;
 use App\Support\CurrentTenant;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class SiteSettingController extends Controller
 {
@@ -25,9 +27,9 @@ class SiteSettingController extends Controller
             abort(403, 'Você só pode alterar o site do domínio atual.');
         }
 
-        if (is_string($request->input('schedule'))) {
+        if (is_string($request->input('carousel_images'))) {
             $request->merge([
-                'schedule' => json_decode($request->input('schedule'), true) ?: [],
+                'carousel_images' => json_decode($request->input('carousel_images'), true) ?: [],
             ]);
         }
 
@@ -48,13 +50,20 @@ class SiteSettingController extends Controller
             'app_login_background_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'logo_path' => ['nullable', 'string', 'max:255'],
             'logo' => ['nullable', 'image', 'max:2048'],
+            'nav_logo_path' => ['nullable', 'string', 'max:255'],
+            'nav_logo' => ['nullable', 'image', 'max:2048'],
+            'footer_logo_path' => ['nullable', 'string', 'max:255'],
+            'footer_logo' => ['nullable', 'image', 'max:2048'],
+            'hero_logo_path' => ['nullable', 'string', 'max:255'],
+            'hero_logo' => ['nullable', 'image', 'max:2048'],
+            'carousel_images' => ['nullable', 'array', 'max:5'],
+            'carousel_images.*' => ['string', 'max:255'],
+            'carousel_photos' => ['nullable', 'array', 'max:5'],
+            'carousel_photos.*' => ['image', 'max:2048'],
             'whatsapp' => ['nullable', 'string', 'max:255'],
             'instagram' => ['nullable', 'string', 'max:255'],
+            'youtube' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string'],
-            'schedule' => ['nullable', 'array'],
-            'schedule.*.day' => ['required_with:schedule', 'string', 'max:80'],
-            'schedule.*.kids_time' => ['nullable', 'string', 'max:80'],
-            'schedule.*.adults_time' => ['nullable', 'string', 'max:80'],
             'active' => ['required', 'boolean'],
         ]);
 
@@ -63,14 +72,54 @@ class SiteSettingController extends Controller
         ]);
 
         $existingSite = $tenant->site;
-        $logoPath = $data['logo_path'] ?? $existingSite?->logo_path;
+        $logoPath = $this->resolveLogoPath(
+            $request,
+            'logo',
+            $data['logo_path'] ?? null,
+            $existingSite?->logo_path,
+        );
+        $navLogoPath = $this->resolveLogoPath(
+            $request,
+            'nav_logo',
+            $data['nav_logo_path'] ?? null,
+            $existingSite?->nav_logo_path,
+        );
+        $footerLogoPath = $this->resolveLogoPath(
+            $request,
+            'footer_logo',
+            $data['footer_logo_path'] ?? null,
+            $existingSite?->footer_logo_path,
+        );
+        $heroLogoPath = $this->resolveLogoPath(
+            $request,
+            'hero_logo',
+            $data['hero_logo_path'] ?? null,
+            $existingSite?->hero_logo_path,
+        );
 
-        if ($request->hasFile('logo')) {
-            if ($existingSite?->logo_path && str_starts_with($existingSite->logo_path, 'site-logos/')) {
-                Storage::disk('public')->delete($existingSite->logo_path);
+        $keptCarouselImages = collect($data['carousel_images'] ?? [])
+            ->filter(fn ($path) => is_string($path) && trim($path) !== '')
+            ->values()
+            ->all();
+        $newCarouselFiles = $request->file('carousel_photos', []);
+
+        if (count($keptCarouselImages) + count($newCarouselFiles) > 5) {
+            throw ValidationException::withMessages([
+                'carousel_photos' => ['O carrossel pode ter no máximo 5 fotos.'],
+            ]);
+        }
+
+        foreach (($existingSite?->carousel_images ?? []) as $existingCarouselImage) {
+            if (
+                str_starts_with($existingCarouselImage, 'site-carousel/')
+                && ! in_array($existingCarouselImage, $keptCarouselImages, true)
+            ) {
+                Storage::disk('public')->delete($existingCarouselImage);
             }
+        }
 
-            $logoPath = $request->file('logo')->store('site-logos', 'public');
+        foreach ($newCarouselFiles as $file) {
+            $keptCarouselImages[] = $file->store('site-carousel', 'public');
         }
 
         $site = TenantSite::query()->updateOrCreate(
@@ -90,14 +139,43 @@ class SiteSettingController extends Controller
                 'app_background_color' => $data['app_background_color'],
                 'app_login_background_color' => $data['app_login_background_color'],
                 'logo_path' => $logoPath ?: null,
+                'nav_logo_path' => $navLogoPath ?: null,
+                'footer_logo_path' => $footerLogoPath ?: null,
+                'hero_logo_path' => $heroLogoPath ?: null,
+                'carousel_images' => $keptCarouselImages,
                 'whatsapp' => $data['whatsapp'] ?? null,
                 'instagram' => $data['instagram'] ?? null,
+                'youtube' => $data['youtube'] ?? null,
                 'address' => $data['address'] ?? null,
-                'schedule' => $data['schedule'] ?? [],
                 'active' => $data['active'],
             ],
         );
 
         return response()->json($tenant->fresh()->load(['domains', 'site']), 200);
+    }
+
+    private function resolveLogoPath(
+        Request $request,
+        string $fileKey,
+        ?string $submittedPath,
+        ?string $existingPath,
+    ): ?string {
+        if ($request->hasFile($fileKey)) {
+            $this->deleteStoredLogo($existingPath);
+
+            /** @var UploadedFile $file */
+            $file = $request->file($fileKey);
+
+            return $file->store('site-logos', 'public');
+        }
+
+        return $submittedPath ?? $existingPath;
+    }
+
+    private function deleteStoredLogo(?string $path): void
+    {
+        if ($path && str_starts_with($path, 'site-logos/')) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

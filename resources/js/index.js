@@ -120,7 +120,56 @@ function initPublicHeaderNav() {
   })
 }
 
+function initHeroCarousel() {
+  const carousel = document.querySelector('[data-hero-carousel]')
+  if (!carousel) return
+
+  const slides = Array.from(carousel.querySelectorAll('.hero-carousel__slide'))
+  const dots = Array.from(carousel.querySelectorAll('[data-hero-carousel-dot]'))
+  const prev = carousel.querySelector('[data-hero-carousel-prev]')
+  const next = carousel.querySelector('[data-hero-carousel-next]')
+  let current = 0
+  let timer = null
+
+  function show(index) {
+    current = (index + slides.length) % slides.length
+    slides.forEach((slide, slideIndex) => {
+      slide.classList.toggle('is-active', slideIndex === current)
+    })
+    dots.forEach((dot, dotIndex) => {
+      dot.classList.toggle('is-active', dotIndex === current)
+    })
+  }
+
+  function restart() {
+    if (timer) window.clearInterval(timer)
+    if (slides.length > 1) {
+      timer = window.setInterval(() => show(current + 1), 5000)
+    }
+  }
+
+  prev?.addEventListener('click', () => {
+    show(current - 1)
+    restart()
+  })
+
+  next?.addEventListener('click', () => {
+    show(current + 1)
+    restart()
+  })
+
+  dots.forEach((dot) => {
+    dot.addEventListener('click', () => {
+      show(Number(dot.dataset.heroCarouselDot || 0))
+      restart()
+    })
+  })
+
+  restart()
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initPublicHeaderNav()
+  initHeroCarousel()
   initSectionScrollSpy()
 })

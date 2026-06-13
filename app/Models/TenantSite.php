@@ -23,8 +23,13 @@ class TenantSite extends Model
         'app_background_color',
         'app_login_background_color',
         'logo_path',
+        'nav_logo_path',
+        'footer_logo_path',
+        'hero_logo_path',
+        'carousel_images',
         'whatsapp',
         'instagram',
+        'youtube',
         'address',
         'schedule',
         'active',
@@ -32,10 +37,15 @@ class TenantSite extends Model
 
     protected $appends = [
         'logo_url',
+        'nav_logo_url',
+        'footer_logo_url',
+        'hero_logo_url',
+        'carousel_image_urls',
     ];
 
     protected $casts = [
         'schedule' => 'array',
+        'carousel_images' => 'array',
         'active' => 'boolean',
     ];
 
@@ -46,18 +56,52 @@ class TenantSite extends Model
 
     public function getLogoUrlAttribute(): ?string
     {
-        if (! $this->logo_path) {
+        return $this->logoAssetUrl($this->logo_path);
+    }
+
+    public function getNavLogoUrlAttribute(): ?string
+    {
+        return $this->logoAssetUrl($this->nav_logo_path);
+    }
+
+    public function getFooterLogoUrlAttribute(): ?string
+    {
+        return $this->logoAssetUrl($this->footer_logo_path);
+    }
+
+    public function getHeroLogoUrlAttribute(): ?string
+    {
+        return $this->logoAssetUrl($this->hero_logo_path);
+    }
+
+    public function getCarouselImageUrlsAttribute(): array
+    {
+        return collect($this->carousel_images ?? [])
+            ->map(fn ($path) => $this->publicAssetUrl($path, 'site-carousel/'))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function logoAssetUrl(?string $path): ?string
+    {
+        return $this->publicAssetUrl($path, 'site-logos/');
+    }
+
+    private function publicAssetUrl(?string $path, string $storagePrefix): ?string
+    {
+        if (! $path) {
             return null;
         }
 
-        if (str_starts_with($this->logo_path, 'http://') || str_starts_with($this->logo_path, 'https://')) {
-            return $this->logo_path;
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
         }
 
-        if (str_starts_with($this->logo_path, 'site-logos/')) {
-            return asset('storage/'.$this->logo_path);
+        if (str_starts_with($path, $storagePrefix)) {
+            return asset('storage/'.$path);
         }
 
-        return asset(ltrim($this->logo_path, '/'));
+        return asset(ltrim($path, '/'));
     }
 }

@@ -1,20 +1,25 @@
 <script setup lang="ts">
 import axios from 'axios'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import FormInput from '../../components/form/FormInput.vue'
+import ImageCropField from '../../components/photo/ImageCropField.vue'
+import PhotoCropPicker from '../../components/photo/PhotoCropPicker.vue'
+import { CROP_PRESETS } from '../../utils/croppedPhotoFile'
 import { setPublicTenant } from '../../utils/publicTenant'
+import { toastDanger, toastSuccess } from '../../utils/toast'
 
 type Domain = {
   id: number
   domain: string
 }
 
-type ScheduleRow = {
-  day: string
-  kids_time: string
-  adults_time: string
+type ScheduleMatrix = {
+  weekdays: Array<{ weekday: number; label: string }>
+  rows: Array<{ class_name: string; times: string[] }>
 }
+
+type ScheduleRow = ScheduleMatrix['rows'][number]
 
 type Site = {
   academy_name?: string
@@ -32,8 +37,17 @@ type Site = {
   app_login_background_color?: string
   logo_path?: string | null
   logo_url?: string | null
+  nav_logo_path?: string | null
+  nav_logo_url?: string | null
+  footer_logo_path?: string | null
+  footer_logo_url?: string | null
+  hero_logo_path?: string | null
+  hero_logo_url?: string | null
+  carousel_images?: string[] | null
+  carousel_image_urls?: string[] | null
   whatsapp?: string | null
   instagram?: string | null
+  youtube?: string | null
   address?: string | null
   schedule?: ScheduleRow[] | null
   active?: boolean
@@ -50,22 +64,37 @@ type TenantRow = {
 type SiteReview = {
   id: number
   author_name: string
+  author_photo_path?: string | null
+  author_photo_url?: string | null
   rating: number
   comment: string
   active: boolean
   sort_order: number
 }
 
+type CarouselPending = {
+  file: File
+  previewUrl: string
+}
+
 const tenant = ref<TenantRow | null>(null)
 const reviews = ref<SiteReview[]>([])
+const classSchedule = ref<ScheduleMatrix>({ weekdays: [], rows: [] })
 const loading = ref(false)
+const scheduleLoading = ref(false)
 const saving = ref(false)
 const savingReview = ref(false)
 const editingReviewId = ref<number | null>(null)
 const errors = ref<Record<string, string>>({})
 const reviewErrors = ref<Record<string, string>>({})
+const imageCropError = ref('')
 const logoFile = ref<File | null>(null)
-const activeTab = ref<'info' | 'appVisual' | 'siteVisual' | 'reviews' | 'schedule'>('info')
+const navLogoFile = ref<File | null>(null)
+const footerLogoFile = ref<File | null>(null)
+const heroLogoFile = ref<File | null>(null)
+const carouselFiles = ref<CarouselPending[]>([])
+const carouselCropPickerRef = ref<InstanceType<typeof PhotoCropPicker> | null>(null)
+const activeTab = ref<'info' | 'visual' | 'reviews' | 'schedule'>('info')
 
 const form = reactive({
   name: '',
@@ -83,22 +112,37 @@ const form = reactive({
   app_background_color: '#f8fafc',
   app_login_background_color: '#333333',
   logo_path: '',
+  nav_logo_path: '',
+  footer_logo_path: '',
+  hero_logo_path: '',
+  carousel_images: [] as string[],
   whatsapp: '',
   instagram: '',
+  youtube: '',
   address: '',
   active: true,
-  schedule: [] as ScheduleRow[],
 })
 
 const reviewForm = reactive({
   author_name: '',
+  author_photo_path: '' as string | null,
   rating: 5,
   comment: '',
   active: true,
   sort_order: 0,
 })
 
+const authorPhotoFile = ref<File | null>(null)
+const editingAuthorPhotoUrl = ref<string | null>(null)
+const reviewPhotoFieldKey = ref(0)
+
 const domains = computed(() => tenant.value?.domains.map((domain) => domain.domain).join(', ') || '')
+const carouselCount = computed(() => form.carousel_images.length + carouselFiles.value.length)
+const carouselFull = computed(() => carouselCount.value >= 5)
+
+function clearCarouselPreviews() {
+  carouselFiles.value.forEach((item) => URL.revokeObjectURL(item.previewUrl))
+}
 
 function fillForm(site: TenantRow) {
   tenant.value = site
@@ -117,32 +161,93 @@ function fillForm(site: TenantRow) {
   form.app_background_color = site.site?.app_background_color || '#f8fafc'
   form.app_login_background_color = site.site?.app_login_background_color || '#333333'
   form.logo_path = site.site?.logo_path || ''
+  form.nav_logo_path = site.site?.nav_logo_path || ''
+  form.footer_logo_path = site.site?.footer_logo_path || ''
+  form.hero_logo_path = site.site?.hero_logo_path || ''
+  form.carousel_images = site.site?.carousel_images?.length ? [...site.site.carousel_images] : []
   form.whatsapp = site.site?.whatsapp || ''
   form.instagram = site.site?.instagram || ''
+  form.youtube = site.site?.youtube || ''
   form.address = site.site?.address || ''
   form.active = site.site?.active !== false
-  form.schedule = site.site?.schedule?.length
-    ? site.site.schedule.map((row) => ({ ...row }))
-    : [
-        { day: 'Segunda-feira', kids_time: '', adults_time: '' },
-        { day: 'Quarta-feira', kids_time: '', adults_time: '' },
-        { day: 'Sexta-feira', kids_time: '', adults_time: '' },
-      ]
   logoFile.value = null
+  navLogoFile.value = null
+  footerLogoFile.value = null
+  heroLogoFile.value = null
+  clearCarouselPreviews()
+  carouselFiles.value = []
+  imageCropError.value = ''
   errors.value = {}
 }
 
-function onLogoChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  logoFile.value = input.files?.[0] || null
+function onImageCropError(message: string) {
+  imageCropError.value = message
 }
 
-function addScheduleRow() {
-  form.schedule.push({ day: '', kids_time: '', adults_time: '' })
+function onAppLogoCropped(file: File) {
+  logoFile.value = file
+  imageCropError.value = ''
 }
 
-function removeScheduleRow(index: number) {
-  form.schedule.splice(index, 1)
+function onNavLogoCropped(file: File) {
+  navLogoFile.value = file
+  imageCropError.value = ''
+}
+
+function onFooterLogoCropped(file: File) {
+  footerLogoFile.value = file
+  imageCropError.value = ''
+}
+
+function onHeroLogoCropped(file: File) {
+  heroLogoFile.value = file
+  imageCropError.value = ''
+}
+
+function onCarouselCropped(file: File) {
+  if (carouselFull.value) {
+    imageCropError.value = 'O carrossel pode ter no máximo 5 fotos.'
+    return
+  }
+
+  carouselFiles.value.push({
+    file,
+    previewUrl: URL.createObjectURL(file),
+  })
+  imageCropError.value = ''
+}
+
+function pickCarouselPhoto() {
+  if (carouselFull.value) return
+  carouselCropPickerRef.value?.pick()
+}
+
+function removeSavedCarouselImage(index: number) {
+  form.carousel_images.splice(index, 1)
+  tenant.value?.site?.carousel_image_urls?.splice(index, 1)
+}
+
+function removeNewCarouselImage(index: number) {
+  const [removed] = carouselFiles.value.splice(index, 1)
+  if (removed) {
+    URL.revokeObjectURL(removed.previewUrl)
+  }
+}
+
+async function loadClassSchedule() {
+  scheduleLoading.value = true
+
+  try {
+    const { data } = await axios.get('/api/classes/schedule')
+    classSchedule.value = data?.rows
+      ? (data as ScheduleMatrix)
+      : { weekdays: [], rows: Array.isArray(data) ? [] : [] }
+  } catch (error) {
+    console.error(error)
+    classSchedule.value = { weekdays: [], rows: [] }
+  } finally {
+    scheduleLoading.value = false
+  }
 }
 
 async function loadSettings() {
@@ -153,7 +258,7 @@ async function loadSettings() {
     fillForm(data)
   } catch (error) {
     console.error(error)
-    alert('Erro ao carregar o site deste domínio.')
+    toastDanger('Erro ao carregar o site deste domínio.')
   } finally {
     loading.value = false
   }
@@ -191,21 +296,41 @@ async function submit() {
   appendPayload(payload, 'app_background_color', form.app_background_color)
   appendPayload(payload, 'app_login_background_color', form.app_login_background_color)
   appendPayload(payload, 'logo_path', form.logo_path)
+  appendPayload(payload, 'nav_logo_path', form.nav_logo_path)
+  appendPayload(payload, 'footer_logo_path', form.footer_logo_path)
+  appendPayload(payload, 'hero_logo_path', form.hero_logo_path)
   appendPayload(payload, 'whatsapp', form.whatsapp)
   appendPayload(payload, 'instagram', form.instagram)
+  appendPayload(payload, 'youtube', form.youtube)
   appendPayload(payload, 'address', form.address)
   appendPayload(payload, 'active', form.active ? 1 : 0)
-  payload.append('schedule', JSON.stringify(form.schedule))
+  payload.append('carousel_images', JSON.stringify(form.carousel_images))
 
   if (logoFile.value) {
     payload.append('logo', logoFile.value)
   }
 
+  if (navLogoFile.value) {
+    payload.append('nav_logo', navLogoFile.value)
+  }
+
+  if (footerLogoFile.value) {
+    payload.append('footer_logo', footerLogoFile.value)
+  }
+
+  if (heroLogoFile.value) {
+    payload.append('hero_logo', heroLogoFile.value)
+  }
+
+  carouselFiles.value.forEach((item) => {
+    payload.append('carousel_photos[]', item.file)
+  })
+
   try {
     const { data } = await axios.post(`/api/site-settings/${tenant.value.id}`, payload)
     fillForm(data)
     setPublicTenant(data)
-    alert('Configurações salvas com sucesso.')
+    toastSuccess('Configurações salvas com sucesso.')
   } catch (error: any) {
     if (error.response?.data?.errors) {
       errors.value = Object.fromEntries(
@@ -215,7 +340,7 @@ async function submit() {
         ]),
       )
     } else {
-      alert(error.response?.data?.message || 'Erro ao salvar configurações.')
+      toastDanger(error.response?.data?.message || 'Erro ao salvar configurações.')
       console.error(error)
     }
   } finally {
@@ -226,20 +351,38 @@ async function submit() {
 function resetReviewForm() {
   editingReviewId.value = null
   reviewForm.author_name = ''
+  reviewForm.author_photo_path = ''
   reviewForm.rating = 5
   reviewForm.comment = ''
   reviewForm.active = true
   reviewForm.sort_order = 0
+  authorPhotoFile.value = null
+  editingAuthorPhotoUrl.value = null
+  reviewPhotoFieldKey.value += 1
   reviewErrors.value = {}
+}
+
+function onAuthorPhotoCropped(file: File) {
+  authorPhotoFile.value = file
+}
+
+function removeAuthorPhoto() {
+  reviewForm.author_photo_path = ''
+  authorPhotoFile.value = null
+  editingAuthorPhotoUrl.value = null
+  reviewPhotoFieldKey.value += 1
 }
 
 function editReview(review: SiteReview) {
   editingReviewId.value = review.id
   reviewForm.author_name = review.author_name
+  reviewForm.author_photo_path = review.author_photo_path ?? ''
   reviewForm.rating = review.rating
   reviewForm.comment = review.comment
   reviewForm.active = review.active
   reviewForm.sort_order = review.sort_order
+  authorPhotoFile.value = null
+  editingAuthorPhotoUrl.value = review.author_photo_url ?? null
   reviewErrors.value = {}
 }
 
@@ -247,23 +390,32 @@ async function submitReview() {
   savingReview.value = true
   reviewErrors.value = {}
 
-  const payload = {
-    author_name: reviewForm.author_name,
-    rating: Number(reviewForm.rating),
-    comment: reviewForm.comment,
-    active: reviewForm.active,
-    sort_order: Number(reviewForm.sort_order) || 0,
+  const payload = new FormData()
+  payload.append('author_name', reviewForm.author_name)
+  payload.append('rating', String(Number(reviewForm.rating)))
+  payload.append('comment', reviewForm.comment)
+  payload.append('active', reviewForm.active ? '1' : '0')
+  payload.append('sort_order', String(Number(reviewForm.sort_order) || 0))
+
+  if (editingReviewId.value) {
+    payload.append('author_photo_path', reviewForm.author_photo_path ?? '')
+  }
+
+  if (authorPhotoFile.value) {
+    payload.append('author_photo', authorPhotoFile.value)
   }
 
   try {
     if (editingReviewId.value) {
-      await axios.put(`/api/site-reviews/${editingReviewId.value}`, payload)
+      payload.append('_method', 'PUT')
+      await axios.post(`/api/site-reviews/${editingReviewId.value}`, payload)
     } else {
       await axios.post('/api/site-reviews', payload)
     }
 
     resetReviewForm()
     await loadReviews()
+    toastSuccess('Avaliação salva com sucesso.')
   } catch (error: any) {
     if (error.response?.data?.errors) {
       reviewErrors.value = Object.fromEntries(
@@ -273,7 +425,7 @@ async function submitReview() {
         ]),
       )
     } else {
-      alert(error.response?.data?.message || 'Erro ao salvar avaliação.')
+      toastDanger(error.response?.data?.message || 'Erro ao salvar avaliação.')
       console.error(error)
     }
   } finally {
@@ -291,6 +443,13 @@ async function deleteReview(review: SiteReview) {
 onMounted(async () => {
   await loadSettings()
   await loadReviews()
+  await loadClassSchedule()
+})
+
+watch(activeTab, (tab) => {
+  if (tab === 'schedule') {
+    loadClassSchedule()
+  }
 })
 </script>
 
@@ -313,22 +472,12 @@ onMounted(async () => {
         <button
           type="button"
           class="site-settings__tab"
-          :class="{ 'site-settings__tab--active': activeTab === 'appVisual' }"
+          :class="{ 'site-settings__tab--active': activeTab === 'visual' }"
           role="tab"
-          :aria-selected="activeTab === 'appVisual'"
-          @click="activeTab = 'appVisual'"
+          :aria-selected="activeTab === 'visual'"
+          @click="activeTab = 'visual'"
         >
-          Visual do sistema
-        </button>
-        <button
-          type="button"
-          class="site-settings__tab"
-          :class="{ 'site-settings__tab--active': activeTab === 'siteVisual' }"
-          role="tab"
-          :aria-selected="activeTab === 'siteVisual'"
-          @click="activeTab = 'siteVisual'"
-        >
-          Visual do site
+          Visual
         </button>
         <button
           type="button"
@@ -382,25 +531,99 @@ onMounted(async () => {
         </section>
 
         <section class="site-settings__section">
-          <h3>Logo</h3>
-          <div class="site-settings__logo-row">
-            <img v-if="tenant.site?.logo_url" :src="tenant.site.logo_url" alt="Logo atual" class="site-settings__logo" />
-            <div class="site-settings__logo-fields">
-              <FormInput v-model="form.logo_path" label="Logo atual/caminho no public" placeholder="logo.png" :error="errors.logo_path" />
-              <label class="site-settings__field">
-                <span>Enviar novo logo</span>
-                <input type="file" accept="image/*" @change="onLogoChange" />
-                <small v-if="errors.logo">{{ errors.logo }}</small>
-              </label>
-            </div>
+          <h3>Carrossel da seção Sobre</h3>
+          <p class="site-settings__hint">Cadastre até 5 fotos em 16:9 para aparecerem no topo do site.</p>
+
+          <div class="carousel-editor">
+            <figure
+              v-for="(imageUrl, index) in tenant.site?.carousel_image_urls || []"
+              :key="`${imageUrl}-${index}`"
+              class="carousel-editor__item"
+            >
+              <img :src="imageUrl" alt="Foto atual do carrossel" />
+              <button type="button" class="btn-danger" @click="removeSavedCarouselImage(index)">Remover</button>
+            </figure>
+
+            <figure
+              v-for="(item, index) in carouselFiles"
+              :key="`${item.file.name}-${index}`"
+              class="carousel-editor__item"
+            >
+              <img :src="item.previewUrl" alt="Nova foto do carrossel" />
+              <button type="button" class="btn-danger" @click="removeNewCarouselImage(index)">Remover</button>
+            </figure>
           </div>
+
+          <PhotoCropPicker
+            ref="carouselCropPickerRef"
+            v-bind="CROP_PRESETS.carousel"
+            @cropped="onCarouselCropped"
+            @error="onImageCropError"
+          />
+          <button type="button" class="btn-secondary" :disabled="carouselFull" @click="pickCarouselPhoto">
+            {{ carouselFull ? 'Limite de 5 fotos atingido' : 'Adicionar foto ao carrossel' }}
+          </button>
+          <small>{{ carouselCount }}/5 fotos selecionadas</small>
+          <small v-if="errors.carousel_photos">{{ errors.carousel_photos }}</small>
+        </section>
+
+        <section class="site-settings__section">
+          <h3>Logos</h3>
+          <p class="site-settings__hint">
+            Cada logo é usado em um lugar diferente do site ou do sistema. Todas as imagens passam pelo recorte antes do envio.
+          </p>
+
+          <div class="site-settings__logo-grid">
+            <ImageCropField
+              label="Logo do header (navegação)"
+              :preview-url="tenant.site?.nav_logo_url"
+              preview-class="image-crop-field__preview--nav"
+              :preset="CROP_PRESETS.navLogo"
+              hint="Proporção 3:1 · exibido na barra superior"
+              @cropped="onNavLogoCropped"
+              @error="onImageCropError"
+            />
+            <ImageCropField
+              label="Logo do footer"
+              :preview-url="tenant.site?.footer_logo_url"
+              preview-class="image-crop-field__preview--footer"
+              :preset="CROP_PRESETS.footerLogo"
+              hint="Proporção 3:1 · exibido no rodapé"
+              @cropped="onFooterLogoCropped"
+              @error="onImageCropError"
+            />
+            <ImageCropField
+              label="Logo da seção Sobre"
+              :preview-url="tenant.site?.hero_logo_url"
+              preview-class="image-crop-field__preview--hero"
+              :preset="CROP_PRESETS.heroLogo"
+              hint="Recorte livre · usado quando não houver carrossel"
+              @cropped="onHeroLogoCropped"
+              @error="onImageCropError"
+            />
+            <ImageCropField
+              label="Logo do sistema (login e painel)"
+              :preview-url="tenant.site?.logo_url"
+              preview-class="image-crop-field__preview--app"
+              :preset="CROP_PRESETS.appLogo"
+              hint="Proporção 1:1 · login e menu lateral"
+              @cropped="onAppLogoCropped"
+              @error="onImageCropError"
+            />
+          </div>
+          <small v-if="imageCropError" class="site-settings__crop-error">{{ imageCropError }}</small>
+          <small v-if="errors.logo">{{ errors.logo }}</small>
+          <small v-if="errors.nav_logo">{{ errors.nav_logo }}</small>
+          <small v-if="errors.footer_logo">{{ errors.footer_logo }}</small>
+          <small v-if="errors.hero_logo">{{ errors.hero_logo }}</small>
         </section>
 
         <section class="site-settings__section">
           <h3>Contato e localização</h3>
           <div class="site-settings__grid">
-            <FormInput v-model="form.whatsapp" label="Link WhatsApp" placeholder="https://wa.me/..." :error="errors.whatsapp" />
+            <FormInput v-model="form.youtube" label="YouTube" placeholder="https://youtube.com/..." :error="errors.youtube" />
             <FormInput v-model="form.instagram" label="Instagram" placeholder="https://instagram.com/..." :error="errors.instagram" />
+            <FormInput v-model="form.whatsapp" label="Link WhatsApp" placeholder="https://wa.me/..." :error="errors.whatsapp" />
           </div>
 
           <label class="site-settings__field">
@@ -415,39 +638,13 @@ onMounted(async () => {
         </button>
       </form>
 
-      <form v-else-if="activeTab === 'appVisual'" class="site-settings__card" @submit.prevent="submit">
-        <section class="site-settings__section">
-          <h2>Visual do sistema interno</h2>
-          <p class="site-settings__hint">
-            Essas cores são usadas no painel administrativo e na tela de login.
-          </p>
-        </section>
-
-        <section class="site-settings__section">
-          <h3>Cores internas</h3>
-          <div class="site-settings__grid site-settings__grid--colors">
-            <FormInput v-model="form.app_primary_color" type="color" label="Cor principal dos botões internos" :error="errors.app_primary_color" />
-            <FormInput v-model="form.app_header_color" type="color" label="Cor do header/menu interno" :error="errors.app_header_color" />
-            <FormInput v-model="form.app_background_color" type="color" label="Cor de fundo do painel" :error="errors.app_background_color" />
-            <FormInput v-model="form.app_login_background_color" type="color" label="Cor de fundo do login" :error="errors.app_login_background_color" />
-          </div>
-        </section>
-
-        <button type="submit" class="btn-primary" :disabled="saving">
-          {{ saving ? 'Salvando...' : 'Salvar visual do sistema' }}
-        </button>
-      </form>
-
-      <form v-else-if="activeTab === 'siteVisual'" class="site-settings__card" @submit.prevent="submit">
+      <form v-else-if="activeTab === 'visual'" class="site-settings__card" @submit.prevent="submit">
         <section class="site-settings__section">
           <h2>Visual do site</h2>
           <p class="site-settings__hint">
             Essas cores são usadas somente no site público externo.
           </p>
-        </section>
 
-        <section class="site-settings__section">
-          <h3>Cores do site externo</h3>
           <div class="site-settings__grid site-settings__grid--colors">
             <FormInput v-model="form.primary_color" type="color" label="Cor primária do site" :error="errors.primary_color" />
             <FormInput v-model="form.header_color" type="color" label="Cor do header do site" :error="errors.header_color" />
@@ -457,8 +654,22 @@ onMounted(async () => {
           </div>
         </section>
 
+        <section class="site-settings__section site-settings__section--divider">
+          <h2>Visual do sistema interno</h2>
+          <p class="site-settings__hint">
+            Essas cores são usadas no painel administrativo e na tela de login.
+          </p>
+
+          <div class="site-settings__grid site-settings__grid--colors">
+            <FormInput v-model="form.app_primary_color" type="color" label="Cor principal dos botões internos" :error="errors.app_primary_color" />
+            <FormInput v-model="form.app_header_color" type="color" label="Cor do header/menu interno" :error="errors.app_header_color" />
+            <FormInput v-model="form.app_background_color" type="color" label="Cor de fundo do painel" :error="errors.app_background_color" />
+            <FormInput v-model="form.app_login_background_color" type="color" label="Cor de fundo do login" :error="errors.app_login_background_color" />
+          </div>
+        </section>
+
         <button type="submit" class="btn-primary" :disabled="saving">
-          {{ saving ? 'Salvando...' : 'Salvar visual do site' }}
+          {{ saving ? 'Salvando...' : 'Salvar visual' }}
         </button>
       </form>
 
@@ -474,6 +685,26 @@ onMounted(async () => {
             <FormInput v-model="reviewForm.rating" type="number" label="Nota (1 a 5)" :error="reviewErrors.rating" />
             <FormInput v-model="reviewForm.sort_order" type="number" label="Ordem" :error="reviewErrors.sort_order" />
           </div>
+
+          <ImageCropField
+            :key="reviewPhotoFieldKey"
+            label="Foto de quem avaliou"
+            :preview-url="editingAuthorPhotoUrl"
+            preview-class="image-crop-field__preview--profile"
+            :preset="CROP_PRESETS.profile"
+            hint="Proporção 1:1 · exibida no card de avaliação do site"
+            @cropped="onAuthorPhotoCropped"
+            @error="onImageCropError"
+          />
+          <button
+            v-if="editingAuthorPhotoUrl || authorPhotoFile"
+            type="button"
+            class="btn-secondary review-form__remove-photo"
+            @click="removeAuthorPhoto"
+          >
+            Remover foto
+          </button>
+          <small v-if="reviewErrors.author_photo">{{ reviewErrors.author_photo }}</small>
 
           <label class="site-settings__field">
             <span>Comentário</span>
@@ -493,9 +724,19 @@ onMounted(async () => {
 
         <div class="review-list">
           <article v-for="review in reviews" :key="review.id" class="review-list__item">
-            <div>
-              <strong>{{ review.author_name }}</strong>
-              <span>{{ '★'.repeat(review.rating) }}{{ '☆'.repeat(5 - review.rating) }}</span>
+            <div class="review-list__content">
+              <div class="review-list__head">
+                <img
+                  v-if="review.author_photo_url"
+                  class="review-list__photo"
+                  :src="review.author_photo_url"
+                  :alt="`Foto de ${review.author_name}`"
+                />
+                <div>
+                  <strong>{{ review.author_name }}</strong>
+                  <span>{{ '★'.repeat(review.rating) }}{{ '☆'.repeat(5 - review.rating) }}</span>
+                </div>
+              </div>
               <p>{{ review.comment }}</p>
               <small>{{ review.active ? 'Ativa' : 'Oculta' }} · ordem {{ review.sort_order }}</small>
             </div>
@@ -509,27 +750,44 @@ onMounted(async () => {
         </div>
       </section>
 
-      <form v-else class="site-settings__card" @submit.prevent="submit">
-        <section class="site-settings__section">
-          <div class="site-settings__section-head">
-            <h3>Dias e horários</h3>
-            <button type="button" class="btn-secondary" @click="addScheduleRow">Adicionar horário</button>
+      <section v-else-if="activeTab === 'schedule'" class="site-settings__card">
+        <div class="site-settings__section-head">
+          <div>
+            <h2>Dias e horários</h2>
+            <p class="site-settings__hint">
+              A grade é montada automaticamente a partir das turmas cadastradas (dia da semana, tipo e horário).
+            </p>
           </div>
+          <RouterLink to="/admin/classes" class="btn-secondary">Gerenciar turmas</RouterLink>
+        </div>
 
-          <div class="schedule-editor">
-            <div v-for="(row, index) in form.schedule" :key="index" class="schedule-editor__row">
-              <FormInput v-model="row.day" label="Dia" :error="errors[`schedule.${index}.day`]" />
-              <FormInput v-model="row.kids_time" label="Crianças" placeholder="18h - 19h" :error="errors[`schedule.${index}.kids_time`]" />
-              <FormInput v-model="row.adults_time" label="Adultos" placeholder="19h - 20h" :error="errors[`schedule.${index}.adults_time`]" />
-              <button type="button" class="btn-danger" @click="removeScheduleRow(index)">Remover</button>
-            </div>
-          </div>
-        </section>
+        <p v-if="scheduleLoading">Carregando horários…</p>
 
-        <button type="submit" class="btn-primary" :disabled="saving">
-          {{ saving ? 'Salvando...' : 'Salvar dias e horários' }}
-        </button>
-      </form>
+        <div v-else class="schedule-preview">
+          <table v-if="classSchedule.rows.length" class="schedule-preview__table schedule-preview__table--matrix">
+            <thead>
+              <tr>
+                <th scope="col">Turma</th>
+                <th v-for="weekday in classSchedule.weekdays" :key="weekday.weekday" scope="col">
+                  {{ weekday.label }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in classSchedule.rows" :key="row.class_name">
+                <th scope="row">{{ row.class_name }}</th>
+                <td v-for="(time, index) in row.times" :key="`${row.class_name}-${index}`">
+                  {{ time || '—' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-else class="site-settings__hint">
+            Nenhum horário disponível. Cadastre turmas ativas com dia da semana em
+            <RouterLink to="/admin/classes">Turmas</RouterLink>.
+          </p>
+        </div>
+      </section>
     </div>
   </BaseLayout>
 </template>
@@ -538,13 +796,19 @@ onMounted(async () => {
 .site-settings {
   display: grid;
   gap: 1rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .site-settings__tabs {
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
+  overflow-y: hidden;
   border-bottom: 1px solid #e5e7eb;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .site-settings__tab {
@@ -572,6 +836,9 @@ onMounted(async () => {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 1rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .site-settings__heading,
@@ -584,6 +851,7 @@ onMounted(async () => {
 }
 
 .site-settings__heading h2,
+.site-settings__section h2,
 .site-settings__section h3,
 .site-settings__section-head h2,
 .site-settings__section-head h3 {
@@ -606,14 +874,19 @@ onMounted(async () => {
   gap: 1rem;
 }
 
+.site-settings__section--divider {
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+
 .site-settings__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 1rem;
 }
 
 .site-settings__grid--colors {
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
 }
 
 .site-settings__field {
@@ -631,6 +904,8 @@ onMounted(async () => {
     border: 1px solid #d1d5db;
     border-radius: 8px;
     padding: 0.625rem 0.75rem;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   small {
@@ -644,46 +919,87 @@ onMounted(async () => {
   gap: 0.5rem;
 }
 
-.site-settings__logo-row {
+.site-settings__logo-grid {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 1rem;
-  align-items: center;
 }
 
-.site-settings__logo {
-  width: 120px;
-  max-height: 120px;
-  object-fit: contain;
+.site-settings__crop-error {
+  color: #dc2626;
+}
+
+.schedule-preview__table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+  }
+
+  thead th {
+    background: #f9fafb;
+    font-weight: 600;
+  }
+
+  tbody th {
+    font-weight: 600;
+    background: #fff;
+  }
+}
+
+.schedule-preview__table--matrix th:first-child,
+.schedule-preview__table--matrix tbody th {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.carousel-editor {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 0.75rem;
+}
+
+.carousel-editor__item {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.carousel-editor__item img,
+.carousel-editor__placeholder {
+  width: 100%;
+  aspect-ratio: 16 / 10;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  padding: 0.5rem;
+  object-fit: cover;
+  background: #f3f4f6;
 }
 
-.site-settings__logo-fields {
-  display: grid;
-  gap: 1rem;
-}
-
-.schedule-editor {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.schedule-editor__row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(140px, 1fr)) auto;
-  gap: 0.75rem;
-  align-items: end;
+.carousel-editor__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  color: #4b5563;
+  font-size: 0.8rem;
+  text-align: center;
+  word-break: break-word;
 }
 
 .btn-secondary,
-.btn-danger {
+a.btn-secondary {
   border: none;
   border-radius: 6px;
   cursor: pointer;
   padding: 9px 14px;
   font-size: 0.875rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .btn-secondary {
@@ -692,6 +1008,11 @@ onMounted(async () => {
 }
 
 .btn-danger {
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 9px 14px;
+  font-size: 0.875rem;
   background: #dc2626;
   color: #fff;
 }
@@ -708,6 +1029,7 @@ onMounted(async () => {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 0.75rem;
+  min-width: 0;
 
   span,
   small {
@@ -720,20 +1042,104 @@ onMounted(async () => {
   }
 }
 
+.review-list__content {
+  min-width: 0;
+  flex: 1;
+}
+
+.review-list__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.review-list__photo {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.review-form__remove-photo {
+  justify-self: start;
+}
+
 .review-list__actions {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  justify-self: start;
+  max-width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .site-settings__section-head {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 768px) {
-  .site-settings__logo-row,
-  .schedule-editor__row {
+  .site-settings__tab {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .site-settings__card {
+    padding: 0.875rem;
+    border-radius: 8px;
+  }
+
+  .site-settings__heading,
+  .site-settings__section-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .site-settings__heading .btn-primary,
+  .site-settings__section-head .btn-secondary,
+  .site-settings__section-head .btn-danger,
+  .site-settings form > .btn-primary {
+    width: 100%;
+    text-align: center;
+  }
+
+  .site-settings__grid,
+  .site-settings__grid--colors {
     grid-template-columns: 1fr;
+  }
+
+  .site-settings__logo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .carousel-editor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .review-list__item {
     flex-direction: column;
+  }
+
+  .review-list__actions {
+    width: 100%;
+  }
+
+  .review-list__actions .btn-secondary,
+  .review-list__actions .btn-danger {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .carousel-editor {
+    grid-template-columns: 1fr;
   }
 }
 </style>

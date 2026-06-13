@@ -11,7 +11,7 @@ defineProps<{
 </script>
 
 <template>
-  <span :class="`belt belt--${belt?.slug}`">{{ belt?.name }}</span>
+  <span :class="`belt belt--${belt?.slug || 'empty'}`">{{ belt?.name || 'Graduação não cadastrada' }}</span>
 </template>
 
 <style scoped lang="scss">
@@ -20,6 +20,11 @@ defineProps<{
   border-radius: 6px;
   font-size: 12px;
   font-weight: bold;
+
+  &--empty {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
 
   &--white {
     background: #e5e5e5;

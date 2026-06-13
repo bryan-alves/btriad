@@ -122,7 +122,7 @@ function formatShortDate(iso: string | null | undefined) {
 }
 
 function beltName(b: { name?: string; group?: string } | null) {
-  if (!b?.name) return '—'
+  if (!b?.name) return 'Graduação não cadastrada'
   return b.group ? `${b.name} (${b.group})` : b.name
 }
 
