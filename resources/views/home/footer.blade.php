@@ -35,6 +35,7 @@
   });
 @endphp
 
+<div class="site-footer" style="--site-trial-button-color: {{ $site?->trial_button_color ?? '#c41e3a' }};">
 <footer class="footer">
   <div class="footer__logo">
     <img src="{{ $footerLogoUrl }}" alt="{{ $academyName }} — logotipo" decoding="async" class="footer__logo-img">
@@ -61,3 +62,4 @@
   </div>
 </footer>
 @include('home.credits')
+</div>

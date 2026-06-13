@@ -43,8 +43,7 @@
 }
 
 .footer__social-links div:hover {
-  background: #555;
-  background: #c62828;
+  background: var(--site-trial-button-color, #c41e3a);
   transition: background 0.3s ease;
 }
 
@@ -79,7 +78,7 @@
 }
 
 .site-credit a:hover {
-  color: #c62828;
+  color: var(--site-trial-button-color, #c41e3a);
   text-decoration: underline;
 }
 
