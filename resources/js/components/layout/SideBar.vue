@@ -58,7 +58,6 @@ async function logout() {
 <template>
   <div class="sidebar">
     <img v-if="logoUrl" :src="logoUrl" :alt="academyName" class="sidebar__logo">
-    <h1 class="sidebar__title">{{ academyName }}</h1>
     <ul style="color: #FFF">
       <template v-if="userRole === 'student'">
         <li><RouterLink to="/student/dashboard">Início</RouterLink></li>

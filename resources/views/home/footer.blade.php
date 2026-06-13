@@ -39,23 +39,25 @@
   <div class="footer__logo">
     <img src="{{ $footerLogoUrl }}" alt="{{ $academyName }} — logotipo" decoding="async" class="footer__logo-img">
   </div>
-  <p>
-    <strong>© {{ date('Y') }} • {{ $academyName }}</strong><br>
-    <span>Todos os direitos reservados</span>
-  </p>
-  <div class="footer__social-links">
-    @foreach ($socialLinks as $link)
-      <a
-        href="{{ $link['href'] }}"
-        class="{{ $link['class'] }}"
-        title="{{ $link['title'] }}"
-        {!! $link['attrs'] !!}
-      >
-        <div>
-          <img src="/img/social-media/{{ $link['icon'] }}" alt="{{ $link['alt'] }}" width="32" height="32">
-        </div>
-      </a>
-    @endforeach
+  <div class="footer__meta">
+    <p>
+      <strong>© {{ date('Y') }} • {{ $academyName }}</strong><br>
+      <span>Todos os direitos reservados</span>
+    </p>
+    <div class="footer__social-links">
+      @foreach ($socialLinks as $link)
+        <a
+          href="{{ $link['href'] }}"
+          class="{{ $link['class'] }}"
+          title="{{ $link['title'] }}"
+          {!! $link['attrs'] !!}
+        >
+          <div>
+            <img src="/img/social-media/{{ $link['icon'] }}" alt="{{ $link['alt'] }}" width="32" height="32">
+          </div>
+        </a>
+      @endforeach
+    </div>
   </div>
 </footer>
 @include('home.credits')
