@@ -17,6 +17,7 @@ import ClassForm from '@/views/Classes/Form.vue'
 import UsersIndex from '@/views/Users/Index.vue'
 import UsersForm from '@/views/Users/Form.vue'
 import SiteSettingsIndex from '@/views/SiteSettings/Index.vue'
+import { getAppDocumentTitle } from '@/utils/publicTenant'
 
 const routes = [
   {
@@ -207,6 +208,10 @@ router.beforeEach((to, from, next) => {
   }
 
   return next()
+})
+
+router.afterEach((to) => {
+  document.title = getAppDocumentTitle(to.path)
 })
 
 export default router
