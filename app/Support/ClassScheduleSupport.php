@@ -91,7 +91,10 @@ class ClassScheduleSupport
         $rows = [];
         $activeClasses = collect($classes)
             ->filter(fn (SchoolClass $class) => $class->active)
-            ->sortBy(fn (SchoolClass $class) => mb_strtolower($class->name));
+            ->sortBy([
+                fn (SchoolClass $class) => $class->sort_order ?? 0,
+                fn (SchoolClass $class) => mb_strtolower($class->name),
+            ]);
 
         foreach ($activeClasses as $class) {
             $slotsByDay = [];
@@ -119,6 +122,7 @@ class ClassScheduleSupport
             }
 
             $rows[] = [
+                'class_id' => (int) $class->id,
                 'class_name' => (string) $class->name,
                 'times' => $times,
             ];

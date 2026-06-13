@@ -22,6 +22,7 @@ class HomeController extends Controller
 
         $classes = SchoolClass::query()
             ->where('active', true)
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 

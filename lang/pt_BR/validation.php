@@ -154,5 +154,7 @@ return [
         'address' => 'endereço',
         'active' => 'ativo',
         'sort_order' => 'ordem',
+        'order' => 'ordem',
+        'order' => 'ordem',
     ],
 ];

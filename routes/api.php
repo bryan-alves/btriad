@@ -45,6 +45,7 @@ Route::middleware(['auth:sanctum', EnsureUserBelongsToTenant::class])->group(fun
           ->only(['index', 'show', 'store', 'update', 'destroy']);
 
     Route::get('classes/schedule', [ClassController::class, 'schedule']);
+    Route::post('classes/reorder', [ClassController::class, 'reorder']);
     Route::apiResource('classes', ClassController::class)
           ->only(['index', 'show', 'store', 'update']);
 

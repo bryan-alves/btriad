@@ -19,11 +19,13 @@ class SchoolClass extends Model
         'type',
         'schedule_slots',
         'active',
+        'sort_order',
     ];
 
     protected $casts = [
         'schedule_slots' => 'array',
         'active' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     protected $appends = [

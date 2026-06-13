@@ -6,6 +6,7 @@ import FormInput from '../../components/form/FormInput.vue'
 import ImageCropField from '../../components/photo/ImageCropField.vue'
 import PhotoCropPicker from '../../components/photo/PhotoCropPicker.vue'
 import { CROP_PRESETS } from '../../utils/croppedPhotoFile'
+import { type SchoolClassRow } from '../../utils/classSchedule'
 import { setPublicTenant } from '../../utils/publicTenant'
 import { toastDanger, toastSuccess } from '../../utils/toast'
 
@@ -16,7 +17,7 @@ type Domain = {
 
 type ScheduleMatrix = {
   weekdays: Array<{ weekday: number; label: string }>
-  rows: Array<{ class_name: string; times: string[][] }>
+  rows: Array<{ class_id?: number; class_name: string; times: string[][] }>
 }
 
 type ScheduleRow = ScheduleMatrix['rows'][number]
@@ -82,6 +83,8 @@ type CarouselPending = {
 const tenant = ref<TenantRow | null>(null)
 const reviews = ref<SiteReview[]>([])
 const classSchedule = ref<ScheduleMatrix>({ weekdays: [], rows: [] })
+const classOrder = ref<SchoolClassRow[]>([])
+const scheduleReordering = ref(false)
 const loading = ref(false)
 const scheduleLoading = ref(false)
 const saving = ref(false)
@@ -241,16 +244,58 @@ async function loadClassSchedule() {
   scheduleLoading.value = true
 
   try {
-    const { data } = await axios.get('/api/classes/schedule')
+    const [scheduleRes, classesRes] = await Promise.all([
+      axios.get('/api/classes/schedule'),
+      axios.get('/api/classes'),
+    ])
+
+    const data = scheduleRes.data
     classSchedule.value = data?.rows
       ? (data as ScheduleMatrix)
       : { weekdays: [], rows: Array.isArray(data) ? [] : [] }
+    classOrder.value = Array.isArray(classesRes.data) ? classesRes.data : []
   } catch (error) {
     console.error(error)
     classSchedule.value = { weekdays: [], rows: [] }
+    classOrder.value = []
   } finally {
     scheduleLoading.value = false
   }
+}
+
+async function persistClassOrder() {
+  if (!classOrder.value.length) return
+
+  scheduleReordering.value = true
+
+  try {
+    await axios.post('/api/classes/reorder', {
+      order: classOrder.value.map((item) => item.id),
+    })
+
+    const { data } = await axios.get('/api/classes/schedule')
+    classSchedule.value = data?.rows
+      ? (data as ScheduleMatrix)
+      : { weekdays: [], rows: [] }
+
+    toastSuccess('Ordem das turmas atualizada.')
+  } catch (error: any) {
+    toastDanger(error.response?.data?.message || 'Erro ao atualizar a ordem das turmas.')
+    await loadClassSchedule()
+  } finally {
+    scheduleReordering.value = false
+  }
+}
+
+function moveClass(index: number, direction: -1 | 1) {
+  const target = index + direction
+  if (target < 0 || target >= classOrder.value.length) return
+
+  const items = [...classOrder.value]
+  const [moved] = items.splice(index, 1)
+  items.splice(target, 0, moved)
+  classOrder.value = items
+  persistClassOrder()
 }
 
 async function loadSettings() {
@@ -821,6 +866,7 @@ watch(activeTab, (tab) => {
             <h2>Dias e horários</h2>
             <p class="site-settings__hint">
               A grade é montada automaticamente a partir das turmas cadastradas (dia da semana, tipo e horário).
+              Use as setas para definir a ordem das linhas no site.
             </p>
           </div>
           <RouterLink to="/admin/classes" class="btn-secondary">Gerenciar turmas</RouterLink>
@@ -828,39 +874,76 @@ watch(activeTab, (tab) => {
 
         <p v-if="scheduleLoading">Carregando horários…</p>
 
-        <div v-else class="schedule-preview">
-          <table v-if="classSchedule.rows.length" class="schedule-preview__table schedule-preview__table--matrix">
-            <thead>
-              <tr>
-                <th scope="col">Turma</th>
-                <th v-for="weekday in classSchedule.weekdays" :key="weekday.weekday" scope="col">
-                  {{ weekday.label }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in classSchedule.rows" :key="row.class_name">
-                <th scope="row">{{ row.class_name }}</th>
-                <td v-for="(slots, index) in row.times" :key="`${row.class_name}-${index}`">
-                  <div v-if="slots.length" class="schedule-preview__times">
-                    <span
-                      v-for="(slot, slotIndex) in slots"
-                      :key="`${row.class_name}-${index}-${slotIndex}`"
-                      class="schedule-preview__time"
-                    >
-                      {{ slot }}
-                    </span>
-                  </div>
-                  <template v-else>—</template>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p v-else class="site-settings__hint">
-            Nenhum horário disponível. Cadastre turmas ativas com dia da semana em
-            <RouterLink to="/admin/classes">Turmas</RouterLink>.
-          </p>
-        </div>
+        <template v-else>
+          <div v-if="classOrder.length" class="schedule-order">
+            <h3 class="schedule-order__title">Ordem no site</h3>
+            <ul class="schedule-order__list">
+              <li
+                v-for="(classItem, index) in classOrder"
+                :key="classItem.id"
+                class="schedule-order__item"
+                :class="{ 'schedule-order__item--inactive': classItem.active === false }"
+              >
+                <span class="schedule-order__name">{{ classItem.name }}</span>
+                <span v-if="classItem.active === false" class="schedule-order__badge">Inativa</span>
+                <div class="schedule-order__actions">
+                  <button
+                    type="button"
+                    class="schedule-order__btn"
+                    :disabled="index === 0 || scheduleReordering"
+                    aria-label="Subir turma"
+                    @click="moveClass(index, -1)"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    class="schedule-order__btn"
+                    :disabled="index === classOrder.length - 1 || scheduleReordering"
+                    aria-label="Descer turma"
+                    @click="moveClass(index, 1)"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div class="schedule-preview">
+            <table v-if="classSchedule.rows.length" class="schedule-preview__table schedule-preview__table--matrix">
+              <thead>
+                <tr>
+                  <th scope="col">Turma</th>
+                  <th v-for="weekday in classSchedule.weekdays" :key="weekday.weekday" scope="col">
+                    {{ weekday.label }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in classSchedule.rows" :key="row.class_id ?? row.class_name">
+                  <th scope="row">{{ row.class_name }}</th>
+                  <td v-for="(slots, index) in row.times" :key="`${row.class_name}-${index}`">
+                    <div v-if="slots.length" class="schedule-preview__times">
+                      <span
+                        v-for="(slot, slotIndex) in slots"
+                        :key="`${row.class_name}-${index}-${slotIndex}`"
+                        class="schedule-preview__time"
+                      >
+                        {{ slot }}
+                      </span>
+                    </div>
+                    <template v-else>—</template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-else class="site-settings__hint">
+              Nenhum horário disponível. Cadastre turmas ativas com dia da semana em
+              <RouterLink to="/admin/classes">Turmas</RouterLink>.
+            </p>
+          </div>
+        </template>
       </section>
     </div>
   </BaseLayout>
@@ -1040,6 +1123,74 @@ watch(activeTab, (tab) => {
 
 .schedule-preview__time {
   white-space: nowrap;
+}
+
+.schedule-order {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.schedule-order__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.schedule-order__list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.schedule-order__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.schedule-order__item--inactive {
+  opacity: 0.72;
+}
+
+.schedule-order__name {
+  flex: 1;
+  font-weight: 600;
+  color: #111827;
+}
+
+.schedule-order__badge {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.schedule-order__actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.schedule-order__btn {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.schedule-order__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.schedule-order__btn:not(:disabled):hover {
+  background: #f3f4f6;
 }
 
 .carousel-editor {

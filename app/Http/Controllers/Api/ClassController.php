@@ -7,6 +7,7 @@ use App\Http\Requests\StoreClassRequest;
 use App\Models\SchoolClass;
 use App\Support\ClassScheduleSupport;
 use App\Support\SiteScheduleFromClasses;
+use Illuminate\Http\Request;
 
 class ClassController extends Controller
 {
@@ -14,6 +15,7 @@ class ClassController extends Controller
     {
         try {
             $classes = SchoolClass::query()
+                ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get();
 
@@ -30,6 +32,7 @@ class ClassController extends Controller
         try {
             $classes = SchoolClass::query()
                 ->where('active', true)
+                ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get();
 
@@ -51,6 +54,7 @@ class ClassController extends Controller
                 'type' => $data['type'],
                 'schedule_slots' => ClassScheduleSupport::normalizeSlots($data['schedule_slots']),
                 'active' => $data['active'] ?? true,
+                'sort_order' => ((int) SchoolClass::query()->max('sort_order')) + 1,
             ]);
 
             return response()->json($this->classPayload($class), 201);
@@ -96,12 +100,30 @@ class ClassController extends Controller
         }
     }
 
+    public function reorder(Request $request)
+    {
+        $data = $request->validate([
+            'order' => ['required', 'array', 'min:1'],
+            'order.*' => ['integer', 'exists:classes,id'],
+        ]);
+
+        foreach ($data['order'] as $index => $classId) {
+            SchoolClass::query()
+                ->whereKey($classId)
+                ->update(['sort_order' => $index]);
+        }
+
+        return response()->json([
+            'message' => 'Ordem das turmas atualizada.',
+        ], 200);
+    }
+
     private function classPayload(SchoolClass $class): array
     {
         $payload = $class->toArray();
         $payload['schedule_conflicts'] = ClassScheduleSupport::detectConflicts(
             $class->schedule_slots,
-            SchoolClass::query()->orderBy('name')->get(),
+            SchoolClass::query()->orderBy('sort_order')->orderBy('name')->get(),
             (int) $class->id,
         );
 

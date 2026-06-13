@@ -18,6 +18,7 @@ export type SchoolClassRow = {
   schedule_slots?: ScheduleSlot[] | null
   schedule_summary?: string
   active?: boolean
+  sort_order?: number
 }
 
 export const WEEKDAY_OPTIONS = [
