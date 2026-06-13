@@ -173,38 +173,7 @@
             </div>
         </section>
 
-        <section id="avaliacoes" class="page-section" aria-labelledby="avaliacoes-heading">
-            <div class="page-section__inner page-section__inner--stack">
-                <h2 id="avaliacoes-heading" class="page-section__heading">Avaliações</h2>
-                @if ($reviews->isNotEmpty())
-                    <div class="reviews-grid">
-                        @foreach ($reviews as $review)
-                            <article class="review-card">
-                                <div class="review-card__header">
-                                    @if ($review->author_photo_url)
-                                        <img
-                                            class="review-card__photo"
-                                            src="{{ $review->author_photo_url }}"
-                                            alt="Foto de {{ $review->short_author_name }}"
-                                            width="48"
-                                            height="48"
-                                            loading="lazy"
-                                            decoding="async">
-                                    @endif
-                                    <strong>{{ $review->short_author_name }}</strong>
-                                </div>
-                                <div class="review-card__rating" aria-label="{{ $review->rating }} de 5 estrelas">
-                                    {{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}
-                                </div>
-                                <p class="review-card__comment">{{ $review->comment }}</p>
-                            </article>
-                        @endforeach
-                    </div>
-                @else
-                    <p class="page-section__text">Depoimentos em breve.</p>
-                @endif
-            </div>
-        </section>
+        @include('home.reviews-section', ['reviews' => $reviews])
 
         <section id="localizacao" class="page-section" aria-labelledby="localizacao-heading">
             <div class="page-section__inner page-section__inner--wide page-section__inner--stack">

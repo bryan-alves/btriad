@@ -63,6 +63,7 @@ async function logout() {
       <template v-if="userRole === 'student'">
         <li><RouterLink to="/student/dashboard">Início</RouterLink></li>
         <li><RouterLink to="/student/profile">Meu Perfil</RouterLink></li>
+        <li><RouterLink to="/student/profile?tab=site-review">Avaliação</RouterLink></li>
         <li><RouterLink to="/student/ranking">Ranking</RouterLink></li>
       </template>
       <template v-else-if="userRole">

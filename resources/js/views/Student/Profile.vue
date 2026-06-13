@@ -106,6 +106,23 @@ const pageTitle = computed(() => {
   return 'Meu Perfil'
 })
 
+const profileTabIds = ['personal-data', 'training-history', 'graduation-history', 'site-review'] as const
+
+function resolveProfileTab(tab: unknown) {
+  return typeof tab === 'string' && profileTabIds.includes(tab as (typeof profileTabIds)[number])
+    ? tab
+    : null
+}
+
+function syncActiveTabFromRoute() {
+  if (isAdminView.value) return
+
+  const tab = resolveProfileTab(route.query.tab)
+  if (tab && profileTabs.value.some((item) => item.id === tab)) {
+    activeTab.value = tab
+  }
+}
+
 const activeTab = ref('personal-data')
 
 type StudentSiteReview = {
@@ -160,11 +177,46 @@ const studentReviewStatusLabel = computed(() => {
   return null
 })
 
-const canEditStudentReview = computed(() => {
+function normalizeStudentReview(data: unknown): StudentSiteReview | null {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return null
+  }
+
+  const row = data as Record<string, unknown>
+  if (typeof row.id !== 'number') {
+    return null
+  }
+
+  const status = row.status
+  const normalizedStatus: StudentSiteReview['status'] =
+    status === 'pending' || status === 'approved' || status === 'rejected'
+      ? status
+      : 'pending'
+
+  return {
+    id: row.id,
+    rating: Number(row.rating) || 5,
+    comment: String(row.comment ?? ''),
+    status: normalizedStatus,
+    active: row.active === true || row.active === 1 || row.active === '1',
+    author_name: String(row.author_name ?? ''),
+    author_photo_url: (row.author_photo_url as string | null | undefined) ?? null,
+    short_author_name: row.short_author_name as string | undefined,
+  }
+}
+
+const showStudentReviewForm = computed(() => {
+  if (!student.value) return false
+
   if (!studentReview.value) return true
 
-  return studentReview.value.status === 'pending' || studentReview.value.status === 'rejected'
+  const status = studentReview.value.status
+  return status === 'pending' || status === 'rejected'
 })
+
+const showStudentReviewCard = computed(
+  () => Boolean(studentReview.value) && !showStudentReviewForm.value,
+)
 
 const classTypeLabels: Record<string, string> = {
   kids: 'Kids',
@@ -732,7 +784,7 @@ async function loadStudentReview() {
   studentReviewLoading.value = true
   try {
     const { data } = await axios.get('/api/auth/student/review')
-    studentReview.value = data || null
+    studentReview.value = normalizeStudentReview(data)
 
     if (studentReview.value) {
       studentReviewForm.rating = studentReview.value.rating
@@ -744,13 +796,15 @@ async function loadStudentReview() {
   } catch (error) {
     console.error(error)
     studentReview.value = null
+    studentReviewForm.rating = 5
+    studentReviewForm.comment = ''
   } finally {
     studentReviewLoading.value = false
   }
 }
 
 function setStudentReviewRating(value: number) {
-  if (!canEditStudentReview.value) return
+  if (!showStudentReviewForm.value) return
   studentReviewForm.rating = value
 }
 
@@ -764,9 +818,9 @@ async function submitStudentReview() {
       comment: studentReviewForm.comment.trim(),
     })
 
-    studentReview.value = data
+    studentReview.value = normalizeStudentReview(data)
     toastSuccess(
-      data.status === 'pending'
+      studentReview.value?.status === 'pending'
         ? 'Avaliação enviada! Aguarde a aprovação do professor.'
         : 'Avaliação salva.',
     )
@@ -787,6 +841,19 @@ async function submitStudentReview() {
 }
 
 watch(
+  () => route.query.tab,
+  () => {
+    syncActiveTabFromRoute()
+  },
+)
+
+watch(activeTab, (tab) => {
+  if (tab === 'site-review' && !isAdminView.value) {
+    loadStudentReview()
+  }
+})
+
+watch(
   () => (isAdminView.value ? String(route.params.id ?? '') : ''),
   async (newId, oldId) => {
     if (!isAdminView.value || !newId || newId === oldId) return
@@ -797,6 +864,7 @@ watch(
 )
 
 onMounted(async () => {
+  syncActiveTabFromRoute()
   await loadProfile()
   await Promise.all([loadTrainings(), loadGraduations(), loadStudentReview()])
   if (isAdminView.value) await loadUsers()
@@ -1386,8 +1454,12 @@ onMounted(async () => {
         </div>
 
         <div v-if="activeTab === 'site-review'">
-          <div v-if="!student" class="py-6 text-gray-600">
-            Não há dados de aluno para enviar uma avaliação.
+          <div v-if="!student" class="student-review-empty py-6 text-gray-600">
+            <p class="font-medium text-gray-800">Não foi possível carregar seus dados de aluno.</p>
+            <p class="mt-2 text-sm">
+              Peça ao professor para vincular seu usuário de login ao cadastro de aluno em
+              <strong>Alunos → editar aluno → Usuário vinculado</strong>.
+            </p>
           </div>
           <template v-else>
             <h2 class="text-xl font-bold mb-2">Avaliar a academia</h2>
@@ -1395,87 +1467,85 @@ onMounted(async () => {
               Sua avaliação pode aparecer no site público após aprovação do professor.
             </p>
 
-            <div v-if="studentReviewLoading" class="py-6 text-gray-600">
+            <p v-if="studentReviewLoading" class="py-2 text-gray-600">
               Carregando avaliação...
+            </p>
+
+            <p
+              v-if="studentReviewStatusLabel"
+              class="student-review-status"
+              :class="{
+                'student-review-status--pending': studentReview?.status === 'pending',
+                'student-review-status--approved': studentReview?.status === 'approved' && studentReview?.active,
+                'student-review-status--rejected': studentReview?.status === 'rejected',
+              }"
+            >
+              {{ studentReviewStatusLabel }}
+            </p>
+
+            <div
+              v-if="showStudentReviewCard"
+              class="student-review-card"
+            >
+              <div class="student-review-card__rating" aria-hidden="true">
+                {{ '★'.repeat(studentReview!.rating) }}{{ '☆'.repeat(5 - studentReview!.rating) }}
+              </div>
+              <p class="student-review-card__comment">{{ studentReview!.comment }}</p>
             </div>
 
-            <template v-else>
-              <p
-                v-if="studentReviewStatusLabel"
-                class="student-review-status"
-                :class="{
-                  'student-review-status--pending': studentReview?.status === 'pending',
-                  'student-review-status--approved': studentReview?.status === 'approved' && studentReview?.active,
-                  'student-review-status--rejected': studentReview?.status === 'rejected',
-                }"
-              >
-                {{ studentReviewStatusLabel }}
-              </p>
-
-              <div
-                v-if="studentReview && !canEditStudentReview"
-                class="student-review-card"
-              >
-                <div class="student-review-card__rating" aria-hidden="true">
-                  {{ '★'.repeat(studentReview.rating) }}{{ '☆'.repeat(5 - studentReview.rating) }}
+            <form
+              v-if="showStudentReviewForm"
+              class="student-review-form"
+              @submit.prevent="submitStudentReview"
+            >
+              <fieldset class="student-review-form__rating">
+                <legend class="font-medium">Nota</legend>
+                <div class="student-review-form__stars" role="group" aria-label="Nota de 1 a 5 estrelas">
+                  <button
+                    v-for="star in 5"
+                    :key="star"
+                    type="button"
+                    class="student-review-form__star"
+                    :class="{ 'student-review-form__star--active': star <= studentReviewForm.rating }"
+                    :aria-label="`${star} estrela${star > 1 ? 's' : ''}`"
+                    :aria-pressed="star <= studentReviewForm.rating"
+                    @click="setStudentReviewRating(star)"
+                  >
+                    {{ star <= studentReviewForm.rating ? '★' : '☆' }}
+                  </button>
                 </div>
-                <p class="student-review-card__comment">{{ studentReview.comment }}</p>
-              </div>
+                <small v-if="studentReviewErrors.rating" class="student-review-form__error">
+                  {{ studentReviewErrors.rating }}
+                </small>
+              </fieldset>
 
-              <form
-                v-else
-                class="student-review-form"
-                @submit.prevent="submitStudentReview"
+              <label class="student-review-form__field">
+                <span class="font-medium">Comentário</span>
+                <textarea
+                  v-model="studentReviewForm.comment"
+                  class="input-base min-h-[6rem]"
+                  rows="4"
+                  placeholder="Conte como tem sido sua experiência na academia"
+                />
+                <small v-if="studentReviewErrors.comment" class="student-review-form__error">
+                  {{ studentReviewErrors.comment }}
+                </small>
+              </label>
+
+              <button
+                type="submit"
+                class="student-review-form__submit"
+                :disabled="studentReviewSaving"
               >
-                <fieldset class="student-review-form__rating">
-                  <legend class="font-medium">Nota</legend>
-                  <div class="student-review-form__stars" role="group" aria-label="Nota de 1 a 5 estrelas">
-                    <button
-                      v-for="star in 5"
-                      :key="star"
-                      type="button"
-                      class="student-review-form__star"
-                      :class="{ 'student-review-form__star--active': star <= studentReviewForm.rating }"
-                      :aria-label="`${star} estrela${star > 1 ? 's' : ''}`"
-                      :aria-pressed="star <= studentReviewForm.rating"
-                      @click="setStudentReviewRating(star)"
-                    >
-                      {{ star <= studentReviewForm.rating ? '★' : '☆' }}
-                    </button>
-                  </div>
-                  <small v-if="studentReviewErrors.rating" class="student-review-form__error">
-                    {{ studentReviewErrors.rating }}
-                  </small>
-                </fieldset>
-
-                <label class="student-review-form__field">
-                  <span class="font-medium">Comentário</span>
-                  <textarea
-                    v-model="studentReviewForm.comment"
-                    class="input-base min-h-[6rem]"
-                    rows="4"
-                    placeholder="Conte como tem sido sua experiência na academia"
-                  />
-                  <small v-if="studentReviewErrors.comment" class="student-review-form__error">
-                    {{ studentReviewErrors.comment }}
-                  </small>
-                </label>
-
-                <button
-                  type="submit"
-                  class="student-review-form__submit"
-                  :disabled="studentReviewSaving"
-                >
-                  {{
-                    studentReviewSaving
-                      ? 'Enviando…'
-                      : studentReview?.status === 'pending'
-                        ? 'Atualizar avaliação'
-                        : 'Enviar avaliação'
-                  }}
-                </button>
-              </form>
-            </template>
+                {{
+                  studentReviewSaving
+                    ? 'Enviando…'
+                    : studentReview?.status === 'pending'
+                      ? 'Atualizar avaliação'
+                      : 'Enviar avaliação'
+                }}
+              </button>
+            </form>
           </template>
         </div>
       </template>

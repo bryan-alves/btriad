@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SchoolClass;
+use App\Models\SiteReview;
 use App\Support\CurrentTenant;
 use App\Support\SiteScheduleFromClasses;
 
@@ -14,6 +15,7 @@ class HomeController extends Controller
             'site',
             'reviews' => fn ($query) => $query
                 ->where('active', true)
+                ->where('status', SiteReview::STATUS_APPROVED)
                 ->orderBy('sort_order')
                 ->orderByDesc('id'),
         ]);

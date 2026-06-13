@@ -38,10 +38,14 @@ onMounted(() => {
 
 <style lang="scss">
 .tabs {
-  display: inline-flex;
+  display: flex;
+  max-width: 100%;
   border: 1px solid #ddd;
   border-radius: 8px;
-  overflow: hidden; // 🔥 deixa tudo colado
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .tab {
@@ -50,6 +54,8 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   font-size: 14px;
+  flex-shrink: 0;
+  white-space: nowrap;
 
   // remove espaçamento entre botões
   &:not(:last-child) {

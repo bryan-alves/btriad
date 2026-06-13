@@ -92,7 +92,6 @@ body {
 .page-sections {
     flex: 1;
     width: 100%;
-    margin-top: 20px;
     min-width: 0;
     max-width: 100%;
     background: var(--site-background-color, #3d3d3d);
@@ -282,21 +281,37 @@ body {
 }
 
 /* Avaliações */
-.reviews-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1rem;
+.reviews-carousel {
+    position: relative;
     width: 100%;
+    max-width: calc(300px * 3 + 1rem * 2);
+    margin: 0 auto;
+}
+
+.reviews-carousel__viewport {
+    overflow: hidden;
+    width: 100%;
+}
+
+.reviews-carousel__track {
+    display: flex;
+    gap: 1rem;
+    transition: transform 0.32s ease;
+    will-change: transform;
 }
 
 .review-card {
     display: grid;
     gap: 0.75rem;
+    flex: 0 0 300px;
+    width: 300px;
+    max-width: 300px;
     text-align: left;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 1rem;
     padding: 1rem;
     background: rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
 }
 
 .review-card__header {
@@ -305,14 +320,26 @@ body {
     gap: 0.75rem;
 }
 
+.review-card__identity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    min-width: 0;
+}
+
 .review-card__rating {
     color: var(--site-primary-color, #c41e3a);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
+    font-size: 0.95rem;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .review-card__comment {
     margin: 0;
     line-height: 1.5;
+    word-break: break-word;
 }
 
 .review-card__photo {
@@ -325,6 +352,64 @@ body {
 
 .review-card strong {
     color: #fff;
+}
+
+.reviews-carousel__control {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.48);
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.75rem;
+    line-height: 1;
+    z-index: 2;
+}
+
+.reviews-carousel__control:hover:not(:disabled) {
+    background: var(--site-primary-color, #c41e3a);
+}
+
+.reviews-carousel__control:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.reviews-carousel__control--prev {
+    left: -0.35rem;
+}
+
+.reviews-carousel__control--next {
+    right: -0.35rem;
+}
+
+.reviews-carousel--static .reviews-carousel__control {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .reviews-carousel {
+        max-width: min(300px, 100%);
+        padding-inline: 2.25rem;
+    }
+
+    .review-card {
+        flex: 0 0 min(300px, 100%);
+        width: min(300px, 100%);
+        max-width: min(300px, 100%);
+    }
+
+    .reviews-carousel__control--prev {
+        left: 0;
+    }
+
+    .reviews-carousel__control--next {
+        right: 0;
+    }
 }
 
 /* Horários — tabela */

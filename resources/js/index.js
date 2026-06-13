@@ -168,8 +168,70 @@ function initHeroCarousel() {
   restart()
 }
 
+function initReviewsCarousel() {
+  const carousel = document.querySelector('[data-reviews-carousel]')
+  if (!carousel) return
+
+  const track = carousel.querySelector('.reviews-carousel__track')
+  const cards = Array.from(carousel.querySelectorAll('.review-card'))
+  const prev = carousel.querySelector('[data-reviews-carousel-prev]')
+  const next = carousel.querySelector('[data-reviews-carousel-next]')
+  if (!track || !cards.length) return
+
+  let page = 0
+
+  function perPage() {
+    return window.matchMedia('(max-width: 767px)').matches ? 1 : 3
+  }
+
+  let lastPerPage = perPage()
+
+  function maxPage() {
+    const step = perPage()
+    return Math.max(0, Math.ceil(cards.length / step) - 1)
+  }
+
+  function stepOffset() {
+    const first = cards[0]
+    if (!first) return 0
+
+    const gap = Number.parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap || '0') || 0
+    return perPage() * (first.getBoundingClientRect().width + gap)
+  }
+
+  function syncControls() {
+    const step = perPage()
+    const needsControls = cards.length > step
+    carousel.classList.toggle('reviews-carousel--static', !needsControls)
+
+    if (prev) prev.disabled = page <= 0
+    if (next) next.disabled = page >= maxPage()
+  }
+
+  function show(nextPage) {
+    page = Math.max(0, Math.min(nextPage, maxPage()))
+    track.style.transform = `translateX(-${page * stepOffset()}px)`
+    syncControls()
+  }
+
+  prev?.addEventListener('click', () => show(page - 1))
+  next?.addEventListener('click', () => show(page + 1))
+
+  window.addEventListener('resize', () => {
+    const currentPerPage = perPage()
+    if (currentPerPage !== lastPerPage) {
+      page = 0
+      lastPerPage = currentPerPage
+    }
+    show(page)
+  })
+
+  show(0)
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initPublicHeaderNav()
   initHeroCarousel()
+  initReviewsCarousel()
   initSectionScrollSpy()
 })
