@@ -6,6 +6,7 @@ import BeltBadge from '../../components/ui/Badge/BeltBadge.vue'
 import PaginationBar from '../../components/pagination/PaginationBar.vue'
 import { parsePaginatorResponse } from '../../utils/pagination'
 import { graduationPhotoUrl } from '../../utils/graduation'
+import { toastDanger } from '../../utils/toast'
 
 const studentGraduations = ref<any[]>([])
 const busyId = ref<number | null>(null)
@@ -47,7 +48,7 @@ async function removeGraduation(graduation: { id: number; student?: { name?: str
     await axios.delete(`/api/student-graduations/${graduation.id}`)
     await getStudentGraduations(meta.value.current_page)
   } catch (error: any) {
-    alert(error.response?.data?.message || 'Erro ao excluir graduação')
+    toastDanger(error.response?.data?.message || 'Erro ao excluir graduação')
     console.error(error)
   } finally {
     busyId.value = null

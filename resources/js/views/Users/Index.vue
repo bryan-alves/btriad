@@ -4,6 +4,7 @@ import { ref, onMounted, computed } from 'vue'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import PaginationBar from '../../components/pagination/PaginationBar.vue'
 import { parsePaginatorResponse } from '../../utils/pagination'
+import { toastDanger } from '../../utils/toast'
 
 type UserRow = {
   id: number
@@ -52,7 +53,7 @@ async function getUsers(p = 1) {
 
 async function toggleActive(user: UserRow) {
   if (user.id === currentUserId.value && user.active !== false) {
-    alert('Não é possível desativar a sua própria conta.')
+    toastDanger('Não é possível desativar a sua própria conta.')
     return
   }
   const activating = user.active === false
@@ -67,7 +68,7 @@ async function toggleActive(user: UserRow) {
     await getUsers(meta.value.current_page)
   } catch (error: any) {
     const msg = error.response?.data?.message || error.response?.data?.errors?.active?.[0]
-    alert(msg || 'Erro ao alterar estado do usuário')
+    toastDanger(msg || 'Erro ao alterar estado do usuário')
     console.error(error)
   } finally {
     busyId.value = null

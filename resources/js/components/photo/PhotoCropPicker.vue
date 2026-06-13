@@ -3,6 +3,27 @@ import { ref } from 'vue'
 import PhotoCropModal from './PhotoCropModal.vue'
 import { validatePhotoFile } from '../../utils/croppedPhotoFile'
 
+const props = withDefaults(
+  defineProps<{
+    aspectRatio?: number | null
+    outputWidth?: number
+    outputHeight?: number
+    title?: string
+    hint?: string
+    filenamePrefix?: string
+    maxMb?: number
+  }>(),
+  {
+    aspectRatio: 1,
+    outputWidth: 512,
+    outputHeight: 512,
+    title: 'Ajustar imagem (1:1)',
+    hint: 'Enquadre a imagem antes de confirmar.',
+    filenamePrefix: 'imagem',
+    maxMb: 2,
+  },
+)
+
 const emit = defineEmits<{
   cropped: [file: File]
   error: [message: string]
@@ -31,7 +52,7 @@ function onFileChange(e: Event) {
   input.value = ''
   if (!file) return
 
-  const validationError = validatePhotoFile(file)
+  const validationError = validatePhotoFile(file, props.maxMb)
   if (validationError) {
     emit('error', validationError)
     return
@@ -65,7 +86,18 @@ defineExpose({ pick })
     accept="image/jpeg,image/png,image/webp,image/gif"
     @change="onFileChange"
   />
-  <PhotoCropModal :open="cropOpen" :src="cropSrc" @confirm="onConfirm" @cancel="onCancel" />
+  <PhotoCropModal
+    :open="cropOpen"
+    :src="cropSrc"
+    :aspect-ratio="aspectRatio"
+    :output-width="outputWidth"
+    :output-height="outputHeight"
+    :title="title"
+    :hint="hint"
+    :filename-prefix="filenamePrefix"
+    @confirm="onConfirm"
+    @cancel="onCancel"
+  />
 </template>
 
 <style scoped>

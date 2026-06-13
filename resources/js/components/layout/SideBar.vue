@@ -94,6 +94,14 @@ async function logout() {
   font-size: 1.5rem;
   text-align: center;
   margin: 0 0 1rem;
+  flex-shrink: 0;
+}
+
+.sidebar ul {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
 }
 
 .logout-button {

@@ -5,6 +5,8 @@ import BaseLayout from '../../layouts/BaseLayout.vue';
 import FormInput from "../../components/form/FormInput.vue";
 import FormSelect from "../../components/form/FormSelect.vue";
 import { useRoute, useRouter } from 'vue-router'
+import { classOptionLabel } from '../../utils/classSchedule'
+import { toastDanger, toastSuccess } from '../../utils/toast'
 import { trainingDateKey } from '../../utils/studentDashboard'
 
 const route = useRoute();
@@ -85,9 +87,9 @@ async function submit() {
       student_ids: form.student_ids
     })
 
-    alert('Lista de presença atualizada com sucesso!')
+    toastSuccess('Lista de presença atualizada com sucesso!')
   } catch (e) {
-    alert("Erro ao atualizar lista de presença")
+    toastDanger('Erro ao atualizar lista de presença')
     console.log(e)
   }
 
@@ -107,7 +109,7 @@ async function removeAttendanceList() {
     await axios.delete(`/api/attendance-lists/${route.params.id}`)
     router.push('/admin/attendance-lists')
   } catch (e: any) {
-    alert(e.response?.data?.message || 'Erro ao excluir treino')
+    toastDanger(e.response?.data?.message || 'Erro ao excluir treino')
     console.error(e)
   } finally {
     deleting.value = false
@@ -126,10 +128,10 @@ async function getStudents() {
 async function getClasses() {
   try {
     const { data } = await axios.get('/api/classes');
-    classes.value = data.map(c => ({
+    classes.value = data.map((c) => ({
       value: c.id,
-      label: `${c.name} (${c.type === 'adult' ? 'Adulto' : 'Kids'}) (${c.start_time}${c.end_time ? ' - ' + c.end_time : ''})`
-    }));
+      label: classOptionLabel(c),
+    }))
   } catch (error) {
     console.error(error)
   }
@@ -147,7 +149,7 @@ async function getAttendanceList() {
     form.student_ids = data.students?.map(student => student.id) || [];
   } catch (error) {
     console.error(error);
-    alert('Erro ao carregar lista de presença');
+    toastDanger('Erro ao carregar lista de presença')
   }
 }
 

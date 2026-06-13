@@ -34,6 +34,11 @@
   gap: 10px;
 }
 
+.footer__social-link--inactive {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .footer__social-links div:hover {
   background: #555;
   background: #c62828;

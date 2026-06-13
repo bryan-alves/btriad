@@ -6,6 +6,7 @@ import PaginationBar from '../../components/pagination/PaginationBar.vue'
 import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
 import { parsePaginatorResponse } from '../../utils/pagination'
+import { toastDanger } from '../../utils/toast'
 
 const attendanceLists = ref<any[]>([])
 const deletingId = ref<number | null>(null)
@@ -90,7 +91,7 @@ async function removeAttendanceList(list: { id: number; class_date?: string; sch
     await axios.delete(`/api/attendance-lists/${list.id}`)
     await getAttendanceLists(meta.value.current_page)
   } catch (error: any) {
-    alert(error.response?.data?.message || 'Erro ao excluir treino')
+    toastDanger(error.response?.data?.message || 'Erro ao excluir treino')
     console.error(error)
   } finally {
     deletingId.value = null

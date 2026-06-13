@@ -30,6 +30,9 @@
                 'app_login_background_color' => $tenantSite?->app_login_background_color,
                 'logo_path' => $tenantLogoPath,
                 'logo_url' => $tenantSite?->logo_url,
+                'nav_logo_url' => $tenantSite?->nav_logo_url,
+                'footer_logo_url' => $tenantSite?->footer_logo_url,
+                'hero_logo_url' => $tenantSite?->hero_logo_url,
             ],
         ];
     @endphp

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Support\ClassScheduleSupport;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,12 +17,21 @@ class SchoolClass extends Model
         'tenant_id',
         'name',
         'type',
-        'start_time',
-        'end_time',
+        'schedule_slots',
         'active',
     ];
 
     protected $casts = [
+        'schedule_slots' => 'array',
         'active' => 'boolean',
     ];
+
+    protected $appends = [
+        'schedule_summary',
+    ];
+
+    public function getScheduleSummaryAttribute(): string
+    {
+        return ClassScheduleSupport::summarizeSlots($this->schedule_slots);
+    }
 }

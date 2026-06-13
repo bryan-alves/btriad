@@ -7,6 +7,7 @@ import PaginationBar from '../../components/pagination/PaginationBar.vue'
 import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
 import { parsePaginatorResponse } from '../../utils/pagination'
+import { toastDanger, toastSuccess } from '../../utils/toast'
 
 const students = ref<any[]>([])
 const belts = ref<{ label: string; value: number | string }[]>([])
@@ -148,7 +149,7 @@ async function toggleActive(student: { id: number; name: string; active?: boolea
     await getStudents(meta.value.current_page)
   } catch (error: any) {
     const message = error.response?.data?.message || 'Erro ao alterar estado do aluno'
-    alert(message)
+    toastDanger(message)
     console.error(error)
   } finally {
     busyId.value = null

@@ -4,6 +4,7 @@ import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router'
 import FormInput from "../../components/form/FormInput.vue";
 import { getAcademyName, getLogoUrl } from '../../utils/publicTenant'
+import { toastDanger } from '../../utils/toast'
 
 const academyName = getAcademyName()
 const logoUrl = getLogoUrl()
@@ -54,7 +55,7 @@ async function submit() {
     if (e.response?.data?.username) {
       errors.value.username = e.response.data.username[0]
     } else {
-      alert("Erro ao fazer login")
+      toastDanger('Erro ao fazer login')
     }
     console.log(e)
   }

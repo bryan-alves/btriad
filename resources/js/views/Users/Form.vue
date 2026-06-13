@@ -5,6 +5,7 @@ import axios from 'axios'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
+import { toastDanger } from '../../utils/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -178,7 +179,7 @@ async function submit() {
         ...Object.fromEntries(Object.entries(error.response.data.errors).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])),
       }
     } else {
-      alert(isEdit.value ? 'Erro ao atualizar usuário' : 'Erro ao cadastrar usuário')
+      toastDanger(isEdit.value ? 'Erro ao atualizar usuário' : 'Erro ao cadastrar usuário')
       console.error(error)
     }
   }

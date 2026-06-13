@@ -16,8 +16,10 @@ class StoreClassRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string', 'in:kids,adult'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['nullable', 'date_format:H:i'],
+            'schedule_slots' => ['required', 'array', 'min:1'],
+            'schedule_slots.*.weekday' => ['required', 'integer', 'between:1,7'],
+            'schedule_slots.*.start_time' => ['required', 'date_format:H:i'],
+            'schedule_slots.*.end_time' => ['nullable', 'date_format:H:i'],
             'active' => ['boolean'],
         ];
     }

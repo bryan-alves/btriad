@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Cropper } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
-import { blobToCroppedPhotoFile, PHOTO_OUTPUT_SIZE } from '../../utils/croppedPhotoFile'
+import { blobToCroppedImageFile } from '../../utils/croppedPhotoFile'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   src: { type: String, default: '' },
+  aspectRatio: { type: Number as () => number | null, default: 1 },
+  outputWidth: { type: Number, default: 512 },
+  outputHeight: { type: Number, default: 512 },
+  title: { type: String, default: 'Ajustar imagem' },
+  hint: { type: String, default: 'Enquadre a imagem antes de confirmar.' },
+  filenamePrefix: { type: String, default: 'imagem' },
 })
 
 const emit = defineEmits<{
@@ -16,6 +22,26 @@ const emit = defineEmits<{
 
 const cropperRef = ref<InstanceType<typeof Cropper> | null>(null)
 const processing = ref(false)
+
+const stencilProps = computed(() => {
+  if (props.aspectRatio == null) {
+    return {}
+  }
+
+  return { aspectRatio: props.aspectRatio }
+})
+
+const defaultStencilSize = computed(() => {
+  if (props.aspectRatio == null) {
+    return { width: 280, height: 200 }
+  }
+
+  if (props.aspectRatio >= 1) {
+    return { width: 280, height: Math.round(280 / props.aspectRatio) }
+  }
+
+  return { width: Math.round(280 * props.aspectRatio), height: 280 }
+})
 
 function onCancel() {
   if (processing.value) return
@@ -28,8 +54,8 @@ function onConfirm() {
   try {
     const result = cropperRef.value.getResult({
       size: {
-        width: PHOTO_OUTPUT_SIZE,
-        height: PHOTO_OUTPUT_SIZE,
+        width: props.outputWidth,
+        height: props.outputHeight,
       },
     })
     const canvas = result?.canvas
@@ -41,7 +67,7 @@ function onConfirm() {
       (blob) => {
         processing.value = false
         if (!blob) return
-        emit('confirm', blobToCroppedPhotoFile(blob))
+        emit('confirm', blobToCroppedImageFile(blob, props.filenamePrefix))
       },
       'image/jpeg',
       0.92,
@@ -57,19 +83,14 @@ function onConfirm() {
     <div v-if="open && src" class="photo-crop-modal" role="dialog" aria-modal="true" aria-labelledby="photo-crop-title">
       <button type="button" class="photo-crop-modal__backdrop" aria-label="Fechar" @click="onCancel" />
       <div class="photo-crop-modal__panel">
-        <h3 id="photo-crop-title" class="photo-crop-modal__title">Ajustar foto (1:1)</h3>
-        <p class="photo-crop-modal__hint">
-          Enquadre o rosto no quadrado. A foto será usada na escola em formato 1:1.
-        </p>
+        <h3 id="photo-crop-title" class="photo-crop-modal__title">{{ title }}</h3>
+        <p class="photo-crop-modal__hint">{{ hint }}</p>
         <div class="photo-crop-modal__cropper-wrap">
           <Cropper
             ref="cropperRef"
             :src="src"
-            :stencil-props="{ aspectRatio: 1 }"
-            :default-size="{
-              width: 280,
-              height: 280,
-            }"
+            :stencil-props="stencilProps"
+            :default-size="defaultStencilSize"
             class="photo-crop-modal__cropper"
           />
         </div>
@@ -78,7 +99,7 @@ function onConfirm() {
             Cancelar
           </button>
           <button type="button" class="photo-crop-modal__btn photo-crop-modal__btn--primary" :disabled="processing" @click="onConfirm">
-            {{ processing ? 'Processando…' : 'Usar foto' }}
+            {{ processing ? 'Processando…' : 'Usar imagem' }}
           </button>
         </div>
       </div>

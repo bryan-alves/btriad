@@ -5,6 +5,7 @@ import BaseLayout from '../../layouts/BaseLayout.vue'
 import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
 import { useRoute } from 'vue-router'
+import { toastDanger, toastSuccess } from '../../utils/toast'
 
 const route = useRoute()
 const loading = ref(false)
@@ -59,7 +60,7 @@ async function submit() {
       photo: form.photo.trim() || null,
     })
 
-    alert('Graduação atualizada com sucesso!')
+    toastSuccess('Graduação atualizada com sucesso!')
   } catch (e: any) {
     const err = e?.response?.data?.errors
     if (err) {
@@ -70,7 +71,7 @@ async function submit() {
         ),
       }
     }
-    alert('Erro ao atualizar graduação')
+    toastDanger('Erro ao atualizar graduação')
     console.log(e)
   }
 
@@ -114,7 +115,7 @@ async function getGraduation() {
     form.photo = data.photo || ''
   } catch (error) {
     console.error(error)
-    alert('Erro ao carregar graduação')
+    toastDanger('Erro ao carregar graduação')
   }
 }
 

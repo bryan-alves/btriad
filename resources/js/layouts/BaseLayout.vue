@@ -169,6 +169,16 @@ $header-height: 56px;
   flex-shrink: 0;
   width: $sidebar-width;
   z-index: 100;
+  background-color: var(--app-header-color, #1b1b18);
+
+  @media (min-width: $breakpoint) {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+  }
 
   @media (max-width: ($breakpoint - 1px)) {
     position: fixed;
@@ -247,15 +257,19 @@ $header-height: 56px;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100%;
+  height: 100%;
   background-color: var(--app-header-color, #1b1b18);
   padding: 20px 20px;
   box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: ($breakpoint - 1px)) {
   .sidebar-aside .sidebar {
     min-height: 100%;
+    height: auto;
   }
 }
 

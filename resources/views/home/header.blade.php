@@ -1,7 +1,7 @@
 @php
   $site = $tenant?->site;
   $academyName = $site?->academy_name ?? $tenant?->name ?? 'B-Triad Jiu-Jitsu';
-  $logoUrl = $site?->logo_url ?? asset('img/logo/triangulo.png');
+  $navLogoUrl = $site?->nav_logo_url ?? $site?->logo_url ?? asset('img/logo/triangulo.png');
   $whatsappUrl = $site?->whatsapp ?: 'https://wa.link/ue67hy';
 @endphp
 
@@ -13,7 +13,7 @@
   <nav class="nav nav--main" aria-label="Navegação principal">
     <div class="nav__bar">
       <a href="{{ url('/') }}" class="nav__logo" title="{{ $academyName }} — página inicial">
-        <img src="{{ $logoUrl }}" alt="{{ $academyName }}" decoding="async">
+        <img src="{{ $navLogoUrl }}" alt="{{ $academyName }}" decoding="async">
       </a>
 
       <ul class="nav__links nav__links--desktop" aria-label="Seções do site">

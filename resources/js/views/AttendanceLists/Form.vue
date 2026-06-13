@@ -4,6 +4,8 @@ import { ref, onMounted, computed } from 'vue';
 import BaseLayout from '../../layouts/BaseLayout.vue';
 import FormInput from "../../components/form/FormInput.vue";
 import FormSelect from "../../components/form/FormSelect.vue";
+import { toastDanger, toastSuccess } from '../../utils/toast'
+import { classOptionLabel } from '../../utils/classSchedule'
 import { reactive } from "vue";
 
 const loading = ref(false)
@@ -81,14 +83,14 @@ async function submit() {
       student_ids: form.student_ids
     })
 
-    alert('Lista de presença criada com sucesso!')
+    toastSuccess('Lista de presença criada com sucesso!')
     form.class_date = ""
     form.class_id = null
     form.notes = ""
     form.student_ids = []
     selectedStudents.value = []
   } catch (e) {
-    alert("Erro ao criar lista de presença")
+    toastDanger('Erro ao criar lista de presença')
     console.log(e)
   }
 
@@ -107,10 +109,10 @@ async function getStudents() {
 async function getClasses() {
   try {
     const { data } = await axios.get('/api/classes');
-    classes.value = data.map(c => ({
+    classes.value = data.map((c) => ({
       value: c.id,
-      label: `${c.name} (${c.type === 'adult' ? 'Adulto' : 'Kids'}) (${c.start_time}${c.end_time ? ' - ' + c.end_time : ''})`
-    }));
+      label: classOptionLabel(c),
+    }))
   } catch (error) {
     console.error(error)
   }

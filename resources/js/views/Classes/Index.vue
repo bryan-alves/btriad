@@ -1,25 +1,26 @@
 <script setup lang="ts">
-import axios from "axios"
-import { ref, onMounted } from 'vue';
-import BaseLayout from '../../layouts/BaseLayout.vue';
+import axios from 'axios'
+import { ref, onMounted } from 'vue'
+import BaseLayout from '../../layouts/BaseLayout.vue'
+import { summarizeScheduleSlots, type SchoolClassRow } from '../../utils/classSchedule'
 
-const classes = ref([]);
+const classes = ref<SchoolClassRow[]>([])
 
 async function getClasses() {
   try {
-    const { data } = await axios.get('/api/classes');
-    classes.value = data;
+    const { data } = await axios.get('/api/classes')
+    classes.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error(error)
   }
 }
 
-function formatTime(time: string | null) {
-  return time ? time : '-';
+function scheduleLabel(classItem: SchoolClassRow) {
+  return classItem.schedule_summary || summarizeScheduleSlots(classItem.schedule_slots)
 }
 
 onMounted(async () => {
-  await getClasses();
+  await getClasses()
 })
 </script>
 
@@ -32,8 +33,7 @@ onMounted(async () => {
           <tr>
             <th>Nome</th>
             <th>Tipo</th>
-            <th>Início</th>
-            <th>Fim</th>
+            <th>Horários</th>
             <th>Ativa</th>
             <th>Ações</th>
           </tr>
@@ -42,8 +42,7 @@ onMounted(async () => {
           <tr v-for="classItem in classes" :key="classItem.id">
             <td>{{ classItem.name }}</td>
             <td>{{ classItem.type === 'kids' ? 'Kids' : classItem.type === 'adult' ? 'Adulto' : '—' }}</td>
-            <td>{{ formatTime(classItem.start_time) }}</td>
-            <td>{{ formatTime(classItem.end_time) }}</td>
+            <td class="classes__schedule">{{ scheduleLabel(classItem) }}</td>
             <td>{{ classItem.active ? 'Sim' : 'Não' }}</td>
             <td>
               <RouterLink :to="`/admin/classes/${classItem.id}`">Editar</RouterLink>
@@ -52,7 +51,7 @@ onMounted(async () => {
         </tbody>
         <tbody v-else>
           <tr>
-            <td colspan="6" style="text-align: center">Nenhuma turma cadastrada!</td>
+            <td colspan="5" style="text-align: center">Nenhuma turma cadastrada!</td>
           </tr>
         </tbody>
       </table>
@@ -81,6 +80,11 @@ onMounted(async () => {
 .classes__table td {
   padding: 12px;
   border-bottom: 1px solid #eee;
+}
+
+.classes__schedule {
+  max-width: 320px;
+  line-height: 1.4;
 }
 
 .classes__table tr:hover {

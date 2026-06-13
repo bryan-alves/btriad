@@ -4,6 +4,7 @@ import { ref, onMounted, reactive } from 'vue'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import FormInput from '../../components/form/FormInput.vue'
 import FormSelect from '../../components/form/FormSelect.vue'
+import { toastDanger, toastSuccess } from '../../utils/toast'
 
 const loading = ref(false)
 const students = ref([])
@@ -56,7 +57,7 @@ async function submit() {
       photo: form.photo.trim() || null,
     })
 
-    alert('Graduação registrada com sucesso!')
+    toastSuccess('Graduação registrada com sucesso!')
     form.student_id = null
     form.belt_id = null
     form.degree = '0'
@@ -72,7 +73,7 @@ async function submit() {
         ),
       }
     }
-    alert('Erro ao registrar graduação')
+    toastDanger('Erro ao registrar graduação')
     console.log(e)
   }
 
