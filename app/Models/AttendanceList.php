@@ -14,7 +14,7 @@ class AttendanceList extends Model
         'tenant_id',
         'class_date',
         'class_id',
-        'notes',
+        'photo',
     ];
 
     protected $casts = [

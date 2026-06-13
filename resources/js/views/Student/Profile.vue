@@ -108,11 +108,63 @@ const pageTitle = computed(() => {
 
 const activeTab = ref('personal-data')
 
-const tabs = reactive([
-  { id: 'personal-data', name: 'Dados do aluno' },
-  { id: 'training-history', name: 'Histórico de treinos' },
-  { id: 'graduation-history', name: 'Histórico de graduação' },
-])
+type StudentSiteReview = {
+  id: number
+  rating: number
+  comment: string
+  status: 'pending' | 'approved' | 'rejected'
+  active: boolean
+  author_name: string
+  author_photo_url?: string | null
+  short_author_name?: string
+}
+
+const studentReview = ref<StudentSiteReview | null>(null)
+const studentReviewLoading = ref(false)
+const studentReviewSaving = ref(false)
+const studentReviewErrors = ref<Record<string, string>>({})
+const studentReviewForm = reactive({
+  rating: 5,
+  comment: '',
+})
+
+const profileTabs = computed(() => {
+  const items = [
+    { id: 'personal-data', name: 'Dados do aluno' },
+    { id: 'training-history', name: 'Histórico de treinos' },
+    { id: 'graduation-history', name: 'Histórico de graduação' },
+  ]
+
+  if (!isAdminView.value) {
+    items.push({ id: 'site-review', name: 'Avaliação' })
+  }
+
+  return items
+})
+
+const studentReviewStatusLabel = computed(() => {
+  if (!studentReview.value) return null
+
+  if (studentReview.value.status === 'pending') {
+    return 'Aguardando aprovação do professor'
+  }
+
+  if (studentReview.value.status === 'approved' && studentReview.value.active) {
+    return 'Publicada no site'
+  }
+
+  if (studentReview.value.status === 'rejected') {
+    return 'Não aprovada — você pode enviar novamente'
+  }
+
+  return null
+})
+
+const canEditStudentReview = computed(() => {
+  if (!studentReview.value) return true
+
+  return studentReview.value.status === 'pending' || studentReview.value.status === 'rejected'
+})
 
 const classTypeLabels: Record<string, string> = {
   kids: 'Kids',
@@ -674,6 +726,66 @@ function onProfilePhotoCropError(message: string) {
   photoError.value = message
 }
 
+async function loadStudentReview() {
+  if (isAdminView.value) return
+
+  studentReviewLoading.value = true
+  try {
+    const { data } = await axios.get('/api/auth/student/review')
+    studentReview.value = data || null
+
+    if (studentReview.value) {
+      studentReviewForm.rating = studentReview.value.rating
+      studentReviewForm.comment = studentReview.value.comment
+    } else {
+      studentReviewForm.rating = 5
+      studentReviewForm.comment = ''
+    }
+  } catch (error) {
+    console.error(error)
+    studentReview.value = null
+  } finally {
+    studentReviewLoading.value = false
+  }
+}
+
+function setStudentReviewRating(value: number) {
+  if (!canEditStudentReview.value) return
+  studentReviewForm.rating = value
+}
+
+async function submitStudentReview() {
+  studentReviewSaving.value = true
+  studentReviewErrors.value = {}
+
+  try {
+    const { data } = await axios.post('/api/auth/student/review', {
+      rating: Number(studentReviewForm.rating),
+      comment: studentReviewForm.comment.trim(),
+    })
+
+    studentReview.value = data
+    toastSuccess(
+      data.status === 'pending'
+        ? 'Avaliação enviada! Aguarde a aprovação do professor.'
+        : 'Avaliação salva.',
+    )
+  } catch (error: any) {
+    if (error.response?.status === 422 && error.response?.data?.errors) {
+      studentReviewErrors.value = Object.fromEntries(
+        Object.entries(error.response.data.errors).map(([key, messages]) => [
+          key,
+          Array.isArray(messages) ? String(messages[0]) : String(messages),
+        ]),
+      )
+    }
+
+    toastDanger(error.response?.data?.message || 'Não foi possível enviar a avaliação.')
+  } finally {
+    studentReviewSaving.value = false
+  }
+}
+
 watch(
   () => (isAdminView.value ? String(route.params.id ?? '') : ''),
   async (newId, oldId) => {
@@ -686,7 +798,7 @@ watch(
 
 onMounted(async () => {
   await loadProfile()
-  await Promise.all([loadTrainings(), loadGraduations()])
+  await Promise.all([loadTrainings(), loadGraduations(), loadStudentReview()])
   if (isAdminView.value) await loadUsers()
 })
 </script>
@@ -729,7 +841,7 @@ onMounted(async () => {
         </button>
       </template>
     </div>
-    <Tabs :tabs="tabs" :selectedTab="activeTab" @tab="(val) => (activeTab = val)" />
+    <Tabs :tabs="profileTabs" :selectedTab="activeTab" @tab="(val) => (activeTab = val)" />
     <div class="tab-content">
       <div v-if="loading" class="py-8 text-center text-gray-600">
         Carregando...
@@ -1206,8 +1318,8 @@ onMounted(async () => {
                             <span class="training-card__class-label">Turma</span>
                             {{ item.school_class.name }}
                           </p>
-                          <a :href="item.notes" target="_blank" v-if="item.notes" class="training-card__notes">
-                            {{ item.notes }}
+                          <a :href="item.photo" target="_blank" v-if="item.photo" class="training-card__notes">
+                            Ver foto
                           </a>
                         </div>
                       </article>
@@ -1270,6 +1382,100 @@ onMounted(async () => {
                 </li>
               </ol>
             </div>
+          </template>
+        </div>
+
+        <div v-if="activeTab === 'site-review'">
+          <div v-if="!student" class="py-6 text-gray-600">
+            Não há dados de aluno para enviar uma avaliação.
+          </div>
+          <template v-else>
+            <h2 class="text-xl font-bold mb-2">Avaliar a academia</h2>
+            <p class="text-sm text-gray-600 mb-4">
+              Sua avaliação pode aparecer no site público após aprovação do professor.
+            </p>
+
+            <div v-if="studentReviewLoading" class="py-6 text-gray-600">
+              Carregando avaliação...
+            </div>
+
+            <template v-else>
+              <p
+                v-if="studentReviewStatusLabel"
+                class="student-review-status"
+                :class="{
+                  'student-review-status--pending': studentReview?.status === 'pending',
+                  'student-review-status--approved': studentReview?.status === 'approved' && studentReview?.active,
+                  'student-review-status--rejected': studentReview?.status === 'rejected',
+                }"
+              >
+                {{ studentReviewStatusLabel }}
+              </p>
+
+              <div
+                v-if="studentReview && !canEditStudentReview"
+                class="student-review-card"
+              >
+                <div class="student-review-card__rating" aria-hidden="true">
+                  {{ '★'.repeat(studentReview.rating) }}{{ '☆'.repeat(5 - studentReview.rating) }}
+                </div>
+                <p class="student-review-card__comment">{{ studentReview.comment }}</p>
+              </div>
+
+              <form
+                v-else
+                class="student-review-form"
+                @submit.prevent="submitStudentReview"
+              >
+                <fieldset class="student-review-form__rating">
+                  <legend class="font-medium">Nota</legend>
+                  <div class="student-review-form__stars" role="group" aria-label="Nota de 1 a 5 estrelas">
+                    <button
+                      v-for="star in 5"
+                      :key="star"
+                      type="button"
+                      class="student-review-form__star"
+                      :class="{ 'student-review-form__star--active': star <= studentReviewForm.rating }"
+                      :aria-label="`${star} estrela${star > 1 ? 's' : ''}`"
+                      :aria-pressed="star <= studentReviewForm.rating"
+                      @click="setStudentReviewRating(star)"
+                    >
+                      {{ star <= studentReviewForm.rating ? '★' : '☆' }}
+                    </button>
+                  </div>
+                  <small v-if="studentReviewErrors.rating" class="student-review-form__error">
+                    {{ studentReviewErrors.rating }}
+                  </small>
+                </fieldset>
+
+                <label class="student-review-form__field">
+                  <span class="font-medium">Comentário</span>
+                  <textarea
+                    v-model="studentReviewForm.comment"
+                    class="input-base min-h-[6rem]"
+                    rows="4"
+                    placeholder="Conte como tem sido sua experiência na academia"
+                  />
+                  <small v-if="studentReviewErrors.comment" class="student-review-form__error">
+                    {{ studentReviewErrors.comment }}
+                  </small>
+                </label>
+
+                <button
+                  type="submit"
+                  class="student-review-form__submit"
+                  :disabled="studentReviewSaving"
+                >
+                  {{
+                    studentReviewSaving
+                      ? 'Enviando…'
+                      : studentReview?.status === 'pending'
+                        ? 'Atualizar avaliação'
+                        : 'Enviar avaliação'
+                  }}
+                </button>
+              </form>
+            </template>
           </template>
         </div>
       </template>
@@ -1867,5 +2073,109 @@ onMounted(async () => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
+}
+
+.student-review-status {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.student-review-status--pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.student-review-status--approved {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.student-review-status--rejected {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.student-review-card {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 32rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #f9fafb;
+}
+
+.student-review-card__rating {
+  color: #c41e3a;
+  letter-spacing: 0.08em;
+}
+
+.student-review-card__comment {
+  margin: 0;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.student-review-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 32rem;
+}
+
+.student-review-form__rating {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.student-review-form__stars {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.student-review-form__star {
+  border: 0;
+  background: transparent;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: #d1d5db;
+  cursor: pointer;
+  padding: 0;
+}
+
+.student-review-form__star--active {
+  color: #c41e3a;
+}
+
+.student-review-form__field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.student-review-form__error {
+  color: #dc2626;
+}
+
+.student-review-form__submit {
+  justify-self: start;
+  padding: 0.625rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.student-review-form__submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 </style>

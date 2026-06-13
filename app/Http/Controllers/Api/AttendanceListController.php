@@ -189,7 +189,7 @@ class AttendanceListController extends Controller
             $attendanceList = AttendanceList::create([
                 'class_date' => $data['class_date'],
                 'class_id' => $data['class_id'],
-                'notes' => $data['notes'] ?? null,
+                'photo' => $data['photo'] ?? null,
             ]);
             $studentIds = collect($data['student_ids'])->unique()->values()->all();
 
@@ -243,7 +243,7 @@ class AttendanceListController extends Controller
             $attendanceList->update([
                 'class_date' => $data['class_date'],
                 'class_id' => $data['class_id'],
-                'notes' => $data['notes'] ?? null,
+                'photo' => $data['photo'] ?? null,
             ]);
 
             // Remover estudiantes antigos

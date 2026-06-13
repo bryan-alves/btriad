@@ -22,7 +22,7 @@ class StoreAttendanceListRequest extends FormRequest
                 'integer',
                 Rule::exists('classes', 'id')->where(fn ($query) => $query->where('tenant_id', CurrentTenant::id())),
             ],
-            'notes' => ['nullable', 'string'],
+            'photo' => ['nullable', 'string', 'max:500'],
             'student_ids' => ['required', 'array', 'min:1'],
             'student_ids.*' => [
                 'required',

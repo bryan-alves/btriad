@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceList;
+use App\Models\SiteReview;
 use App\Support\AcademyTrainingStats;
 use App\Support\CurrentTenant;
 use App\Models\StudentGraduation;
@@ -151,5 +152,68 @@ class AuthController extends Controller
         $student->update(['photo' => $path]);
 
         return response()->json($this->userPayload($user, $request), 200);
+    }
+
+    /**
+     * Avaliação do site enviada pelo aluno (se existir).
+     */
+    public function studentReview(Request $request)
+    {
+        $user = $request->user()->load('student');
+
+        if (! $user->student) {
+            return response()->json(null, 200);
+        }
+
+        $review = SiteReview::query()
+            ->where('student_id', $user->student->id)
+            ->first();
+
+        return response()->json($review, 200);
+    }
+
+    /**
+     * Cria ou atualiza a avaliação do site pelo aluno (fica pendente de aprovação).
+     */
+    public function storeStudentReview(Request $request)
+    {
+        $user = $request->user()->load('student');
+
+        if (! $user->student) {
+            return response()->json([
+                'message' => 'Nenhum aluno vinculado a esta conta.',
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'comment' => ['required', 'string', 'min:10', 'max:2000'],
+        ]);
+
+        $student = $user->student;
+        $existing = SiteReview::query()
+            ->where('student_id', $student->id)
+            ->first();
+
+        if ($existing && $existing->status === SiteReview::STATUS_APPROVED) {
+            return response()->json([
+                'message' => 'Sua avaliação já foi publicada no site.',
+            ], 422);
+        }
+
+        $review = SiteReview::query()->updateOrCreate(
+            ['student_id' => $student->id],
+            [
+                'author_name' => $student->name,
+                'author_photo_path' => $student->photo,
+                'rating' => $data['rating'],
+                'comment' => $data['comment'],
+                'status' => SiteReview::STATUS_PENDING,
+                'active' => false,
+                'sort_order' => $existing?->sort_order ?? 0,
+            ],
+        );
+
+        return response()->json($review->fresh(), $existing ? 200 : 201);
     }
 }

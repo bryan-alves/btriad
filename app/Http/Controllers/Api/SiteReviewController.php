@@ -14,6 +14,7 @@ class SiteReviewController extends Controller
     {
         return response()->json(
             SiteReview::query()
+                ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
                 ->orderBy('sort_order')
                 ->orderByDesc('id')
                 ->get(),
@@ -31,6 +32,8 @@ class SiteReviewController extends Controller
             null,
         );
 
+        $data['status'] = SiteReview::STATUS_APPROVED;
+
         $review = SiteReview::query()->create($data);
 
         return response()->json($review, 201);
@@ -47,6 +50,35 @@ class SiteReviewController extends Controller
         );
 
         $siteReview->update($data);
+
+        return response()->json($siteReview->fresh(), 200);
+    }
+
+    public function approve(SiteReview $siteReview)
+    {
+        $siteReview->load('student');
+
+        $updates = [
+            'status' => SiteReview::STATUS_APPROVED,
+            'active' => true,
+        ];
+
+        if ($siteReview->student) {
+            $updates['author_name'] = $siteReview->student->name;
+            $updates['author_photo_path'] = $siteReview->student->photo;
+        }
+
+        $siteReview->update($updates);
+
+        return response()->json($siteReview->fresh(), 200);
+    }
+
+    public function reject(SiteReview $siteReview)
+    {
+        $siteReview->update([
+            'status' => SiteReview::STATUS_REJECTED,
+            'active' => false,
+        ]);
 
         return response()->json($siteReview->fresh(), 200);
     }

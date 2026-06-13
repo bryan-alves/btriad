@@ -148,7 +148,19 @@
                                     <tr>
                                         <th scope="row" class="schedule-table__col-class">{{ $row['class_name'] ?? '' }}</th>
                                         @foreach ($row['times'] ?? [] as $time)
-                                            <td>{{ $time ?: '-' }}</td>
+                                            <td>
+                                                @if (is_array($time) && count($time) > 0)
+                                                    <div class="schedule-table__times">
+                                                        @foreach ($time as $slot)
+                                                            <span class="schedule-table__time">{{ $slot }}</span>
+                                                        @endforeach
+                                                    </div>
+                                                @elseif (is_string($time) && $time !== '' && $time !== '-')
+                                                    <span class="schedule-table__time">{{ $time }}</span>
+                                                @else
+                                                    -
+                                                @endif
+                                            </td>
                                         @endforeach
                                     </tr>
                                 @endforeach
@@ -168,23 +180,23 @@
                     <div class="reviews-grid">
                         @foreach ($reviews as $review)
                             <article class="review-card">
-                                <div class="review-card__rating" aria-label="{{ $review->rating }} de 5 estrelas">
-                                    {{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}
-                                </div>
-                                <p>{{ $review->comment }}</p>
-                                <div class="review-card__author">
+                                <div class="review-card__header">
                                     @if ($review->author_photo_url)
                                         <img
                                             class="review-card__photo"
                                             src="{{ $review->author_photo_url }}"
-                                            alt="Foto de {{ $review->author_name }}"
+                                            alt="Foto de {{ $review->short_author_name }}"
                                             width="48"
                                             height="48"
                                             loading="lazy"
                                             decoding="async">
                                     @endif
-                                    <strong>{{ $review->author_name }}</strong>
+                                    <strong>{{ $review->short_author_name }}</strong>
                                 </div>
+                                <div class="review-card__rating" aria-label="{{ $review->rating }} de 5 estrelas">
+                                    {{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}
+                                </div>
+                                <p class="review-card__comment">{{ $review->comment }}</p>
                             </article>
                         @endforeach
                     </div>

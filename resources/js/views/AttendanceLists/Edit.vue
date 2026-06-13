@@ -21,7 +21,7 @@ const searchFilter = ref("");
 const form = reactive({
   class_date: "",
   class_id: null,
-  notes: "",
+  photo: "",
   student_ids: []
 })
 
@@ -83,7 +83,7 @@ async function submit() {
     await axios.put(`/api/attendance-lists/${route.params.id}`, {
       class_date: form.class_date,
       class_id: form.class_id,
-      notes: form.notes || null,
+      photo: form.photo || null,
       student_ids: form.student_ids
     })
 
@@ -145,7 +145,7 @@ async function getAttendanceList() {
     // Preencher formulário
     form.class_date = trainingDateKey(data.class_date) ?? '';
     form.class_id = data.class_id;
-    form.notes = data.notes || "";
+    form.photo = data.photo || "";
     form.student_ids = data.students?.map(student => student.id) || [];
   } catch (error) {
     console.error(error);
@@ -174,8 +174,11 @@ onMounted(async () => {
           </div>
 
           <div>
-            <label for="notes" class="font-medium">Observações</label>
-            <textarea id="notes" v-model="form.notes" class="w-full p-2 border border-gray-300 rounded" placeholder="Observações sobre a aula"></textarea>
+            <FormInput
+              v-model="form.photo"
+              label="Foto"
+              placeholder="URL da foto do treino"
+            />
           </div>
         </div>
 

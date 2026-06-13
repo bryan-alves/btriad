@@ -17,14 +17,13 @@ const searchFilter = ref("");
 const form = reactive({
   class_date: "",
   class_id: null,
-  notes: "",
+  photo: "",
   student_ids: []
 })
 
 const filteredStudents = computed(() => {
   let filtered = students.value;
 
-  // Aplicar filtro de busca se houver
   if (searchFilter.value.trim()) {
     const query = searchFilter.value.toLowerCase();
     filtered = filtered.filter(student =>
@@ -32,7 +31,6 @@ const filteredStudents = computed(() => {
     );
   }
 
-  // Ordenar: alunos selecionados primeiro (ordem alfabética), depois não selecionados (ordem alfabética)
   return filtered.sort((a, b) => {
     const aSelected = form.student_ids.includes(a.id);
     const bSelected = form.student_ids.includes(b.id);
@@ -40,7 +38,6 @@ const filteredStudents = computed(() => {
     if (aSelected && !bSelected) return -1;
     if (!aSelected && bSelected) return 1;
 
-    // Dentro do mesmo grupo (selecionados ou não), ordenar alfabeticamente
     return a.name.localeCompare(b.name);
   });
 })
@@ -79,14 +76,14 @@ async function submit() {
     await axios.post('/api/attendance-lists', {
       class_date: form.class_date,
       class_id: Number(form.class_id),
-      notes: form.notes || null,
+      photo: form.photo || null,
       student_ids: form.student_ids
     })
 
     toastSuccess('Lista de presença criada com sucesso!')
     form.class_date = ""
     form.class_id = null
-    form.notes = ""
+    form.photo = ""
     form.student_ids = []
     selectedStudents.value = []
   } catch (e) {
@@ -138,8 +135,11 @@ onMounted(async () => {
           </div>
 
           <div>
-            <label for="notes" class="font-medium">Observações</label>
-            <textarea id="notes" v-model="form.notes" class="w-full p-2 border border-gray-300 rounded" placeholder="Observações sobre a aula"></textarea>
+            <FormInput
+              v-model="form.photo"
+              label="Foto"
+              placeholder="URL da foto do treino"
+            />
           </div>
         </div>
 

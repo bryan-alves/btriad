@@ -299,20 +299,20 @@ body {
     background: rgba(0, 0, 0, 0.2);
 }
 
+.review-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
 .review-card__rating {
     color: var(--site-primary-color, #c41e3a);
     letter-spacing: 0.08em;
 }
 
-.review-card p {
+.review-card__comment {
     margin: 0;
     line-height: 1.5;
-}
-
-.review-card__author {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
 }
 
 .review-card__photo {
@@ -382,6 +382,18 @@ body {
 
 .schedule-table--matrix tbody td {
     min-width: 5.5rem;
+    vertical-align: middle;
+}
+
+.schedule-table__times {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.schedule-table__time {
+    white-space: nowrap;
 }
 
 /* Localização */

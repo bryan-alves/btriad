@@ -74,7 +74,7 @@ class ClassScheduleSupport
      * @param  Collection<int, SchoolClass>|iterable<SchoolClass>  $classes
      * @return array{
      *     weekdays: array<int, array{weekday: int, label: string}>,
-     *     rows: array<int, array{class_name: string, times: array<int, string>}>
+     *     rows: array<int, array{class_name: string, times: array<int, array<int, string>>}>
      * }
      */
     public static function buildPublicSchedule(iterable $classes): array
@@ -114,8 +114,8 @@ class ClassScheduleSupport
             $times = [];
             foreach ($weekdays as $day) {
                 $times[] = isset($slotsByDay[$day])
-                    ? collect($slotsByDay[$day])->unique()->values()->join(', ')
-                    : '-';
+                    ? collect($slotsByDay[$day])->unique()->values()->all()
+                    : [];
             }
 
             $rows[] = [

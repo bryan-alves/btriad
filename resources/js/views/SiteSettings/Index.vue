@@ -16,7 +16,7 @@ type Domain = {
 
 type ScheduleMatrix = {
   weekdays: Array<{ weekday: number; label: string }>
-  rows: Array<{ class_name: string; times: string[] }>
+  rows: Array<{ class_name: string; times: string[][] }>
 }
 
 type ScheduleRow = ScheduleMatrix['rows'][number]
@@ -68,8 +68,10 @@ type SiteReview = {
   author_photo_url?: string | null
   rating: number
   comment: string
+  status: 'pending' | 'approved' | 'rejected'
   active: boolean
   sort_order: number
+  student_id?: number | null
 }
 
 type CarouselPending = {
@@ -84,6 +86,7 @@ const loading = ref(false)
 const scheduleLoading = ref(false)
 const saving = ref(false)
 const savingReview = ref(false)
+const reviewActionBusyId = ref<number | null>(null)
 const editingReviewId = ref<number | null>(null)
 const errors = ref<Record<string, string>>({})
 const reviewErrors = ref<Record<string, string>>({})
@@ -440,6 +443,41 @@ async function deleteReview(review: SiteReview) {
   await loadReviews()
 }
 
+function reviewStatusLabel(review: SiteReview) {
+  if (review.status === 'pending') return 'Pendente'
+  if (review.status === 'rejected') return 'Rejeitada'
+  if (review.active) return 'Ativa no site'
+  return 'Oculta'
+}
+
+async function approveReview(review: SiteReview) {
+  reviewActionBusyId.value = review.id
+  try {
+    await axios.post(`/api/site-reviews/${review.id}/approve`)
+    await loadReviews()
+    toastSuccess('Avaliação aprovada e publicada no site.')
+  } catch (error: any) {
+    toastDanger(error.response?.data?.message || 'Erro ao aprovar avaliação.')
+  } finally {
+    reviewActionBusyId.value = null
+  }
+}
+
+async function rejectReview(review: SiteReview) {
+  if (!confirm(`Rejeitar a avaliação de ${review.author_name}?`)) return
+
+  reviewActionBusyId.value = review.id
+  try {
+    await axios.post(`/api/site-reviews/${review.id}/reject`)
+    await loadReviews()
+    toastSuccess('Avaliação rejeitada.')
+  } catch (error: any) {
+    toastDanger(error.response?.data?.message || 'Erro ao rejeitar avaliação.')
+  } finally {
+    reviewActionBusyId.value = null
+  }
+}
+
 onMounted(async () => {
   await loadSettings()
   await loadReviews()
@@ -723,7 +761,12 @@ watch(activeTab, (tab) => {
         </form>
 
         <div class="review-list">
-          <article v-for="review in reviews" :key="review.id" class="review-list__item">
+          <article
+            v-for="review in reviews"
+            :key="review.id"
+            class="review-list__item"
+            :class="{ 'review-list__item--pending': review.status === 'pending' }"
+          >
             <div class="review-list__content">
               <div class="review-list__head">
                 <img
@@ -738,9 +781,31 @@ watch(activeTab, (tab) => {
                 </div>
               </div>
               <p>{{ review.comment }}</p>
-              <small>{{ review.active ? 'Ativa' : 'Oculta' }} · ordem {{ review.sort_order }}</small>
+              <small>
+                {{ reviewStatusLabel(review) }}
+                <template v-if="review.student_id"> · enviada por aluno</template>
+                · ordem {{ review.sort_order }}
+              </small>
             </div>
             <div class="review-list__actions">
+              <template v-if="review.status === 'pending'">
+                <button
+                  type="button"
+                  class="btn-primary"
+                  :disabled="reviewActionBusyId === review.id"
+                  @click="approveReview(review)"
+                >
+                  {{ reviewActionBusyId === review.id ? '…' : 'Aprovar' }}
+                </button>
+                <button
+                  type="button"
+                  class="btn-secondary"
+                  :disabled="reviewActionBusyId === review.id"
+                  @click="rejectReview(review)"
+                >
+                  Rejeitar
+                </button>
+              </template>
               <button type="button" class="btn-secondary" @click="editReview(review)">Editar</button>
               <button type="button" class="btn-danger" @click="deleteReview(review)">Excluir</button>
             </div>
@@ -776,8 +841,17 @@ watch(activeTab, (tab) => {
             <tbody>
               <tr v-for="row in classSchedule.rows" :key="row.class_name">
                 <th scope="row">{{ row.class_name }}</th>
-                <td v-for="(time, index) in row.times" :key="`${row.class_name}-${index}`">
-                  {{ time || '—' }}
+                <td v-for="(slots, index) in row.times" :key="`${row.class_name}-${index}`">
+                  <div v-if="slots.length" class="schedule-preview__times">
+                    <span
+                      v-for="(slot, slotIndex) in slots"
+                      :key="`${row.class_name}-${index}-${slotIndex}`"
+                      class="schedule-preview__time"
+                    >
+                      {{ slot }}
+                    </span>
+                  </div>
+                  <template v-else>—</template>
                 </td>
               </tr>
             </tbody>
@@ -957,9 +1031,21 @@ watch(activeTab, (tab) => {
   white-space: nowrap;
 }
 
+.schedule-preview__times {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.schedule-preview__time {
+  white-space: nowrap;
+}
+
 .carousel-editor {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 160px));
+  justify-content: start;
   gap: 0.75rem;
 }
 
@@ -967,12 +1053,14 @@ watch(activeTab, (tab) => {
   display: grid;
   gap: 0.5rem;
   margin: 0;
+  width: 100%;
+  max-width: 160px;
 }
 
 .carousel-editor__item img,
 .carousel-editor__placeholder {
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   object-fit: cover;
@@ -1040,6 +1128,11 @@ a.btn-secondary {
   p {
     margin: 0.35rem 0;
   }
+}
+
+.review-list__item--pending {
+  border-color: #fcd34d;
+  background: #fffbeb;
 }
 
 .review-list__content {
@@ -1118,10 +1211,6 @@ a.btn-secondary {
     grid-template-columns: 1fr;
   }
 
-  .carousel-editor {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .review-list__item {
     flex-direction: column;
   }
@@ -1137,9 +1226,4 @@ a.btn-secondary {
   }
 }
 
-@media (max-width: 480px) {
-  .carousel-editor {
-    grid-template-columns: 1fr;
-  }
-}
 </style>

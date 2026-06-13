@@ -183,23 +183,23 @@
                     <div class="reviews-grid">
                         @foreach ($reviews as $review)
                             <article class="review-card">
-                                <div class="review-card__rating" aria-label="{{ $review->rating }} de 5 estrelas">
-                                    {{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}
-                                </div>
-                                <p>{{ $review->comment }}</p>
-                                <div class="review-card__author">
+                                <div class="review-card__header">
                                     @if ($review->author_photo_url)
                                         <img
                                             class="review-card__photo"
                                             src="{{ $review->author_photo_url }}"
-                                            alt="Foto de {{ $review->author_name }}"
+                                            alt="Foto de {{ $review->short_author_name }}"
                                             width="48"
                                             height="48"
                                             loading="lazy"
                                             decoding="async">
                                     @endif
-                                    <strong>{{ $review->author_name }}</strong>
+                                    <strong>{{ $review->short_author_name }}</strong>
                                 </div>
+                                <div class="review-card__rating" aria-label="{{ $review->rating }} de 5 estrelas">
+                                    {{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}
+                                </div>
+                                <p class="review-card__comment">{{ $review->comment }}</p>
                             </article>
                         @endforeach
                     </div>

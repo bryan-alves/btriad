@@ -148,7 +148,17 @@ onMounted(async () => {
               <td>{{ formatDate(list.class_date) }}</td>
               <td>{{ list.school_class?.type === 'kids' ? 'Kids' : list.school_class?.type === 'adult' ? 'Adulto' : '—' }}</td>
               <td>{{ list.students?.length || 0 }}</td>
-              <td><a :href="list.notes">{{ list.notes }}</a></td>
+              <td>
+                <a
+                  v-if="list.photo"
+                  :href="list.photo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Ver foto
+                </a>
+                <span v-else>—</span>
+              </td>
               <td class="attendance-lists__actions">
                 <RouterLink :to="`/admin/attendance-lists/${list.id}/edit`">Editar</RouterLink>
                 <button

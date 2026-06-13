@@ -23,6 +23,8 @@ Route::middleware(['auth:sanctum', EnsureUserBelongsToTenant::class])->group(fun
     Route::get('/auth/student/trainings', [AuthController::class, 'studentTrainings']);
     Route::get('/auth/student/graduations', [AuthController::class, 'studentGraduations']);
     Route::post('/auth/student/photo', [AuthController::class, 'updateStudentPhoto']);
+    Route::get('/auth/student/review', [AuthController::class, 'studentReview']);
+    Route::post('/auth/student/review', [AuthController::class, 'storeStudentReview']);
 
     Route::get('students/{student}/trainings', [StudentController::class, 'trainings']);
     Route::get('students/{student}/graduations', [StudentController::class, 'graduations']);
@@ -52,5 +54,7 @@ Route::middleware(['auth:sanctum', EnsureUserBelongsToTenant::class])->group(fun
         Route::put('site-settings/{tenant}', [SiteSettingController::class, 'update']);
         Route::apiResource('site-reviews', SiteReviewController::class)
             ->only(['index', 'store', 'update', 'destroy']);
+        Route::post('site-reviews/{site_review}/approve', [SiteReviewController::class, 'approve']);
+        Route::post('site-reviews/{site_review}/reject', [SiteReviewController::class, 'reject']);
     });
 });
