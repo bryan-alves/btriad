@@ -39,9 +39,7 @@
 }
 
 .footer__social-link--inactive {
-  opacity: 0;
-  pointer-events: none;
-  user-select: none;
+  display: none;
 }
 
 .footer__social-links div:hover {
@@ -96,7 +94,9 @@
   .footer {
     display: grid;
     grid-template-columns: auto 1fr;
-    grid-template-areas: "logo meta";
+    grid-template-areas:
+      "logo links"
+      "logo copyright";
     align-items: center;
     gap: 10px 1rem;
     padding: 20px;
@@ -112,23 +112,20 @@
   }
 
   .footer__meta {
-    grid-area: meta;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 0.5rem;
-    text-align: right;
-    min-width: 0;
-  }
-
-  .footer p {
-    text-align: right;
+    display: contents;
   }
 
   .footer__social-links {
-    justify-content: flex-end;
+    grid-area: links;
+    justify-content: center;
     align-items: center;
+    align-self: center;
     min-height: 40px;
+  }
+
+  .footer p {
+    grid-area: copyright;
+    align-self: start;
+    text-align: right;
   }
 }
