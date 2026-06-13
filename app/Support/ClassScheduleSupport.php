@@ -72,9 +72,28 @@ class ClassScheduleSupport
 
     /**
      * @param  Collection<int, SchoolClass>|iterable<SchoolClass>  $classes
+     * @return Collection<int, SchoolClass>
+     */
+    public static function sortClassesForDisplay(iterable $classes): Collection
+    {
+        return collect($classes)
+            ->sort(function (SchoolClass $a, SchoolClass $b) {
+                $cmp = ((int) ($a->sort_order ?? 0)) <=> ((int) ($b->sort_order ?? 0));
+
+                if ($cmp !== 0) {
+                    return $cmp;
+                }
+
+                return strcasecmp((string) $a->name, (string) $b->name);
+            })
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, SchoolClass>|iterable<SchoolClass>  $classes
      * @return array{
      *     weekdays: array<int, array{weekday: int, label: string}>,
-     *     rows: array<int, array{class_name: string, times: array<int, array<int, string>>}>
+     *     rows: array<int, array{class_id: int, class_name: string, times: array<int, array<int, string>>}>
      * }
      */
     public static function buildPublicSchedule(iterable $classes): array
@@ -89,12 +108,8 @@ class ClassScheduleSupport
         );
 
         $rows = [];
-        $activeClasses = collect($classes)
-            ->filter(fn (SchoolClass $class) => $class->active)
-            ->sortBy([
-                fn (SchoolClass $class) => $class->sort_order ?? 0,
-                fn (SchoolClass $class) => mb_strtolower($class->name),
-            ]);
+        $activeClasses = self::sortClassesForDisplay($classes)
+            ->filter(fn (SchoolClass $class) => $class->active);
 
         foreach ($activeClasses as $class) {
             $slotsByDay = [];
