@@ -1,10 +1,14 @@
 <?php
 
+use App\Http\Controllers\AdminPwaController;
 use App\Http\Controllers\HomeController;
 use App\Support\CurrentTenant;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index']);
+Route::get('/admin/manifest.webmanifest', [AdminPwaController::class, 'manifest']);
+Route::get('/admin/pwa/icon-{size}.png', [AdminPwaController::class, 'icon'])
+    ->where('size', '180|192|512');
 Route::get('/admin/students', function () {
     return view('app', ['tenant' => CurrentTenant::get()]);
 });

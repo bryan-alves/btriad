@@ -195,7 +195,7 @@ onMounted(async () => {
                 <button type="button" class="student-form-photo-btn mt-2" @click="photoCropPickerRef?.pick()">
                   {{ displayPhotoUrl ? 'Alterar foto' : 'Adicionar foto' }}
                 </button>
-                <p class="text-xs text-gray-500 mt-1">Quadrado 1:1 · pode ficar em branco · até 2 MB</p>
+                <p class="text-xs text-gray-500 mt-1">Quadrado 1:1 · pode ficar em branco · até 5 MB</p>
               </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

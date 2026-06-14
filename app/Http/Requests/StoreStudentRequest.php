@@ -29,7 +29,7 @@ class StoreStudentRequest extends FormRequest
             'sex' => ['nullable', 'string', 'in:M,F,outro'],
 
             // Arquivo
-            'photo' => ['nullable', 'image', 'max:2048'],
+            'photo' => ['nullable', 'image', 'max:5120'],
 
             // JSONs
             'address' => ['nullable'],

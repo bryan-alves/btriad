@@ -3,10 +3,12 @@ import App from './App.vue'
 import router from './router';
 import axios from 'axios'
 import { applyTenantTheme } from './utils/publicTenant'
+import { registerAdminPwa } from './pwa/registerAdminPwa'
 
 const app = createApp(App)
 
 applyTenantTheme()
+registerAdminPwa()
 
 // Configurar axios com token do localStorage
 const token = localStorage.getItem('token')

@@ -20,7 +20,7 @@ const props = withDefaults(
     title: 'Ajustar imagem (1:1)',
     hint: 'Enquadre a imagem antes de confirmar.',
     filenamePrefix: 'imagem',
-    maxMb: 2,
+    maxMb: 5,
   },
 )
 

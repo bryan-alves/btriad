@@ -28,6 +28,10 @@ class HomeController extends Controller
 
         $schedule = SiteScheduleFromClasses::build($classes);
 
-        return view('tenants.index', compact('tenant', 'schedule'));
+        $view = view()->exists("tenants.{$tenant->slug}.index")
+            ? "tenants.{$tenant->slug}.index"
+            : 'tenants.index';
+
+        return view($view, compact('tenant', 'schedule'));
     }
 }

@@ -96,7 +96,7 @@ class SiteReviewController extends Controller
         $data = $request->validate([
             'author_name' => ['required', 'string', 'max:255'],
             'author_photo_path' => ['nullable', 'string', 'max:255'],
-            'author_photo' => ['nullable', 'image', 'max:2048'],
+            'author_photo' => ['nullable', 'image', 'max:5120'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
             'comment' => ['required', 'string', 'min:10', 'max:'.SiteReview::MAX_COMMENT_LENGTH],
             'active' => ['required', 'boolean'],

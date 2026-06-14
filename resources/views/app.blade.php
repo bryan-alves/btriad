@@ -7,15 +7,31 @@
         $academyName = $tenantSite?->academy_name ?? $currentTenant?->name ?? 'Academia';
         $faviconUrl = $tenantSite?->logo_url ?? $tenantSite?->nav_logo_url ?? asset('img/logo/triangulo.png');
         $isStudentPortal = request()->is('student', 'student/*');
+        $isAdminPortal = request()->is('admin', 'admin/*', 'login');
+        $themeColor = $tenantSite?->app_header_color ?? '#1b1b18';
         $appTitle = $isStudentPortal
             ? "Portal do Aluno | {$academyName}"
             : (request()->is('login') ? "Login | {$academyName}" : "Administração | {$academyName}");
+        $appDescription = $isAdminPortal
+            ? "Painel de gestão da {$academyName}."
+            : ($isStudentPortal
+                ? "Portal do aluno da {$academyName}."
+                : "{$academyName} — área do aluno e administração da academia.");
     @endphp
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-    <meta name="description" content="{{ $academyName }} — área do aluno e administração da academia.">
+    <meta name="description" content="{{ $appDescription }}">
     <link rel="icon" href="{{ $faviconUrl }}" type="image/png">
+    @if($isAdminPortal)
+        <link rel="manifest" href="{{ url('/admin/manifest.webmanifest') }}">
+        <meta name="theme-color" content="{{ $themeColor }}">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Gestão">
+        <link rel="apple-touch-icon" href="{{ \App\Support\TenantPwaIcons::appleTouchIconUrl() }}">
+    @endif
     <title>{{ $appTitle }}</title>
     @vite('resources/js/app.js')
 </head>

@@ -131,7 +131,7 @@ class AuthController extends Controller
     public function updateStudentPhoto(Request $request)
     {
         $request->validate([
-            'photo' => ['required', 'image', 'max:2048'],
+            'photo' => ['required', 'image', 'max:5120'],
         ]);
 
         $user = $request->user()->load('student');

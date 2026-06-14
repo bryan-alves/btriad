@@ -3,7 +3,7 @@ export const PHOTO_OUTPUT_SIZE = 512
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
-export function validatePhotoFile(file: File, maxMb = 2): string | null {
+export function validatePhotoFile(file: File, maxMb = 5): string | null {
   if (!ACCEPTED_TYPES.includes(file.type)) {
     return 'Use JPG, PNG, WebP ou GIF.'
   }

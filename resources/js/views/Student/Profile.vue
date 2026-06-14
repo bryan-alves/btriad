@@ -949,7 +949,7 @@ onMounted(async () => {
                   >
                     {{ adminDisplayPhotoUrl ? 'Alterar foto' : 'Adicionar foto' }}
                   </button>
-                  <p class="text-xs text-gray-500 mt-1">Quadrado 1:1 · JPG, PNG ou WebP · até 2 MB</p>
+                  <p class="text-xs text-gray-500 mt-1">Quadrado 1:1 · JPG, PNG ou WebP · até 5 MB</p>
                 </div>
               </div>
 
@@ -1096,7 +1096,7 @@ onMounted(async () => {
                     </button>
                     <p v-if="photoError" class="profile-photo-err">{{ photoError }}</p>
                     <p class="text-xs text-gray-500 mt-1">
-                      Quadrado 1:1 · JPG, PNG ou WebP · até 2 MB
+                      Quadrado 1:1 · JPG, PNG ou WebP · até 5 MB
                     </p>
                   </template>
                 </div>
