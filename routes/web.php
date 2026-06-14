@@ -57,6 +57,21 @@ Route::get('/admin/users/{id}', function () {
 Route::get('/admin/site-settings', function () {
     return view('app', ['tenant' => CurrentTenant::get()]);
 });
+Route::get('/admin/platform/clients', function () {
+    return view('app', ['tenant' => CurrentTenant::get()]);
+});
+Route::get('/admin/platform/tenants', function () {
+    return view('app', ['tenant' => CurrentTenant::get()]);
+});
+Route::get('/admin/platform/tenants/create', function () {
+    return view('app', ['tenant' => CurrentTenant::get()]);
+});
+Route::get('/admin/platform/tenants/{id}/edit', function () {
+    return view('app', ['tenant' => CurrentTenant::get()]);
+})->where('id', '[0-9]+');
+Route::get('/admin/platform/tenants/{tenantId}/site-settings', function () {
+    return view('app', ['tenant' => CurrentTenant::get()]);
+})->where('tenantId', '[0-9]+');
 
 Route::get('login', function () {
     return view('app', ['tenant' => CurrentTenant::get()]);

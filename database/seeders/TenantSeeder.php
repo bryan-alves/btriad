@@ -17,6 +17,8 @@ class TenantSeeder extends Seeder
             [
                 'name' => 'Equipe B-Triad Jiu-Jitsu',
                 'slug' => 'btriad',
+                'plan' => Tenant::PLAN_DIGITAL,
+                'is_platform' => false,
                 'domains' => ['localhost', '127.0.0.1', 'btriadjiujitsu.com.br'],
                 'site' => [
                     'academy_name' => 'Equipe B-Triad Jiu-Jitsu',
@@ -44,6 +46,8 @@ class TenantSeeder extends Seeder
             [
                 'name' => 'Tatameiro',
                 'slug' => 'tatameiro',
+                'plan' => Tenant::PLAN_DIGITAL,
+                'is_platform' => true,
                 'domains' => ['tatameiro.com.br', 'tatameiro.test'],
                 'site' => [
                     'academy_name' => 'Tatameiro',
@@ -67,6 +71,8 @@ class TenantSeeder extends Seeder
             [
                 'name' => 'AP Jiu-Jitsu',
                 'slug' => 'apjiujitsu',
+                'plan' => Tenant::PLAN_DIGITAL,
+                'is_platform' => false,
                 'domains' => ['apjiujitsu.com.br'],
                 'site' => [
                     'academy_name' => 'AP Jiu-Jitsu',
@@ -96,7 +102,11 @@ class TenantSeeder extends Seeder
         foreach ($tenants as $data) {
             $tenant = Tenant::updateOrCreate(
                 ['slug' => $data['slug']],
-                ['name' => $data['name']],
+                [
+                    'name' => $data['name'],
+                    'plan' => $data['plan'],
+                    'is_platform' => $data['is_platform'],
+                ],
             );
 
             foreach ($data['domains'] as $domain) {
@@ -108,9 +118,24 @@ class TenantSeeder extends Seeder
 
             TenantSite::updateOrCreate(
                 ['tenant_id' => $tenant->id],
-                $data['site'],
+                array_merge($data['site'], [
+                    'active' => $tenant->hasPublicSite(),
+                ]),
             );
         }
+
+        $tatameiroTenant = Tenant::where('slug', 'tatameiro')->firstOrFail();
+
+        User::withoutGlobalScope('tenant')->updateOrCreate(
+            ['username' => 'tatameiro'],
+            [
+                'tenant_id' => $tatameiroTenant->id,
+                'name' => 'Tatameiro Admin',
+                'role' => 'admin',
+                'password' => Hash::make('tatameiro@32145'),
+                'active' => true,
+            ],
+        );
 
         $apTenant = Tenant::where('slug', 'apjiujitsu')->firstOrFail();
 

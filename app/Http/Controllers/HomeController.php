@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PlatformClient;
 use App\Models\SchoolClass;
 use App\Models\SiteReview;
 use App\Support\CurrentTenant;
@@ -20,6 +21,10 @@ class HomeController extends Controller
                 ->orderByDesc('id'),
         ]);
 
+        if (! $tenant->hasPublicSite()) {
+            return redirect('/login');
+        }
+
         $classes = SchoolClass::query()
             ->where('active', true)
             ->orderBy('sort_order')
@@ -28,10 +33,19 @@ class HomeController extends Controller
 
         $schedule = SiteScheduleFromClasses::build($classes);
 
+        $platformClients = $tenant->is_platform
+            ? PlatformClient::query()
+                ->with(['clientTenant.site', 'clientTenant.domains'])
+                ->where('active', true)
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get()
+            : collect();
+
         $view = view()->exists("tenants.{$tenant->slug}.index")
             ? "tenants.{$tenant->slug}.index"
             : 'tenants.index';
 
-        return view($view, compact('tenant', 'schedule'));
+        return view($view, compact('tenant', 'schedule', 'platformClients'));
     }
 }

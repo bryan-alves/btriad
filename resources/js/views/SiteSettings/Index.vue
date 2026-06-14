@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import axios from 'axios'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import BaseLayout from '../../layouts/BaseLayout.vue'
 import FormInput from '../../components/form/FormInput.vue'
 import ImageCropField from '../../components/photo/ImageCropField.vue'
 import PhotoCropPicker from '../../components/photo/PhotoCropPicker.vue'
 import { CROP_PRESETS } from '../../utils/croppedPhotoFile'
 import { type SchoolClassRow } from '../../utils/classSchedule'
-import { setPublicTenant } from '../../utils/publicTenant'
 import { toastDanger, toastSuccess } from '../../utils/toast'
 
 type Domain = {
@@ -58,6 +58,7 @@ type TenantRow = {
   id: number
   name: string
   slug: string
+  plan?: 'app' | 'digital'
   domains: Domain[]
   site?: Site | null
 }
@@ -80,6 +81,8 @@ type CarouselPending = {
   previewUrl: string
 }
 
+const route = useRoute()
+const router = useRouter()
 const tenant = ref<TenantRow | null>(null)
 const reviews = ref<SiteReview[]>([])
 const classSchedule = ref<ScheduleMatrix>({ weekdays: [], rows: [] })
@@ -100,7 +103,35 @@ const footerLogoFile = ref<File | null>(null)
 const heroLogoFile = ref<File | null>(null)
 const carouselFiles = ref<CarouselPending[]>([])
 const carouselCropPickerRef = ref<InstanceType<typeof PhotoCropPicker> | null>(null)
-const activeTab = ref<'info' | 'visual' | 'reviews' | 'schedule'>('info')
+const activeTab = ref<'info' | 'visual' | 'reviews' | 'schedule' | 'system'>('info')
+
+const platformTenantId = computed(() => {
+  const id = Number(route.params.tenantId)
+  return Number.isFinite(id) ? id : null
+})
+
+const isPlatformMode = computed(() => platformTenantId.value !== null)
+
+const apiBase = computed(() => {
+  if (isPlatformMode.value) {
+    return `/api/platform/tenants/${platformTenantId.value}`
+  }
+
+  return '/api'
+})
+
+const planLabels: Record<'app' | 'digital', string> = {
+  app: 'Tatameiro App',
+  digital: 'Academia Digital',
+}
+
+const planLabel = computed(() => {
+  const plan = tenant.value?.plan
+  return plan ? planLabels[plan] : ''
+})
+
+const isAppPlan = computed(() => tenant.value?.plan === 'app')
+const hasPublicSite = computed(() => tenant.value?.plan === 'digital')
 
 const form = reactive({
   name: '',
@@ -178,6 +209,7 @@ function fillForm(site: TenantRow) {
   form.youtube = site.site?.youtube || ''
   form.address = site.site?.address || ''
   form.active = site.site?.active !== false
+  activeTab.value = site.plan === 'app' ? 'system' : 'info'
   logoFile.value = null
   navLogoFile.value = null
   footerLogoFile.value = null
@@ -247,8 +279,8 @@ async function loadClassSchedule() {
 
   try {
     const [scheduleRes, classesRes] = await Promise.all([
-      axios.get('/api/classes/schedule'),
-      axios.get('/api/classes'),
+      axios.get(`${apiBase.value}/classes/schedule`),
+      axios.get(`${apiBase.value}/classes`),
     ])
 
     const data = scheduleRes.data
@@ -271,11 +303,11 @@ async function persistClassOrder() {
   scheduleReordering.value = true
 
   try {
-    await axios.post('/api/classes/reorder', {
+    await axios.post(`${apiBase.value}/classes/reorder`, {
       order: classOrder.value.map((item) => item.id),
     })
 
-    const { data } = await axios.get('/api/classes/schedule')
+    const { data } = await axios.get(`${apiBase.value}/classes/schedule`)
     classSchedule.value = data?.rows
       ? (data as ScheduleMatrix)
       : { weekdays: [], rows: [] }
@@ -304,7 +336,7 @@ async function loadSettings() {
   loading.value = true
 
   try {
-    const { data } = await axios.get('/api/site-settings')
+    const { data } = await axios.get(`${apiBase.value}/site-settings`)
     fillForm(data)
   } catch (error) {
     console.error(error)
@@ -315,7 +347,7 @@ async function loadSettings() {
 }
 
 async function loadReviews() {
-  const { data } = await axios.get('/api/site-reviews')
+  const { data } = await axios.get(`${apiBase.value}/site-reviews`)
   reviews.value = Array.isArray(data) ? data : []
 }
 
@@ -333,53 +365,62 @@ async function submit() {
   payload.append('_method', 'PUT')
   appendPayload(payload, 'name', form.name)
   appendPayload(payload, 'academy_name', form.academy_name)
-  appendPayload(payload, 'page_title', form.page_title)
-  appendPayload(payload, 'hero_title', form.hero_title)
-  appendPayload(payload, 'hero_subtitle', form.hero_subtitle)
-  appendPayload(payload, 'primary_color', form.primary_color)
-  appendPayload(payload, 'header_color', form.header_color)
-  appendPayload(payload, 'background_color', form.background_color)
-  appendPayload(payload, 'trial_button_color', form.trial_button_color)
-  appendPayload(payload, 'portal_button_color', form.portal_button_color)
   appendPayload(payload, 'app_primary_color', form.app_primary_color)
   appendPayload(payload, 'app_header_color', form.app_header_color)
   appendPayload(payload, 'app_background_color', form.app_background_color)
   appendPayload(payload, 'app_login_background_color', form.app_login_background_color)
   appendPayload(payload, 'logo_path', form.logo_path)
-  appendPayload(payload, 'nav_logo_path', form.nav_logo_path)
-  appendPayload(payload, 'footer_logo_path', form.footer_logo_path)
-  appendPayload(payload, 'hero_logo_path', form.hero_logo_path)
-  appendPayload(payload, 'whatsapp', form.whatsapp)
-  appendPayload(payload, 'instagram', form.instagram)
-  appendPayload(payload, 'youtube', form.youtube)
-  appendPayload(payload, 'address', form.address)
-  appendPayload(payload, 'active', form.active ? 1 : 0)
-  payload.append('carousel_images', JSON.stringify(form.carousel_images))
+
+  if (hasPublicSite.value) {
+    appendPayload(payload, 'page_title', form.page_title)
+    appendPayload(payload, 'hero_title', form.hero_title)
+    appendPayload(payload, 'hero_subtitle', form.hero_subtitle)
+    appendPayload(payload, 'primary_color', form.primary_color)
+    appendPayload(payload, 'header_color', form.header_color)
+    appendPayload(payload, 'background_color', form.background_color)
+    appendPayload(payload, 'trial_button_color', form.trial_button_color)
+    appendPayload(payload, 'portal_button_color', form.portal_button_color)
+    appendPayload(payload, 'nav_logo_path', form.nav_logo_path)
+    appendPayload(payload, 'footer_logo_path', form.footer_logo_path)
+    appendPayload(payload, 'hero_logo_path', form.hero_logo_path)
+    appendPayload(payload, 'whatsapp', form.whatsapp)
+    appendPayload(payload, 'instagram', form.instagram)
+    appendPayload(payload, 'youtube', form.youtube)
+    appendPayload(payload, 'address', form.address)
+    appendPayload(payload, 'active', form.active ? 1 : 0)
+    payload.append('carousel_images', JSON.stringify(form.carousel_images))
+  }
 
   if (logoFile.value) {
     payload.append('logo', logoFile.value)
   }
 
-  if (navLogoFile.value) {
-    payload.append('nav_logo', navLogoFile.value)
-  }
+  if (hasPublicSite.value) {
+    if (navLogoFile.value) {
+      payload.append('nav_logo', navLogoFile.value)
+    }
 
-  if (footerLogoFile.value) {
-    payload.append('footer_logo', footerLogoFile.value)
-  }
+    if (footerLogoFile.value) {
+      payload.append('footer_logo', footerLogoFile.value)
+    }
 
-  if (heroLogoFile.value) {
-    payload.append('hero_logo', heroLogoFile.value)
-  }
+    if (heroLogoFile.value) {
+      payload.append('hero_logo', heroLogoFile.value)
+    }
 
-  carouselFiles.value.forEach((item) => {
-    payload.append('carousel_photos[]', item.file)
-  })
+    carouselFiles.value.forEach((item) => {
+      payload.append('carousel_photos[]', item.file)
+    })
+  }
 
   try {
-    const { data } = await axios.post(`/api/site-settings/${tenant.value.id}`, payload)
+    const { data } = await axios.post(
+      isPlatformMode.value
+        ? `${apiBase.value}/site-settings`
+        : `/api/site-settings/${tenant.value.id}`,
+      payload,
+    )
     fillForm(data)
-    setPublicTenant(data)
     toastSuccess('Configurações salvas com sucesso.')
   } catch (error: any) {
     if (error.response?.data?.errors) {
@@ -458,9 +499,9 @@ async function submitReview() {
   try {
     if (editingReviewId.value) {
       payload.append('_method', 'PUT')
-      await axios.post(`/api/site-reviews/${editingReviewId.value}`, payload)
+      await axios.post(`${apiBase.value}/site-reviews/${editingReviewId.value}`, payload)
     } else {
-      await axios.post('/api/site-reviews', payload)
+      await axios.post(`${apiBase.value}/site-reviews`, payload)
     }
 
     resetReviewForm()
@@ -486,7 +527,7 @@ async function submitReview() {
 async function deleteReview(review: SiteReview) {
   if (!confirm(`Remover a avaliação de ${review.author_name}?`)) return
 
-  await axios.delete(`/api/site-reviews/${review.id}`)
+  await axios.delete(`${apiBase.value}/site-reviews/${review.id}`)
   await loadReviews()
 }
 
@@ -500,7 +541,7 @@ function reviewStatusLabel(review: SiteReview) {
 async function approveReview(review: SiteReview) {
   reviewActionBusyId.value = review.id
   try {
-    await axios.post(`/api/site-reviews/${review.id}/approve`)
+    await axios.post(`${apiBase.value}/site-reviews/${review.id}/approve`)
     await loadReviews()
     toastSuccess('Avaliação aprovada e publicada no site.')
   } catch (error: any) {
@@ -515,7 +556,7 @@ async function rejectReview(review: SiteReview) {
 
   reviewActionBusyId.value = review.id
   try {
-    await axios.post(`/api/site-reviews/${review.id}/reject`)
+    await axios.post(`${apiBase.value}/site-reviews/${review.id}/reject`)
     await loadReviews()
     toastSuccess('Avaliação rejeitada.')
   } catch (error: any) {
@@ -527,8 +568,10 @@ async function rejectReview(review: SiteReview) {
 
 onMounted(async () => {
   await loadSettings()
-  await loadReviews()
-  await loadClassSchedule()
+  if (hasPublicSite.value) {
+    await loadReviews()
+    await loadClassSchedule()
+  }
 })
 
 watch(activeTab, (tab) => {
@@ -543,50 +586,116 @@ watch(activeTab, (tab) => {
     <p v-if="loading">Carregando site...</p>
 
     <div v-else-if="tenant" class="site-settings">
-      <div class="site-settings__tabs" role="tablist" aria-label="Configurações do site">
-        <button
-          type="button"
-          class="site-settings__tab"
-          :class="{ 'site-settings__tab--active': activeTab === 'info' }"
-          role="tab"
-          :aria-selected="activeTab === 'info'"
-          @click="activeTab = 'info'"
-        >
-          Informações do site
+      <div v-if="isPlatformMode" class="site-settings__toolbar">
+        <button type="button" class="btn-secondary" @click="router.push('/admin/platform/tenants')">
+          Voltar para academias
         </button>
-        <button
-          type="button"
-          class="site-settings__tab"
-          :class="{ 'site-settings__tab--active': activeTab === 'visual' }"
-          role="tab"
-          :aria-selected="activeTab === 'visual'"
-          @click="activeTab = 'visual'"
-        >
-          Visual
-        </button>
-        <button
-          type="button"
-          class="site-settings__tab"
-          :class="{ 'site-settings__tab--active': activeTab === 'reviews' }"
-          role="tab"
-          :aria-selected="activeTab === 'reviews'"
-          @click="activeTab = 'reviews'"
-        >
-          Avaliações
-        </button>
-        <button
-          type="button"
-          class="site-settings__tab"
-          :class="{ 'site-settings__tab--active': activeTab === 'schedule' }"
-          role="tab"
-          :aria-selected="activeTab === 'schedule'"
-          @click="activeTab = 'schedule'"
-        >
-          Dias e horários
-        </button>
+        <span v-if="planLabel" class="site-settings__plan">{{ planLabel }}</span>
+      </div>
+      <div v-else-if="planLabel" class="site-settings__toolbar">
+        <span class="site-settings__plan">{{ planLabel }}</span>
       </div>
 
-      <form v-if="activeTab === 'info'" class="site-settings__card" @submit.prevent="submit">
+      <div class="site-settings__tabs" role="tablist" aria-label="Configurações do site">
+        <button
+          v-if="isAppPlan"
+          type="button"
+          class="site-settings__tab"
+          :class="{ 'site-settings__tab--active': activeTab === 'system' }"
+          role="tab"
+          :aria-selected="activeTab === 'system'"
+          @click="activeTab = 'system'"
+        >
+          Identidade do sistema
+        </button>
+        <template v-if="hasPublicSite">
+          <button
+            type="button"
+            class="site-settings__tab"
+            :class="{ 'site-settings__tab--active': activeTab === 'info' }"
+            role="tab"
+            :aria-selected="activeTab === 'info'"
+            @click="activeTab = 'info'"
+          >
+            Informações do site
+          </button>
+          <button
+            type="button"
+            class="site-settings__tab"
+            :class="{ 'site-settings__tab--active': activeTab === 'visual' }"
+            role="tab"
+            :aria-selected="activeTab === 'visual'"
+            @click="activeTab = 'visual'"
+          >
+            Visual
+          </button>
+          <button
+            type="button"
+            class="site-settings__tab"
+            :class="{ 'site-settings__tab--active': activeTab === 'reviews' }"
+            role="tab"
+            :aria-selected="activeTab === 'reviews'"
+            @click="activeTab = 'reviews'"
+          >
+            Avaliações
+          </button>
+          <button
+            type="button"
+            class="site-settings__tab"
+            :class="{ 'site-settings__tab--active': activeTab === 'schedule' }"
+            role="tab"
+            :aria-selected="activeTab === 'schedule'"
+            @click="activeTab = 'schedule'"
+          >
+            Dias e horários
+          </button>
+        </template>
+      </div>
+
+      <form v-if="activeTab === 'system'" class="site-settings__card" @submit.prevent="submit">
+        <div class="site-settings__heading">
+          <div>
+            <h2>{{ tenant.name }}</h2>
+            <p>Domínio: {{ domains }}</p>
+            <p v-if="isAppPlan" class="site-settings__hint">Plano App — configure apenas o painel e o portal do aluno.</p>
+            <p v-else class="site-settings__hint">Plano Academia Digital — site público no domínio próprio da academia.</p>
+          </div>
+        </div>
+
+        <section class="site-settings__section">
+          <h3>Identidade</h3>
+          <div class="site-settings__grid">
+            <FormInput v-model="form.name" label="Nome interno" :error="errors.name" />
+            <FormInput v-model="form.academy_name" label="Nome exibido" :error="errors.academy_name" />
+          </div>
+
+          <ImageCropField
+            label="Logo do sistema (login e painel)"
+            :preview-url="tenant.site?.logo_url"
+            preview-class="image-crop-field__preview--app"
+            :preset="CROP_PRESETS.appLogo"
+            hint="Proporção 1:1 · login e menu lateral"
+            @cropped="onAppLogoCropped"
+            @error="onImageCropError"
+          />
+        </section>
+
+        <section class="site-settings__section site-settings__section--divider">
+          <h3>Visual do sistema interno</h3>
+          <div class="site-settings__grid site-settings__grid--colors">
+            <FormInput v-model="form.app_primary_color" type="color" label="Cor principal dos botões internos" :error="errors.app_primary_color" />
+            <FormInput v-model="form.app_header_color" type="color" label="Cor do header/menu interno" :error="errors.app_header_color" />
+            <FormInput v-model="form.app_background_color" type="color" label="Cor de fundo do painel" :error="errors.app_background_color" />
+            <FormInput v-model="form.app_login_background_color" type="color" label="Cor de fundo do login" :error="errors.app_login_background_color" />
+          </div>
+        </section>
+
+        <button type="submit" class="btn-primary" :disabled="saving">
+          {{ saving ? 'Salvando...' : 'Salvar identidade do sistema' }}
+        </button>
+      </form>
+
+      <form v-else-if="activeTab === 'info'" class="site-settings__card" @submit.prevent="submit">
         <div class="site-settings__heading">
           <div>
             <h2>{{ tenant.name }}</h2>
@@ -959,6 +1068,22 @@ watch(activeTab, (tab) => {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+}
+
+.site-settings__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.site-settings__plan {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .site-settings__tabs {

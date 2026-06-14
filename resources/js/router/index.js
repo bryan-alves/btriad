@@ -17,6 +17,9 @@ import ClassForm from '@/views/Classes/Form.vue'
 import UsersIndex from '@/views/Users/Index.vue'
 import UsersForm from '@/views/Users/Form.vue'
 import SiteSettingsIndex from '@/views/SiteSettings/Index.vue'
+import PlatformTenantsIndex from '@/views/Platform/Tenants/Index.vue'
+import PlatformTenantsForm from '@/views/Platform/Tenants/Form.vue'
+import PlatformClientsIndex from '@/views/Platform/Clients/Index.vue'
 import { getAppDocumentTitle } from '@/utils/publicTenant'
 
 const routes = [
@@ -156,6 +159,36 @@ const routes = [
     name: 'SiteSettingsIndex',
     component: SiteSettingsIndex,
     meta: { requiresAuth: true, roles: ['admin'], requiresSiteManager: true }
+  },
+  {
+    path: '/admin/platform/clients',
+    name: 'PlatformClientsIndex',
+    component: PlatformClientsIndex,
+    meta: { requiresAuth: true, roles: ['admin'], requiresPlatformAdmin: true }
+  },
+  {
+    path: '/admin/platform/tenants',
+    name: 'PlatformTenantsIndex',
+    component: PlatformTenantsIndex,
+    meta: { requiresAuth: true, roles: ['admin'], requiresPlatformAdmin: true }
+  },
+  {
+    path: '/admin/platform/tenants/create',
+    name: 'PlatformTenantsCreate',
+    component: PlatformTenantsForm,
+    meta: { requiresAuth: true, roles: ['admin'], requiresPlatformAdmin: true }
+  },
+  {
+    path: '/admin/platform/tenants/:id/edit',
+    name: 'PlatformTenantsEdit',
+    component: PlatformTenantsForm,
+    meta: { requiresAuth: true, roles: ['admin'], requiresPlatformAdmin: true }
+  },
+  {
+    path: '/admin/platform/tenants/:tenantId/site-settings',
+    name: 'PlatformTenantSiteSettings',
+    component: SiteSettingsIndex,
+    meta: { requiresAuth: true, roles: ['admin'], requiresPlatformAdmin: true }
   }
 ]
 
@@ -180,6 +213,10 @@ function canManageSites(user) {
   return isTruthyPermission(user?.can_manage_sites) || isTruthyPermission(user?.canManageSites)
 }
 
+function isPlatformAdmin(user) {
+  return isTruthyPermission(user?.is_platform_admin) || canManageSites(user)
+}
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   const user = getCurrentUser()
@@ -190,7 +227,10 @@ router.beforeEach((to, from, next) => {
 
   if (to.path === '/login') {
     if (isAuthenticated) {
-      return next(user.role === 'student' ? '/student/dashboard' : '/admin/students')
+      if (user.role === 'student') {
+        return next('/student/dashboard')
+      }
+      return next(isPlatformAdmin(user) ? '/admin/platform/tenants' : '/admin/students')
     }
     return next()
   }
@@ -200,6 +240,10 @@ router.beforeEach((to, from, next) => {
   }
 
   if (requiresAuth && allowedRoles.length && !allowedRoles.includes(user.role)) {
+    return next(user.role === 'student' ? '/student/dashboard' : '/admin/students')
+  }
+
+  if (requiresAuth && to.meta.requiresPlatformAdmin && !isPlatformAdmin(user)) {
     return next(user.role === 'student' ? '/student/dashboard' : '/admin/students')
   }
 

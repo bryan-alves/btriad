@@ -7,8 +7,10 @@
         $academyName = $site?->academy_name ?? 'Tatameiro';
         $pageTitle = $site?->page_title ?: 'Tatameiro | Gestão completa para academias de Jiu-Jitsu';
         $heroSubtitle = $site?->hero_subtitle ?: 'Gestão completa para academias de Jiu-Jitsu';
-        $logoUrl = $site?->logo_url ?? asset('tatameiro-logo.png');
+        $appLogoUrl = $site?->logo_url ?? asset('tatameiro-logo.png');
+        $heroLogoUrl = $site?->hero_logo_url ?? $site?->logo_url ?? asset('tatameiro-logo.png');
         $primaryColor = $site?->primary_color ?? '#e52521';
+        $demoUrl = 'https://wa.link/3nl8q1';
         $whatsapp = trim((string) ($site?->whatsapp ?? ''));
         $whatsappUrl = $whatsapp !== '' ? (str_starts_with($whatsapp, 'http') ? $whatsapp : 'https://wa.me/'.preg_replace('/\D/', '', $whatsapp)) : null;
     @endphp
@@ -25,15 +27,15 @@
     <meta property="og:description" content="{{ $heroSubtitle }}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url('/') }}">
-    <meta property="og:image" content="{{ url($logoUrl) }}">
+    <meta property="og:image" content="{{ url($heroLogoUrl) }}">
     <meta property="og:image:alt" content="Logotipo {{ $academyName }}">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $pageTitle }}">
     <meta name="twitter:description" content="{{ $heroSubtitle }}">
-    <meta name="twitter:image" content="{{ url($logoUrl) }}">
+    <meta name="twitter:image" content="{{ url($heroLogoUrl) }}">
 
-    <link rel="icon" href="{{ $logoUrl }}" type="image/png">
+    <link rel="icon" href="{{ $appLogoUrl }}" type="image/png">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
 
@@ -55,7 +57,7 @@
             'operatingSystem' => 'Web',
             'description' => $heroSubtitle,
             'url' => url('/'),
-            'image' => url($logoUrl),
+            'image' => url($heroLogoUrl),
         ],
     ],
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!}
@@ -140,6 +142,8 @@
             letter-spacing: 0.08em;
             text-decoration: none;
             color: var(--tm-white);
+            flex-shrink: 1;
+            min-width: 0;
         }
 
         .tm-header__brand span {
@@ -150,6 +154,15 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .tm-header .tm-btn {
+            white-space: nowrap;
+        }
+
+        .tm-btn__label--mobile {
+            display: none;
         }
 
         .tm-btn {
@@ -190,7 +203,7 @@
         }
 
         .tm-hero {
-            padding: 2rem 1.25rem 3rem;
+            padding: 2rem 1.25rem 0;
         }
 
         .tm-hero__inner {
@@ -215,7 +228,7 @@
         }
 
         .tm-section {
-            padding: 3rem 1.25rem;
+            padding: 3rem 1.25rem 0;
         }
 
         .tm-section__inner {
@@ -310,7 +323,7 @@
         }
 
         .tm-cta {
-            padding: 3rem 1.25rem 4rem;
+            padding: 3rem 1.25rem 0;
         }
 
         .tm-cta__box {
@@ -348,9 +361,243 @@
             color: var(--tm-white);
         }
 
-        @media (max-width: 640px) {
-            .tm-header__actions .tm-btn--ghost {
+        .tm-header__nav {
+            display: none;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .tm-header__nav a {
+            color: var(--tm-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .tm-header__nav a:hover {
+            color: var(--tm-white);
+        }
+
+        .tm-pricing {
+            padding-top: 1rem;
+        }
+
+        .tm-clients {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+            gap: 1rem;
+        }
+
+        .tm-client {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            min-height: 7rem;
+            padding: 1.25rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            text-decoration: none;
+            color: inherit;
+            transition: border-color 0.15s ease, transform 0.15s ease;
+        }
+
+        .tm-client:hover {
+            border-color: var(--tm-border);
+            transform: translateY(-2px);
+        }
+
+        .tm-client__logo {
+            width: min(100%, 9rem);
+            height: 3rem;
+            object-fit: contain;
+        }
+
+        .tm-client__name {
+            margin: 0;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--tm-muted);
+            text-align: center;
+        }
+
+        .tm-pricing__grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+            align-items: stretch;
+            max-width: 52rem;
+            margin: 0 auto;
+        }
+
+        .tm-plan {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 1.75rem 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1.25rem;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tm-plan--featured {
+            border-color: var(--tm-border);
+            background: linear-gradient(180deg, rgba(229, 37, 33, 0.14), rgba(255, 255, 255, 0.04));
+            box-shadow: 0 0 0 1px rgba(229, 37, 33, 0.15);
+        }
+
+        .tm-plan__badge {
+            position: absolute;
+            top: -0.65rem;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            background: var(--tm-red);
+            color: var(--tm-white);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .tm-plan__name {
+            margin: 0 0 0.35rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .tm-plan__url {
+            margin: 0 0 1.25rem;
+            font-size: 0.82rem;
+            color: var(--tm-muted);
+            line-height: 1.45;
+        }
+
+        .tm-plan__url code {
+            display: inline-block;
+            margin-top: 0.25rem;
+            padding: 0.2rem 0.45rem;
+            border-radius: 0.35rem;
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 0.78rem;
+            word-break: break-all;
+        }
+
+        .tm-plan__price {
+            margin: 0 0 0.25rem;
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .tm-plan__price small {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--tm-muted);
+        }
+
+        .tm-plan__annual {
+            margin: 0 0 1.25rem;
+            font-size: 0.82rem;
+            color: var(--tm-muted);
+        }
+
+        .tm-plan__features {
+            flex: 1;
+            margin: 0 0 1.5rem;
+            padding: 0;
+            list-style: none;
+        }
+
+        .tm-plan__features li {
+            position: relative;
+            padding: 0.45rem 0 0.45rem 1.35rem;
+            font-size: 0.92rem;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, 0.88);
+        }
+
+        .tm-plan__features li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.85rem;
+            width: 0.45rem;
+            height: 0.45rem;
+            border-radius: 999px;
+            background: var(--tm-red);
+        }
+
+        .tm-plan__features li.is-muted {
+            color: var(--tm-muted);
+        }
+
+        .tm-plan__features li.is-muted::before {
+            background: rgba(255, 255, 255, 0.22);
+        }
+
+        .tm-plan .tm-btn {
+            width: 100%;
+        }
+
+        .tm-pricing__note {
+            margin: 1.5rem auto 0;
+            max-width: 42rem;
+            text-align: center;
+            font-size: 0.88rem;
+            color: var(--tm-muted);
+            line-height: 1.55;
+        }
+
+        @media (min-width: 900px) {
+            .tm-header__nav {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .tm-pricing__grid {
+                grid-template-columns: 1fr;
+                max-width: 24rem;
+                margin: 0 auto;
+            }
+
+            .tm-plan--featured {
+                order: -1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .tm-header__inner {
+                padding: 0.75rem 1rem;
+                gap: 0.5rem;
+            }
+
+            .tm-header__brand {
+                font-size: 0.95rem;
+                letter-spacing: 0.06em;
+            }
+
+            .tm-header .tm-btn {
+                font-size: 0.8125rem;
+                padding: 0.5rem 0.85rem;
+                min-height: 2.5rem;
+            }
+
+            .tm-header .tm-btn .tm-btn__label--desktop {
                 display: none;
+            }
+
+            .tm-header .tm-btn .tm-btn__label--mobile {
+                display: inline;
             }
         }
     </style>
@@ -364,14 +611,22 @@
             <a href="{{ url('/') }}" class="tm-header__brand" title="{{ $academyName }} — página inicial">
                 TATA<span>MEIRO</span>
             </a>
+            <nav class="tm-header__nav" aria-label="Seções do site">
+                <a href="#recursos">Recursos</a>
+                <a href="#clientes">Clientes</a>
+                <a href="#planos">Planos</a>
+                <a href="#contato">Contato</a>
+            </nav>
             <div class="tm-header__actions">
-                <a href="{{ url('/login') }}" class="tm-btn tm-btn--ghost">Entrar</a>
                 @if ($whatsappUrl)
                     <a href="{{ $whatsappUrl }}" class="tm-btn tm-btn--primary" target="_blank" rel="noopener noreferrer">
                         Falar conosco
                     </a>
                 @else
-                    <a href="#contato" class="tm-btn tm-btn--primary">Solicitar demonstração</a>
+                    <a href="{{ $demoUrl }}" class="tm-btn tm-btn--primary" target="_blank" rel="noopener noreferrer">
+                        <span class="tm-btn__label--desktop">Solicitar demonstração</span>
+                        <span class="tm-btn__label--mobile">Demonstração</span>
+                    </a>
                 @endif
             </div>
         </div>
@@ -382,20 +637,15 @@
             <div class="tm-hero__inner">
                 <img
                     class="tm-hero__logo"
-                    src="{{ $logoUrl }}"
+                    src="{{ $heroLogoUrl }}"
                     alt="{{ $academyName }} — {{ $heroSubtitle }}"
                     decoding="async"
                 >
                 <h1 id="hero-heading" class="visually-hidden">{{ $academyName }}</h1>
                 <div class="tm-hero__actions">
-                    @if ($whatsappUrl)
-                        <a href="{{ $whatsappUrl }}" class="tm-btn tm-btn--primary" target="_blank" rel="noopener noreferrer">
-                            Solicitar demonstração
-                        </a>
-                    @else
-                        <a href="#contato" class="tm-btn tm-btn--primary">Solicitar demonstração</a>
-                    @endif
-                    <a href="{{ url('/login') }}" class="tm-btn tm-btn--ghost">Acessar painel</a>
+                    <a href="{{ $demoUrl }}" class="tm-btn tm-btn--primary" target="_blank" rel="noopener noreferrer">
+                        Solicitar demonstração
+                    </a>
                 </div>
             </div>
         </section>
@@ -462,7 +712,7 @@
                             <path d="M13 13h1"/>
                         </svg>
                         <h3 class="tm-feature__title">Site da academia</h3>
-                        <p class="tm-feature__text">Página pública com logo, horários, contato e identidade da equipe.</p>
+                        <p class="tm-feature__text">Página pública no domínio da equipe, com logo, horários, contato e identidade visual.</p>
                     </article>
                 </div>
             </div>
@@ -495,6 +745,110 @@
             </div>
         </section>
 
+        @if (($platformClients ?? collect())->isNotEmpty())
+            <section id="clientes" class="tm-section" aria-labelledby="clientes-heading">
+                <div class="tm-section__inner">
+                    <h2 id="clientes-heading" class="tm-section__heading">Academias no Tatameiro</h2>
+                    <p class="tm-section__intro">
+                        Equipes que já utilizam a plataforma para organizar a operação e a presença digital.
+                    </p>
+
+                    <div class="tm-clients">
+                        @foreach ($platformClients as $client)
+                            @if ($client->display_website_url)
+                                <a
+                                    href="{{ $client->display_website_url }}"
+                                    class="tm-client"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    @if ($client->logo_url)
+                                        <img
+                                            class="tm-client__logo"
+                                            src="{{ $client->logo_url }}"
+                                            alt="Logo {{ $client->name }}"
+                                            loading="lazy"
+                                            decoding="async"
+                                        >
+                                    @endif
+                                    <p class="tm-client__name">{{ $client->name }}</p>
+                                </a>
+                            @else
+                                <div class="tm-client">
+                                    @if ($client->logo_url)
+                                        <img
+                                            class="tm-client__logo"
+                                            src="{{ $client->logo_url }}"
+                                            alt="Logo {{ $client->name }}"
+                                            loading="lazy"
+                                            decoding="async"
+                                        >
+                                    @endif
+                                    <p class="tm-client__name">{{ $client->name }}</p>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <section id="planos" class="tm-section tm-pricing" aria-labelledby="planos-heading">
+            <div class="tm-section__inner">
+                <h2 id="planos-heading" class="tm-section__heading">Planos</h2>
+                <p class="tm-section__intro">
+                    Dois planos, decisão simples: quer só o app de gestão ou transformar sua academia em uma academia digital?
+                </p>
+
+                <div class="tm-pricing__grid">
+                    <article class="tm-plan">
+                        <h3 class="tm-plan__name">Tatameiro App</h3>
+                        <p class="tm-plan__url">
+                            Gestão completa no painel<br>
+                            <code>suaacademia.tatameiro.com.br</code>
+                        </p>
+                        <p class="tm-plan__price">R$ 99<small>/mês</small></p>
+                        <ul class="tm-plan__features">
+                            <li>Alunos, presença, graduações e ranking</li>
+                            <li>Portal do aluno</li>
+                            <li>Login personalizado com logo da academia</li>
+                            <li>Cores do painel e do login</li>
+                            <li class="is-muted">Sem site público</li>
+                            <li class="is-muted">Sem domínio exclusivo</li>
+                        </ul>
+                        @if ($whatsappUrl)
+                            <a href="{{ $whatsappUrl }}" class="tm-btn tm-btn--ghost" target="_blank" rel="noopener noreferrer">Começar</a>
+                        @else
+                            <a href="#contato" class="tm-btn tm-btn--ghost">Começar</a>
+                        @endif
+                    </article>
+
+                    <article class="tm-plan tm-plan--featured">
+                        <span class="tm-plan__badge">Mais popular</span>
+                        <h3 class="tm-plan__name">Academia Digital</h3>
+                        <p class="tm-plan__url">
+                            App + site no seu domínio<br>
+                            <code>suaacademia.com.br</code>
+                        </p>
+                        <p class="tm-plan__price">R$ 199<small>/mês</small></p>
+                        <ul class="tm-plan__features">
+                            <li>Tudo do Tatameiro App</li>
+                            <li>Domínio exclusivo: suaacademia.com.br</li>
+                            <li>Site da academia com identidade visual</li>
+                            <li>Horários, localização e CTA de aula experimental</li>
+                            <li>Galeria, avaliações e SEO básico</li>
+                            <li>Integração com redes sociais</li>
+                        </ul>
+                        <a href="{{ $demoUrl }}" class="tm-btn tm-btn--primary" target="_blank" rel="noopener noreferrer">Solicitar demonstração</a>
+                    </article>
+                </div>
+
+                <p class="tm-pricing__note">
+                    Sem limite de alunos. No plano Academia Digital, auxiliamos na configuração do DNS do domínio próprio.
+                </p>
+            </div>
+        </section>
+
         <section id="contato" class="tm-cta" aria-labelledby="contato-heading">
             <div class="tm-cta__box">
                 <h2 id="contato-heading" class="tm-cta__title">Pronto para profissionalizar sua academia?</h2>
@@ -507,9 +861,8 @@
                             Falar no WhatsApp
                         </a>
                     @else
-                        <a href="mailto:contato@tatameiro.com.br" class="tm-btn tm-btn--primary">contato@tatameiro.com.br</a>
+                        <a href="{{ $demoUrl }}" class="tm-btn tm-btn--primary" target="_blank" rel="noopener noreferrer">Fale Conosco</a>
                     @endif
-                    <a href="{{ url('/login') }}" class="tm-btn tm-btn--ghost">Entrar no painel</a>
                 </div>
             </div>
         </section>

@@ -12,7 +12,6 @@ const logoUrl = ref(getLogoUrl())
 onMounted(() => {
   try {
     user.value = JSON.parse(localStorage.getItem('user') || 'null')
-    console.log(user.value)
   } catch {
     user.value = null
   }
@@ -37,10 +36,19 @@ function isTruthyPermission(value) {
   return value === true || value === 1 || value === '1' || value === 'true'
 }
 
+const isPlatformAdmin = computed(() => (
+  isTruthyPermission(user.value?.is_platform_admin)
+))
+
 const canManageSites = computed(() => (
   isTruthyPermission(user.value?.can_manage_sites)
   || isTruthyPermission(user.value?.canManageSites)
 ))
+
+const siteMenuLabel = computed(() => {
+  const plan = user.value?.tenant?.plan
+  return plan === 'app' ? 'Identidade' : 'Site'
+})
 
 async function logout() {
   try {
@@ -65,6 +73,10 @@ async function logout() {
         <li><RouterLink to="/student/profile?tab=site-review">Avaliação</RouterLink></li>
         <li><RouterLink to="/student/ranking">Ranking</RouterLink></li>
       </template>
+      <template v-else-if="isPlatformAdmin">
+        <li><RouterLink to="/admin/platform/tenants">Academias</RouterLink></li>
+        <li><RouterLink to="/admin/platform/clients">Clientes</RouterLink></li>
+      </template>
       <template v-else-if="userRole">
         <li><RouterLink to="/admin/students">Alunos</RouterLink></li>
         <li><RouterLink to="/admin/ranking">Ranking</RouterLink></li>
@@ -72,7 +84,7 @@ async function logout() {
         <li><RouterLink to="/admin/student-graduations">Graduações</RouterLink></li>
         <li><RouterLink to="/admin/classes">Turmas</RouterLink></li>
         <li><RouterLink to="/admin/users">Usuários</RouterLink></li>
-        <li v-if="canManageSites"><RouterLink to="/admin/site-settings">Sites</RouterLink></li>
+        <li v-if="canManageSites"><RouterLink to="/admin/site-settings">{{ siteMenuLabel }}</RouterLink></li>
       </template>
     </ul>
     <button @click="logout" class="logout-button">
@@ -87,14 +99,6 @@ async function logout() {
   max-height: 120px;
   object-fit: contain;
   margin-bottom: 1rem;
-}
-
-.sidebar__title {
-  color: #fff;
-  font-size: 1.5rem;
-  text-align: center;
-  margin: 0 0 1rem;
-  flex-shrink: 0;
 }
 
 .sidebar ul {

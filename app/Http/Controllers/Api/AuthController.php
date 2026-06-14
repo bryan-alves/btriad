@@ -7,7 +7,9 @@ use App\Models\AttendanceList;
 use App\Models\SiteReview;
 use App\Support\AcademyTrainingStats;
 use App\Support\CurrentTenant;
+use App\Support\PlatformAdmin;
 use App\Models\StudentGraduation;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -16,9 +18,19 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    private function canManageSites(User $user, Request $request): bool
+    private function canManageSites(User $user): bool
     {
-        return $user->role === 'admin';
+        if ($user->role !== 'admin') {
+            return false;
+        }
+
+        if (PlatformAdmin::is($user)) {
+            return true;
+        }
+
+        $tenant = Tenant::query()->whereKey($user->tenant_id)->first();
+
+        return $tenant && ! $tenant->is_platform;
     }
 
     private function userPayload(User $user, Request $request): array
@@ -27,7 +39,8 @@ class AuthController extends Controller
 
         return array_merge($user->toArray(), [
             'tenant' => CurrentTenant::get(),
-            'can_manage_sites' => $this->canManageSites($user, $request),
+            'can_manage_sites' => $this->canManageSites($user),
+            'is_platform_admin' => PlatformAdmin::is($user),
         ]);
     }
 

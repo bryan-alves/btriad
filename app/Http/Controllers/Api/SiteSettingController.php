@@ -33,23 +33,51 @@ class SiteSettingController extends Controller
             ]);
         }
 
-        $data = $request->validate([
+        $data = $request->validate($this->validationRules($tenant));
+
+        $tenant->update([
+            'name' => $data['name'],
+        ]);
+
+        $existingSite = $tenant->site;
+        $siteAttributes = $this->buildSiteAttributes($request, $tenant, $data, $existingSite);
+
+        $site = TenantSite::query()->updateOrCreate(
+            ['tenant_id' => $tenant->id],
+            $siteAttributes,
+        );
+
+        return response()->json($tenant->fresh()->load(['domains', 'site']), 200);
+    }
+
+    private function validationRules(Tenant $tenant): array
+    {
+        $colorRule = ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'];
+
+        $shared = [
             'name' => ['required', 'string', 'max:255'],
             'academy_name' => ['required', 'string', 'max:255'],
+            'app_primary_color' => $colorRule,
+            'app_header_color' => $colorRule,
+            'app_background_color' => $colorRule,
+            'app_login_background_color' => $colorRule,
+            'logo_path' => ['nullable', 'string', 'max:255'],
+            'logo' => ['nullable', 'image', 'max:5120'],
+        ];
+
+        if ($tenant->isAppPlan()) {
+            return $shared;
+        }
+
+        return array_merge($shared, [
             'page_title' => ['nullable', 'string', 'max:255'],
             'hero_title' => ['nullable', 'string', 'max:255'],
             'hero_subtitle' => ['nullable', 'string'],
-            'primary_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'header_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'background_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'trial_button_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'portal_button_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'app_primary_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'app_header_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'app_background_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'app_login_background_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
-            'logo_path' => ['nullable', 'string', 'max:255'],
-            'logo' => ['nullable', 'image', 'max:5120'],
+            'primary_color' => $colorRule,
+            'header_color' => $colorRule,
+            'background_color' => $colorRule,
+            'trial_button_color' => $colorRule,
+            'portal_button_color' => $colorRule,
             'nav_logo_path' => ['nullable', 'string', 'max:255'],
             'nav_logo' => ['nullable', 'image', 'max:5120'],
             'footer_logo_path' => ['nullable', 'string', 'max:255'],
@@ -66,18 +94,36 @@ class SiteSettingController extends Controller
             'address' => ['nullable', 'string'],
             'active' => ['required', 'boolean'],
         ]);
+    }
 
-        $tenant->update([
-            'name' => $data['name'],
-        ]);
-
-        $existingSite = $tenant->site;
+    private function buildSiteAttributes(
+        Request $request,
+        Tenant $tenant,
+        array $data,
+        ?TenantSite $existingSite,
+    ): array {
         $logoPath = $this->resolveLogoPath(
             $request,
             'logo',
             $data['logo_path'] ?? null,
             $existingSite?->logo_path,
         );
+
+        $attributes = [
+            'academy_name' => $data['academy_name'],
+            'app_primary_color' => $data['app_primary_color'],
+            'app_header_color' => $data['app_header_color'],
+            'app_background_color' => $data['app_background_color'],
+            'app_login_background_color' => $data['app_login_background_color'],
+            'logo_path' => $logoPath ?: null,
+        ];
+
+        if ($tenant->isAppPlan()) {
+            return array_merge($attributes, [
+                'active' => false,
+            ]);
+        }
+
         $navLogoPath = $this->resolveLogoPath(
             $request,
             'nav_logo',
@@ -122,36 +168,25 @@ class SiteSettingController extends Controller
             $keptCarouselImages[] = $file->store('site-carousel', 'public');
         }
 
-        $site = TenantSite::query()->updateOrCreate(
-            ['tenant_id' => $tenant->id],
-            [
-                'academy_name' => $data['academy_name'],
-                'page_title' => $data['page_title'] ?? null,
-                'hero_title' => $data['hero_title'] ?? null,
-                'hero_subtitle' => $data['hero_subtitle'] ?? null,
-                'primary_color' => $data['primary_color'],
-                'header_color' => $data['header_color'],
-                'background_color' => $data['background_color'],
-                'trial_button_color' => $data['trial_button_color'],
-                'portal_button_color' => $data['portal_button_color'],
-                'app_primary_color' => $data['app_primary_color'],
-                'app_header_color' => $data['app_header_color'],
-                'app_background_color' => $data['app_background_color'],
-                'app_login_background_color' => $data['app_login_background_color'],
-                'logo_path' => $logoPath ?: null,
-                'nav_logo_path' => $navLogoPath ?: null,
-                'footer_logo_path' => $footerLogoPath ?: null,
-                'hero_logo_path' => $heroLogoPath ?: null,
-                'carousel_images' => $keptCarouselImages,
-                'whatsapp' => $data['whatsapp'] ?? null,
-                'instagram' => $data['instagram'] ?? null,
-                'youtube' => $data['youtube'] ?? null,
-                'address' => $data['address'] ?? null,
-                'active' => $data['active'],
-            ],
-        );
-
-        return response()->json($tenant->fresh()->load(['domains', 'site']), 200);
+        return array_merge($attributes, [
+            'page_title' => $data['page_title'] ?? null,
+            'hero_title' => $data['hero_title'] ?? null,
+            'hero_subtitle' => $data['hero_subtitle'] ?? null,
+            'primary_color' => $data['primary_color'],
+            'header_color' => $data['header_color'],
+            'background_color' => $data['background_color'],
+            'trial_button_color' => $data['trial_button_color'],
+            'portal_button_color' => $data['portal_button_color'],
+            'nav_logo_path' => $navLogoPath ?: null,
+            'footer_logo_path' => $footerLogoPath ?: null,
+            'hero_logo_path' => $heroLogoPath ?: null,
+            'carousel_images' => $keptCarouselImages,
+            'whatsapp' => $data['whatsapp'] ?? null,
+            'instagram' => $data['instagram'] ?? null,
+            'youtube' => $data['youtube'] ?? null,
+            'address' => $data['address'] ?? null,
+            'active' => $data['active'],
+        ]);
     }
 
     private function resolveLogoPath(
