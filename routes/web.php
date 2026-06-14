@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index']);
 Route::get('/admin/manifest.webmanifest', [AdminPwaController::class, 'manifest']);
+Route::get('/admin/pwa/icons/{size}', [AdminPwaController::class, 'icon'])
+    ->where('size', '180|192|512');
 Route::get('/admin/pwa/icon-{size}.png', [AdminPwaController::class, 'icon'])
     ->where('size', '180|192|512');
 Route::get('/admin/students', function () {
