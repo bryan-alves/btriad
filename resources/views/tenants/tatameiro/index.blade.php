@@ -7,8 +7,9 @@
         $academyName = $site?->academy_name ?? 'Tatameiro';
         $pageTitle = $site?->page_title ?: 'Tatameiro | Gestão completa para academias de Jiu-Jitsu';
         $heroSubtitle = $site?->hero_subtitle ?: 'Gestão completa para academias de Jiu-Jitsu';
-        $appLogoUrl = $site?->logo_url ?? asset('tatameiro-logo.png');
-        $heroLogoUrl = $site?->hero_logo_url ?? $site?->logo_url ?? asset('tatameiro-logo.png');
+        $appLogoUrl = $site?->logo_url ?? asset('tatameiro-app-logo.png');
+        $faviconUrl = $site?->nav_logo_url ?? asset('tatameiro-favicon.png');
+        $heroLogoUrl = $site?->hero_logo_url ?? $site?->logo_url ?? asset('tatameiro-app-logo.png');
         $primaryColor = $site?->primary_color ?? '#e52521';
         $demoUrl = 'https://wa.link/3nl8q1';
         $whatsapp = trim((string) ($site?->whatsapp ?? ''));
@@ -35,7 +36,7 @@
     <meta name="twitter:description" content="{{ $heroSubtitle }}">
     <meta name="twitter:image" content="{{ url($heroLogoUrl) }}">
 
-    <link rel="icon" href="{{ $appLogoUrl }}" type="image/png">
+    <link rel="icon" href="{{ $faviconUrl }}" type="image/png">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
 

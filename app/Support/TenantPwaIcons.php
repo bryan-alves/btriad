@@ -15,13 +15,24 @@ class TenantPwaIcons
 
     public static function appleTouchIconUrl(): string
     {
-        return self::iconUrl(180);
+        return self::appleTouchIconHref();
+    }
+
+    public static function appleTouchIconHref(): string
+    {
+        return url('/admin/pwa/icon-180.png');
     }
 
     /** @return list<array{src: string, sizes: string, type: string, purpose: string}> */
     public static function manifestIcons(): array
     {
         return [
+            [
+                'src' => self::iconUrl(180),
+                'sizes' => '180x180',
+                'type' => 'image/png',
+                'purpose' => 'any',
+            ],
             [
                 'src' => self::iconUrl(192),
                 'sizes' => '192x192',
@@ -50,11 +61,15 @@ class TenantPwaIcons
         }
 
         if (! extension_loaded('gd')) {
-            return self::fallbackResponse();
+            return self::fallbackResponse($size);
         }
 
         $sourcePath = self::resolveSourcePath();
         $png = self::renderPng($sourcePath, $size);
+
+        if ($png === '') {
+            return self::fallbackResponse($size);
+        }
 
         return response($png, 200, [
             'Content-Type' => 'image/png',
@@ -62,8 +77,20 @@ class TenantPwaIcons
         ]);
     }
 
-    private static function fallbackResponse(): Response
+    private static function fallbackResponse(int $size): Response
     {
+        if (extension_loaded('gd')) {
+            $sourcePath = self::resolveSourcePath();
+            $png = self::renderPng($sourcePath, $size);
+
+            if ($png !== '') {
+                return response($png, 200, [
+                    'Content-Type' => 'image/png',
+                    'Cache-Control' => 'public, max-age=86400',
+                ]);
+            }
+        }
+
         $path = self::resolveSourcePath();
 
         if (! is_file($path)) {
@@ -90,9 +117,13 @@ class TenantPwaIcons
 
     private static function resolveSourcePath(): string
     {
+        if (TatameiroBranding::is(CurrentTenant::get())) {
+            return public_path(TatameiroBranding::FAVICON);
+        }
+
         $site = CurrentTenant::get()?->site;
 
-        foreach ([$site?->logo_path, $site?->nav_logo_path] as $path) {
+        foreach ([$site?->nav_logo_path, $site?->logo_path] as $path) {
             $local = self::pathFromStoredLogo($path);
             if ($local !== null) {
                 return $local;
@@ -131,13 +162,16 @@ class TenantPwaIcons
         }
 
         $canvas = imagecreatetruecolor($size, $size);
-        imagesavealpha($canvas, true);
-        $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
-        imagefill($canvas, 0, 0, $transparent);
+        [$red, $green, $blue] = self::resolveBackgroundColor();
+        $background = imagecolorallocate($canvas, $red, $green, $blue);
+        imagefill($canvas, 0, 0, $background);
+        imagealphablending($canvas, true);
 
         $srcW = imagesx($source);
         $srcH = imagesy($source);
-        $scale = min($size / $srcW, $size / $srcH);
+        $padding = (int) round($size * 0.1);
+        $inner = $size - ($padding * 2);
+        $scale = min($inner / $srcW, $inner / $srcH);
         $newW = (int) round($srcW * $scale);
         $newH = (int) round($srcH * $scale);
         $dstX = (int) round(($size - $newW) / 2);
@@ -152,6 +186,27 @@ class TenantPwaIcons
         imagedestroy($canvas);
 
         return $png ?: '';
+    }
+
+    /** @return array{0: int, 1: int, 2: int} */
+    private static function resolveBackgroundColor(): array
+    {
+        $site = CurrentTenant::get()?->site;
+        $hex = ltrim((string) ($site?->app_header_color ?? '#1b1b18'), '#');
+
+        if (strlen($hex) === 3) {
+            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+        }
+
+        if (strlen($hex) !== 6 || ! ctype_xdigit($hex)) {
+            $hex = '1b1b18';
+        }
+
+        return [
+            hexdec(substr($hex, 0, 2)),
+            hexdec(substr($hex, 2, 2)),
+            hexdec(substr($hex, 4, 2)),
+        ];
     }
 
     /** @return \GdImage|false */

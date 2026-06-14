@@ -39,7 +39,18 @@ export function getAcademyName(): string {
 }
 
 export function getLogoUrl(): string {
-  return getPublicTenant()?.site?.logo_url || getPublicTenant()?.site?.nav_logo_url || ''
+  const tenant = getPublicTenant()
+  const logoUrl = tenant?.site?.logo_url || tenant?.site?.nav_logo_url
+
+  if (logoUrl) {
+    return logoUrl
+  }
+
+  if (tenant?.slug === 'tatameiro') {
+    return '/tatameiro-app-logo.png'
+  }
+
+  return ''
 }
 
 export function getAppDocumentTitle(path = typeof window !== 'undefined' ? window.location.pathname : ''): string {
@@ -59,16 +70,17 @@ export function getAppDocumentTitle(path = typeof window !== 'undefined' ? windo
 export function applyAppBranding(tenant = getPublicTenant()) {
   if (typeof document === 'undefined') return
 
-  const logoUrl = tenant?.site?.logo_url || tenant?.site?.nav_logo_url
-  if (logoUrl) {
+  const faviconUrl = tenant?.site?.nav_logo_url || tenant?.site?.logo_url
+    || (tenant?.slug === 'tatameiro' ? '/tatameiro-favicon.png' : null)
+  if (faviconUrl) {
     let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
     if (!link) {
       link = document.createElement('link')
       link.rel = 'icon'
       document.head.appendChild(link)
     }
-    link.href = logoUrl
-    link.type = logoUrl.endsWith('.ico') ? 'image/x-icon' : 'image/png'
+    link.href = faviconUrl
+    link.type = faviconUrl.endsWith('.ico') ? 'image/x-icon' : 'image/png'
   }
 
   document.title = getAppDocumentTitle()

@@ -2,10 +2,16 @@
 <html lang="pt-BR">
 <head>
     @php
+        use App\Support\PwaBranding;
+        use App\Support\TatameiroBranding;
+
         $currentTenant = $tenant ?? null;
         $tenantSite = $currentTenant?->site;
         $academyName = $tenantSite?->academy_name ?? $currentTenant?->name ?? 'Academia';
-        $faviconUrl = $tenantSite?->logo_url ?? $tenantSite?->nav_logo_url ?? asset('img/logo/triangulo.png');
+        $pwaShortName = PwaBranding::shortName($currentTenant, $tenantSite);
+        $appLogoUrl = TatameiroBranding::appLogoUrl($tenantSite, $currentTenant);
+        $faviconUrl = TatameiroBranding::faviconUrl($tenantSite, $currentTenant);
+        $appleTouchIconUrl = \App\Support\TenantPwaIcons::appleTouchIconHref();
         $isStudentPortal = request()->is('student', 'student/*');
         $isAdminPortal = request()->is('admin', 'admin/*', 'login');
         $themeColor = $tenantSite?->app_header_color ?? '#1b1b18';
@@ -29,15 +35,14 @@
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="apple-mobile-web-app-title" content="Gestão">
-        <link rel="apple-touch-icon" href="{{ \App\Support\TenantPwaIcons::appleTouchIconUrl() }}">
+        <meta name="apple-mobile-web-app-title" content="{{ $pwaShortName }}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ $appleTouchIconUrl }}">
     @endif
     <title>{{ $appTitle }}</title>
     @vite('resources/js/app.js')
 </head>
 <body>
     @php
-        $tenantLogoPath = $tenantSite?->logo_path;
         $appTenant = [
             'name' => $currentTenant?->name,
             'slug' => $currentTenant?->slug,
@@ -52,9 +57,9 @@
                 'app_header_color' => $tenantSite?->app_header_color,
                 'app_background_color' => $tenantSite?->app_background_color,
                 'app_login_background_color' => $tenantSite?->app_login_background_color,
-                'logo_path' => $tenantLogoPath,
-                'logo_url' => $tenantSite?->logo_url,
-                'nav_logo_url' => $tenantSite?->nav_logo_url,
+                'logo_path' => $tenantSite?->logo_path,
+                'logo_url' => $appLogoUrl,
+                'nav_logo_url' => $faviconUrl,
                 'footer_logo_url' => $tenantSite?->footer_logo_url,
                 'hero_logo_url' => $tenantSite?->hero_logo_url,
             ],

@@ -65,7 +65,9 @@ class TenantSeeder extends Seeder
                     'app_header_color' => '#0a0a0a',
                     'app_background_color' => '#f8fafc',
                     'app_login_background_color' => '#0a0a0a',
-                    'logo_path' => 'tatameiro-logo.png',
+                    'logo_path' => 'tatameiro-app-logo.png',
+                    'nav_logo_path' => 'tatameiro-favicon.png',
+                    'hero_logo_path' => 'tatameiro-app-logo.png',
                     'carousel_images' => [],
                     'schedule' => [],
                 ],
@@ -120,7 +122,7 @@ class TenantSeeder extends Seeder
                 );
             }
 
-            TenantSite::firstOrCreate(
+            TenantSite::updateOrCreate(
                 ['tenant_id' => $tenant->id],
                 array_merge($data['site'], [
                     'active' => $tenant->hasPublicSite(),

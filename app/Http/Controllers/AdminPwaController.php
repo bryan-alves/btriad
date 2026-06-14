@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\CurrentTenant;
+use App\Support\PwaBranding;
 use App\Support\TenantPwaIcons;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,12 +15,13 @@ class AdminPwaController extends Controller
         $tenant = CurrentTenant::get();
         $site = $tenant?->site;
         $academyName = $site?->academy_name ?? $tenant?->name ?? 'Academia';
+        $shortName = PwaBranding::shortName($tenant, $site);
         $themeColor = $site?->app_header_color ?? '#1b1b18';
         $backgroundColor = $site?->app_background_color ?? '#f3f4f6';
 
         return response()->json([
-            'name' => "Gestão — {$academyName}",
-            'short_name' => 'Gestão',
+            'name' => $shortName,
+            'short_name' => $shortName,
             'description' => "Painel de gestão da {$academyName}",
             'start_url' => '/admin/students',
             'scope' => '/',
