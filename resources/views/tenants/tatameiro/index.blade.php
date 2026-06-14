@@ -816,11 +816,7 @@
                             <li class="is-muted">Sem site público</li>
                             <li class="is-muted">Sem domínio exclusivo</li>
                         </ul>
-                        @if ($whatsappUrl)
-                            <a href="{{ $whatsappUrl }}" class="tm-btn tm-btn--ghost" target="_blank" rel="noopener noreferrer">Começar</a>
-                        @else
-                            <a href="#contato" class="tm-btn tm-btn--ghost">Começar</a>
-                        @endif
+                        <a href="{{ $demoUrl }}" class="tm-btn tm-btn--ghost" target="_blank" rel="noopener noreferrer">Começar</a>
                     </article>
 
                     <article class="tm-plan tm-plan--featured">
