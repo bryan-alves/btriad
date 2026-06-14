@@ -42,8 +42,8 @@ class HomeController extends Controller
                 ->get()
             : collect();
 
-        $view = view()->exists("tenants.{$tenant->slug}.index")
-            ? "tenants.{$tenant->slug}.index"
+        $view = $tenant->is_platform && view()->exists('tenants.tatameiro.index')
+            ? 'tenants.tatameiro.index'
             : 'tenants.index';
 
         return view($view, compact('tenant', 'schedule', 'platformClients'));

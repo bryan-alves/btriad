@@ -116,7 +116,7 @@ class TenantSeeder extends Seeder
                 );
             }
 
-            TenantSite::updateOrCreate(
+            TenantSite::firstOrCreate(
                 ['tenant_id' => $tenant->id],
                 array_merge($data['site'], [
                     'active' => $tenant->hasPublicSite(),
