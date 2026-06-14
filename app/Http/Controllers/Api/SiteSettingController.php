@@ -63,6 +63,8 @@ class SiteSettingController extends Controller
             'app_login_background_color' => $colorRule,
             'logo_path' => ['nullable', 'string', 'max:255'],
             'logo' => ['nullable', 'image', 'max:5120'],
+            'pwa_logo_path' => ['nullable', 'string', 'max:255'],
+            'pwa_logo' => ['nullable', 'image', 'max:5120'],
         ];
 
         if ($tenant->isAppPlan()) {
@@ -108,6 +110,12 @@ class SiteSettingController extends Controller
             $data['logo_path'] ?? null,
             $existingSite?->logo_path,
         );
+        $pwaLogoPath = $this->resolveOptionalLogoPath(
+            $request,
+            'pwa_logo',
+            $data['pwa_logo_path'] ?? null,
+            $existingSite?->pwa_logo_path,
+        );
 
         $attributes = [
             'academy_name' => $data['academy_name'],
@@ -116,6 +124,7 @@ class SiteSettingController extends Controller
             'app_background_color' => $data['app_background_color'],
             'app_login_background_color' => $data['app_login_background_color'],
             'logo_path' => $logoPath ?: null,
+            'pwa_logo_path' => $pwaLogoPath,
         ];
 
         if ($tenant->isAppPlan()) {
@@ -205,6 +214,32 @@ class SiteSettingController extends Controller
         }
 
         return $submittedPath ?? $existingPath;
+    }
+
+    private function resolveOptionalLogoPath(
+        Request $request,
+        string $fileKey,
+        ?string $submittedPath,
+        ?string $existingPath,
+    ): ?string {
+        if ($request->hasFile($fileKey)) {
+            $this->deleteStoredLogo($existingPath);
+
+            /** @var UploadedFile $file */
+            $file = $request->file($fileKey);
+
+            return $file->store('site-logos', 'public');
+        }
+
+        if ($submittedPath === null || $submittedPath === '') {
+            if ($existingPath !== null) {
+                $this->deleteStoredLogo($existingPath);
+            }
+
+            return null;
+        }
+
+        return $submittedPath;
     }
 
     private function deleteStoredLogo(?string $path): void

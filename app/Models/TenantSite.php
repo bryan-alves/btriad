@@ -23,6 +23,7 @@ class TenantSite extends Model
         'app_background_color',
         'app_login_background_color',
         'logo_path',
+        'pwa_logo_path',
         'nav_logo_path',
         'footer_logo_path',
         'hero_logo_path',
@@ -37,6 +38,7 @@ class TenantSite extends Model
 
     protected $appends = [
         'logo_url',
+        'pwa_logo_url',
         'nav_logo_url',
         'footer_logo_url',
         'hero_logo_url',
@@ -57,6 +59,11 @@ class TenantSite extends Model
     public function getLogoUrlAttribute(): ?string
     {
         return $this->logoAssetUrl($this->logo_path);
+    }
+
+    public function getPwaLogoUrlAttribute(): ?string
+    {
+        return $this->logoAssetUrl($this->pwa_logo_path);
     }
 
     public function getNavLogoUrlAttribute(): ?string

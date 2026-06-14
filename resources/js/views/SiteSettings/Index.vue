@@ -38,6 +38,8 @@ type Site = {
   app_login_background_color?: string
   logo_path?: string | null
   logo_url?: string | null
+  pwa_logo_path?: string | null
+  pwa_logo_url?: string | null
   nav_logo_path?: string | null
   nav_logo_url?: string | null
   footer_logo_path?: string | null
@@ -99,6 +101,7 @@ const errors = ref<Record<string, string>>({})
 const reviewErrors = ref<Record<string, string>>({})
 const imageCropError = ref('')
 const logoFile = ref<File | null>(null)
+const pwaLogoFile = ref<File | null>(null)
 const navLogoFile = ref<File | null>(null)
 const footerLogoFile = ref<File | null>(null)
 const heroLogoFile = ref<File | null>(null)
@@ -150,6 +153,7 @@ const form = reactive({
   app_background_color: '#f8fafc',
   app_login_background_color: '#333333',
   logo_path: '',
+  pwa_logo_path: '',
   nav_logo_path: '',
   footer_logo_path: '',
   hero_logo_path: '',
@@ -177,6 +181,12 @@ const editingAuthorPhotoUrl = ref<string | null>(null)
 const reviewPhotoFieldKey = ref(0)
 
 const primaryDomain = computed(() => tenant.value?.primary_domain || tenant.value?.domains[0]?.domain || '')
+const pwaLogoPreviewUrl = computed(() => (
+  tenant.value?.site?.pwa_logo_url
+  || tenant.value?.site?.logo_url
+  || ''
+))
+const usesCustomPwaLogo = computed(() => Boolean(tenant.value?.site?.pwa_logo_path || pwaLogoFile.value))
 const secondaryDomains = computed(() => {
   const primary = primaryDomain.value
   return tenant.value?.domains
@@ -208,6 +218,7 @@ function fillForm(site: TenantRow) {
   form.app_background_color = site.site?.app_background_color || '#f8fafc'
   form.app_login_background_color = site.site?.app_login_background_color || '#333333'
   form.logo_path = site.site?.logo_path || ''
+  form.pwa_logo_path = site.site?.pwa_logo_path || ''
   form.nav_logo_path = site.site?.nav_logo_path || ''
   form.footer_logo_path = site.site?.footer_logo_path || ''
   form.hero_logo_path = site.site?.hero_logo_path || ''
@@ -219,6 +230,7 @@ function fillForm(site: TenantRow) {
   form.active = site.site?.active !== false
   activeTab.value = site.plan === 'app' ? 'system' : 'info'
   logoFile.value = null
+  pwaLogoFile.value = null
   navLogoFile.value = null
   footerLogoFile.value = null
   heroLogoFile.value = null
@@ -234,6 +246,21 @@ function onImageCropError(message: string) {
 
 function onAppLogoCropped(file: File) {
   logoFile.value = file
+  imageCropError.value = ''
+}
+
+function onPwaLogoCropped(file: File) {
+  pwaLogoFile.value = file
+  imageCropError.value = ''
+}
+
+function clearPwaLogo() {
+  form.pwa_logo_path = ''
+  pwaLogoFile.value = null
+  if (tenant.value?.site) {
+    tenant.value.site.pwa_logo_path = null
+    tenant.value.site.pwa_logo_url = null
+  }
   imageCropError.value = ''
 }
 
@@ -378,6 +405,7 @@ async function submit() {
   appendPayload(payload, 'app_background_color', form.app_background_color)
   appendPayload(payload, 'app_login_background_color', form.app_login_background_color)
   appendPayload(payload, 'logo_path', form.logo_path)
+  appendPayload(payload, 'pwa_logo_path', form.pwa_logo_path)
 
   if (hasPublicSite.value) {
     appendPayload(payload, 'page_title', form.page_title)
@@ -401,6 +429,10 @@ async function submit() {
 
   if (logoFile.value) {
     payload.append('logo', logoFile.value)
+  }
+
+  if (pwaLogoFile.value) {
+    payload.append('pwa_logo', pwaLogoFile.value)
   }
 
   if (hasPublicSite.value) {
@@ -687,6 +719,30 @@ watch(activeTab, (tab) => {
             @cropped="onAppLogoCropped"
             @error="onImageCropError"
           />
+
+          <div class="site-settings__pwa-logo">
+            <ImageCropField
+              label="Logo do PWA (atalho no celular)"
+              :preview-url="pwaLogoPreviewUrl"
+              preview-class="image-crop-field__preview--app"
+              :preset="CROP_PRESETS.appLogo"
+              hint="Proporção 1:1 · ícone ao instalar o painel na tela inicial"
+              @cropped="onPwaLogoCropped"
+              @error="onImageCropError"
+            />
+            <p class="site-settings__hint">
+              {{ usesCustomPwaLogo ? 'Logo personalizado para o atalho no celular.' : 'Usando o logo do sistema por padrão.' }}
+            </p>
+            <button
+              v-if="usesCustomPwaLogo"
+              type="button"
+              class="btn-secondary site-settings__pwa-logo-reset"
+              @click="clearPwaLogo"
+            >
+              Usar logo do sistema
+            </button>
+          </div>
+          <small v-if="errors.pwa_logo">{{ errors.pwa_logo }}</small>
         </section>
 
         <section class="site-settings__section site-settings__section--divider">
@@ -814,9 +870,32 @@ watch(activeTab, (tab) => {
               @cropped="onAppLogoCropped"
               @error="onImageCropError"
             />
+            <div class="site-settings__pwa-logo">
+              <ImageCropField
+                label="Logo do PWA (atalho no celular)"
+                :preview-url="pwaLogoPreviewUrl"
+                preview-class="image-crop-field__preview--app"
+                :preset="CROP_PRESETS.appLogo"
+                hint="Proporção 1:1 · ícone ao instalar o painel na tela inicial"
+                @cropped="onPwaLogoCropped"
+                @error="onImageCropError"
+              />
+              <p class="site-settings__hint">
+                {{ usesCustomPwaLogo ? 'Logo personalizado para o atalho no celular.' : 'Usando o logo do sistema por padrão.' }}
+              </p>
+              <button
+                v-if="usesCustomPwaLogo"
+                type="button"
+                class="btn-secondary site-settings__pwa-logo-reset"
+                @click="clearPwaLogo"
+              >
+                Usar logo do sistema
+              </button>
+            </div>
           </div>
           <small v-if="imageCropError" class="site-settings__crop-error">{{ imageCropError }}</small>
           <small v-if="errors.logo">{{ errors.logo }}</small>
+          <small v-if="errors.pwa_logo">{{ errors.pwa_logo }}</small>
           <small v-if="errors.nav_logo">{{ errors.nav_logo }}</small>
           <small v-if="errors.footer_logo">{{ errors.footer_logo }}</small>
           <small v-if="errors.hero_logo">{{ errors.hero_logo }}</small>
@@ -1172,6 +1251,15 @@ watch(activeTab, (tab) => {
 .site-settings__section--divider {
   padding-top: 1.25rem;
   border-top: 1px solid #e5e7eb;
+}
+
+.site-settings__pwa-logo {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.site-settings__pwa-logo-reset {
+  justify-self: start;
 }
 
 .site-settings__grid {

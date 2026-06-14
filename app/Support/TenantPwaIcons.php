@@ -8,9 +8,14 @@ class TenantPwaIcons
 {
     private const ALLOWED_SIZES = [180, 192, 512];
 
+    public static function iconUrl(int $size): string
+    {
+        return url("/admin/pwa/icons/{$size}?v=".self::versionHash());
+    }
+
     public static function appleTouchIconHref(): string
     {
-        return self::staticIconUrl(180);
+        return self::iconUrl(180);
     }
 
     public static function appleTouchIconUrl(): string
@@ -29,13 +34,6 @@ class TenantPwaIcons
         ];
     }
 
-    public static function staticIconUrl(int $size): string
-    {
-        $path = self::staticIconPath($size);
-
-        return $path ? asset($path) : asset('pwa/apple-touch-icon.png');
-    }
-
     public static function response(int $size): Response
     {
         if (! in_array($size, self::ALLOWED_SIZES, true)) {
@@ -52,9 +50,9 @@ class TenantPwaIcons
             }
         }
 
-        $staticPath = self::staticIconAbsolutePath($size);
-        if ($staticPath !== null) {
-            return response()->file($staticPath, [
+        $fallbackPath = self::legacyFallbackAbsolutePath($size);
+        if ($fallbackPath !== null) {
+            return response()->file($fallbackPath, [
                 'Content-Type' => 'image/png',
                 'Cache-Control' => 'public, max-age=86400',
             ]);
@@ -67,41 +65,11 @@ class TenantPwaIcons
     private static function manifestEntry(int $size, string $purpose): array
     {
         return [
-            'src' => self::staticIconUrl($size),
+            'src' => self::iconUrl($size),
             'sizes' => "{$size}x{$size}",
             'type' => 'image/png',
             'purpose' => $purpose,
         ];
-    }
-
-    private static function staticIconPath(int $size): ?string
-    {
-        if (TatameiroBranding::is(CurrentTenant::get())) {
-            return match ($size) {
-                180, 192 => TatameiroBranding::FAVICON,
-                512 => TatameiroBranding::FAVICON,
-                default => TatameiroBranding::FAVICON,
-            };
-        }
-
-        return match ($size) {
-            180 => 'pwa/apple-touch-icon.png',
-            192 => 'pwa/icon-192.png',
-            512 => 'pwa/icon-512.png',
-            default => 'pwa/apple-touch-icon.png',
-        };
-    }
-
-    private static function staticIconAbsolutePath(int $size): ?string
-    {
-        $relative = self::staticIconPath($size);
-        if ($relative === null) {
-            return null;
-        }
-
-        $absolute = public_path($relative);
-
-        return is_file($absolute) ? $absolute : null;
     }
 
     private static function pngResponse(string $png): Response
@@ -112,21 +80,33 @@ class TenantPwaIcons
         ]);
     }
 
+    private static function versionHash(): string
+    {
+        $tenant = CurrentTenant::get();
+        $site = $tenant?->site;
+
+        return substr(md5(
+            ($tenant?->id ?? 0).'|'.
+            ($site?->pwa_logo_path ?? '').'|'.
+            ($site?->logo_path ?? '').'|'.
+            ($site?->nav_logo_path ?? '')
+        ), 0, 8);
+    }
+
     private static function resolveExistingSourcePath(): ?string
     {
+        $site = CurrentTenant::get()?->site;
         $candidates = [];
 
-        if (TatameiroBranding::is(CurrentTenant::get())) {
-            $candidates[] = public_path(TatameiroBranding::FAVICON);
-        }
-
-        $site = CurrentTenant::get()?->site;
-
-        foreach ([$site?->nav_logo_path, $site?->logo_path] as $path) {
+        foreach ([$site?->pwa_logo_path, $site?->logo_path, $site?->nav_logo_path] as $path) {
             $local = self::pathFromStoredLogo($path);
             if ($local !== null) {
                 $candidates[] = $local;
             }
+        }
+
+        if (TatameiroBranding::is(CurrentTenant::get())) {
+            $candidates[] = public_path(TatameiroBranding::FAVICON);
         }
 
         $candidates[] = public_path('logo.png');
@@ -140,6 +120,20 @@ class TenantPwaIcons
         }
 
         return null;
+    }
+
+    private static function legacyFallbackAbsolutePath(int $size): ?string
+    {
+        $relative = match ($size) {
+            180 => 'pwa/apple-touch-icon.png',
+            192 => 'pwa/icon-192.png',
+            512 => 'pwa/icon-512.png',
+            default => 'pwa/apple-touch-icon.png',
+        };
+
+        $absolute = public_path($relative);
+
+        return is_file($absolute) ? $absolute : null;
     }
 
     private static function pathFromStoredLogo(?string $path): ?string
@@ -167,8 +161,8 @@ class TenantPwaIcons
     {
         $source = self::loadImage($sourcePath);
         if ($source === false) {
-            $fallback = public_path('pwa/apple-touch-icon.png');
-            $source = is_file($fallback) ? self::loadImage($fallback) : false;
+            $fallback = self::legacyFallbackAbsolutePath($size);
+            $source = $fallback !== null ? self::loadImage($fallback) : false;
         }
 
         if ($source === false) {
