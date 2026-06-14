@@ -73,13 +73,23 @@
 
 .site-credit a {
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-decoration: none;
+  text-transform: uppercase;
+}
+
+.site-credit a span {
+  color: #e52521;
 }
 
 .site-credit a:hover {
-  color: var(--site-trial-button-color, #c41e3a);
+  color: #fff;
   text-decoration: underline;
+}
+
+.site-credit a:hover span {
+  color: #e52521;
 }
 
 @media (max-width: 899px) {
