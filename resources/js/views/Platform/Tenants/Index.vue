@@ -16,6 +16,7 @@ type TenantRow = {
   name: string
   slug: string
   plan: 'app' | 'digital'
+  primary_domain?: string | null
   domains: Domain[]
   site?: { academy_name?: string | null } | null
 }
@@ -52,7 +53,16 @@ async function loadTenants() {
 }
 
 function domainsLabel(tenant: TenantRow) {
-  return tenant.domains.map((domain) => domain.domain).join(', ')
+  const primary = tenant.primary_domain || tenant.domains[0]?.domain
+  const others = tenant.domains
+    .map((domain) => domain.domain)
+    .filter((domain) => domain !== primary)
+
+  if (!primary) {
+    return ''
+  }
+
+  return others.length ? `${primary} (+ ${others.join(', ')})` : primary
 }
 
 function openAdminForm(tenant: TenantRow) {

@@ -59,6 +59,7 @@ type TenantRow = {
   name: string
   slug: string
   plan?: 'app' | 'digital'
+  primary_domain?: string | null
   domains: Domain[]
   site?: Site | null
 }
@@ -175,7 +176,14 @@ const authorPhotoFile = ref<File | null>(null)
 const editingAuthorPhotoUrl = ref<string | null>(null)
 const reviewPhotoFieldKey = ref(0)
 
-const domains = computed(() => tenant.value?.domains.map((domain) => domain.domain).join(', ') || '')
+const primaryDomain = computed(() => tenant.value?.primary_domain || tenant.value?.domains[0]?.domain || '')
+const secondaryDomains = computed(() => {
+  const primary = primaryDomain.value
+  return tenant.value?.domains
+    .map((domain) => domain.domain)
+    .filter((domain) => domain !== primary)
+    .join(', ') || ''
+})
 const carouselCount = computed(() => form.carousel_images.length + carouselFiles.value.length)
 const carouselFull = computed(() => carouselCount.value >= 5)
 
@@ -656,7 +664,8 @@ watch(activeTab, (tab) => {
         <div class="site-settings__heading">
           <div>
             <h2>{{ tenant.name }}</h2>
-            <p>Domínio: {{ domains }}</p>
+            <p>Domínio principal: {{ primaryDomain }}</p>
+            <p v-if="secondaryDomains">Outros domínios: {{ secondaryDomains }}</p>
             <p v-if="isAppPlan" class="site-settings__hint">Plano App — configure apenas o painel e o portal do aluno.</p>
             <p v-else class="site-settings__hint">Plano Academia Digital — site público no domínio próprio da academia.</p>
           </div>
@@ -699,7 +708,8 @@ watch(activeTab, (tab) => {
         <div class="site-settings__heading">
           <div>
             <h2>{{ tenant.name }}</h2>
-            <p>Domínio atual: {{ domains }}</p>
+            <p>Domínio principal: {{ primaryDomain }}</p>
+            <p v-if="secondaryDomains">Outros domínios: {{ secondaryDomains }}</p>
           </div>
 
           <label class="site-settings__check">

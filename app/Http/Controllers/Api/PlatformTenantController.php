@@ -7,11 +7,11 @@ use App\Models\Domain;
 use App\Models\Tenant;
 use App\Models\TenantSite;
 use App\Models\User;
-use App\Support\PlatformAdmin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PlatformTenantController extends Controller
 {
@@ -37,20 +37,28 @@ class PlatformTenantController extends Controller
             ])],
             'domains' => ['required', 'array', 'min:1'],
             'domains.*' => ['required', 'string', 'max:255', 'distinct'],
+            'primary_domain' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $tenant = DB::transaction(function () use ($data) {
+        $normalizedDomains = $this->normalizeDomains($data['domains']);
+        $primaryDomain = $this->resolvePrimaryDomain(
+            $normalizedDomains,
+            $data['primary_domain'] ?? null,
+        );
+
+        $tenant = DB::transaction(function () use ($data, $normalizedDomains, $primaryDomain) {
             $tenant = Tenant::query()->create([
                 'name' => $data['name'],
                 'slug' => $data['slug'],
                 'plan' => $data['plan'],
                 'is_platform' => false,
+                'primary_domain' => $primaryDomain,
             ]);
 
-            foreach ($data['domains'] as $domain) {
+            foreach ($normalizedDomains as $domain) {
                 Domain::query()->create([
                     'tenant_id' => $tenant->id,
-                    'domain' => strtolower(trim($domain)),
+                    'domain' => $domain,
                 ]);
             }
 
@@ -86,19 +94,23 @@ class PlatformTenantController extends Controller
             ])],
             'domains' => ['required', 'array', 'min:1'],
             'domains.*' => ['required', 'string', 'max:255', 'distinct'],
+            'primary_domain' => ['nullable', 'string', 'max:255'],
         ]);
 
-        DB::transaction(function () use ($tenant, $data) {
+        $normalizedDomains = $this->normalizeDomains($data['domains']);
+        $primaryDomain = $this->resolvePrimaryDomain(
+            $normalizedDomains,
+            $data['primary_domain'] ?? null,
+            $tenant->primary_domain,
+        );
+
+        DB::transaction(function () use ($tenant, $data, $normalizedDomains, $primaryDomain) {
             $tenant->update([
                 'name' => $data['name'],
                 'slug' => $data['slug'],
                 'plan' => $data['plan'],
+                'primary_domain' => $primaryDomain,
             ]);
-
-            $normalizedDomains = collect($data['domains'])
-                ->map(fn (string $domain) => strtolower(trim($domain)))
-                ->unique()
-                ->values();
 
             Domain::query()
                 ->where('tenant_id', $tenant->id)
@@ -153,5 +165,55 @@ class PlatformTenantController extends Controller
         if ($tenant->is_platform) {
             abort(404, 'Tenant não encontrado.');
         }
+    }
+
+    /**
+     * @param  list<string>  $domains
+     * @return list<string>
+     */
+    private function normalizeDomains(array $domains): array
+    {
+        return collect($domains)
+            ->map(fn (string $domain) => strtolower(trim($domain)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $domains
+     */
+    private function resolvePrimaryDomain(array $domains, ?string $requested, ?string $current = null): string
+    {
+        if ($domains === []) {
+            throw ValidationException::withMessages([
+                'domains' => ['Informe ao menos um domínio.'],
+            ]);
+        }
+
+        $requested = $requested !== null ? strtolower(trim($requested)) : null;
+
+        if ($requested !== null && $requested !== '') {
+            if (! in_array($requested, $domains, true)) {
+                throw ValidationException::withMessages([
+                    'primary_domain' => ['O domínio principal deve estar na lista de domínios.'],
+                ]);
+            }
+
+            return $requested;
+        }
+
+        if ($current !== null && in_array($current, $domains, true)) {
+            return $current;
+        }
+
+        if (count($domains) === 1) {
+            return $domains[0];
+        }
+
+        throw ValidationException::withMessages([
+            'primary_domain' => ['Selecione o domínio principal.'],
+        ]);
     }
 }

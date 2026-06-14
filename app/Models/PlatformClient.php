@@ -60,13 +60,7 @@ class PlatformClient extends Model
             return null;
         }
 
-        $domain = $this->clientTenant?->domains?->first()?->domain;
-
-        if (! $domain) {
-            return null;
-        }
-
-        return str_starts_with($domain, 'http') ? $domain : 'https://'.$domain;
+        return $this->clientTenant?->publicWebsiteUrl();
     }
 
     private function publicAssetUrl(?string $path): ?string

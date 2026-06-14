@@ -20,6 +20,7 @@ class TenantSeeder extends Seeder
                 'plan' => Tenant::PLAN_DIGITAL,
                 'is_platform' => false,
                 'domains' => ['localhost', '127.0.0.1', 'btriadjiujitsu.com.br'],
+                'primary_domain' => 'btriadjiujitsu.com.br',
                 'site' => [
                     'academy_name' => 'Equipe B-Triad Jiu-Jitsu',
                     'page_title' => 'B-Triad Jiu-Jitsu | Aulas de jiu-jitsu para crianças e adultos',
@@ -49,6 +50,7 @@ class TenantSeeder extends Seeder
                 'plan' => Tenant::PLAN_DIGITAL,
                 'is_platform' => true,
                 'domains' => ['tatameiro.com.br', 'tatameiro.test'],
+                'primary_domain' => 'tatameiro.com.br',
                 'site' => [
                     'academy_name' => 'Tatameiro',
                     'page_title' => 'Tatameiro | Gestão completa para academias de Jiu-Jitsu',
@@ -74,6 +76,7 @@ class TenantSeeder extends Seeder
                 'plan' => Tenant::PLAN_DIGITAL,
                 'is_platform' => false,
                 'domains' => ['apjiujitsu.com.br'],
+                'primary_domain' => 'apjiujitsu.com.br',
                 'site' => [
                     'academy_name' => 'AP Jiu-Jitsu',
                     'page_title' => 'AP Jiu-Jitsu',
@@ -106,6 +109,7 @@ class TenantSeeder extends Seeder
                     'name' => $data['name'],
                     'plan' => $data['plan'],
                     'is_platform' => $data['is_platform'],
+                    'primary_domain' => $data['primary_domain'] ?? null,
                 ],
             );
 

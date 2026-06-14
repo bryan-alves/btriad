@@ -17,6 +17,7 @@ class Tenant extends Model
         'slug',
         'plan',
         'is_platform',
+        'primary_domain',
     ];
 
     protected $casts = [
@@ -58,5 +59,29 @@ class Tenant extends Model
             self::PLAN_APP => 'Tatameiro App',
             self::PLAN_DIGITAL => 'Academia Digital',
         ];
+    }
+
+    public function resolvedPrimaryDomain(): ?string
+    {
+        if ($this->primary_domain) {
+            return $this->primary_domain;
+        }
+
+        if ($this->relationLoaded('domains')) {
+            return $this->domains->first()?->domain;
+        }
+
+        return $this->domains()->orderBy('domain')->value('domain');
+    }
+
+    public function publicWebsiteUrl(): ?string
+    {
+        $domain = $this->resolvedPrimaryDomain();
+
+        if (! $domain) {
+            return null;
+        }
+
+        return str_starts_with($domain, 'http') ? $domain : 'https://'.$domain;
     }
 }
