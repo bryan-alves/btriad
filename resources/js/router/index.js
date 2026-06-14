@@ -21,6 +21,11 @@ import PlatformTenantsIndex from '@/views/Platform/Tenants/Index.vue'
 import PlatformTenantsForm from '@/views/Platform/Tenants/Form.vue'
 import PlatformClientsIndex from '@/views/Platform/Clients/Index.vue'
 import { getAppDocumentTitle } from '@/utils/publicTenant'
+import {
+  canManageSites,
+  getDefaultAuthenticatedRoute,
+  isPlatformAdmin,
+} from '@/utils/authRedirect'
 
 const routes = [
   {
@@ -205,18 +210,6 @@ function getCurrentUser() {
   }
 }
 
-function isTruthyPermission(value) {
-  return value === true || value === 1 || value === '1' || value === 'true'
-}
-
-function canManageSites(user) {
-  return isTruthyPermission(user?.can_manage_sites) || isTruthyPermission(user?.canManageSites)
-}
-
-function isPlatformAdmin(user) {
-  return isTruthyPermission(user?.is_platform_admin) || canManageSites(user)
-}
-
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   const user = getCurrentUser()
@@ -227,10 +220,7 @@ router.beforeEach((to, from, next) => {
 
   if (to.path === '/login') {
     if (isAuthenticated) {
-      if (user.role === 'student') {
-        return next('/student/dashboard')
-      }
-      return next(isPlatformAdmin(user) ? '/admin/platform/tenants' : '/admin/students')
+      return next(getDefaultAuthenticatedRoute(user))
     }
     return next()
   }

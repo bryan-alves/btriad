@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import FormInput from "../../components/form/FormInput.vue";
 import { getAcademyName, getLogoUrl } from '../../utils/publicTenant'
 import { toastDanger } from '../../utils/toast'
+import { getDefaultAuthenticatedRoute } from '../../utils/authRedirect'
 
 const academyName = getAcademyName()
 const logoUrl = getLogoUrl()
@@ -46,11 +47,7 @@ async function submit() {
     localStorage.setItem('user', JSON.stringify(data.user))
     axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
 
-    const redirectTo = data.user?.role === 'student'
-      ? '/student/dashboard'
-      : '/admin/students'
-
-    router.push(redirectTo)
+    router.push(getDefaultAuthenticatedRoute(data.user))
   } catch (e: any) {
     if (e.response?.data?.username) {
       errors.value.username = e.response.data.username[0]
